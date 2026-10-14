@@ -20,3 +20,4 @@ ui/dist/
 .env
 .DS_Store
 ui/*.tsbuildinfo
+vendor/npm-cache/_logs/

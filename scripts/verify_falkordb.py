@@ -52,7 +52,11 @@ def main():
 
     def betweenness():
         rows = q("CALL algo.betweenness({nodeLabels:['Supplier'], relationshipTypes:['SUPPLIES_TO']}) YIELD node, score RETURN node.id, score ORDER BY score DESC")
-        assert rows[0][0] == "S4", rows
+        # S1 -> ... -> S8 chain plus S1->S4 and S7->S4 (a cycle S4..S7). Directed betweenness puts the
+        # cycle members on top (S5 19, S4/S6 18); the source S1 and sink S8 score 0.
+        top3 = {r[0] for r in rows[:3]}
+        scores = dict(rows)
+        assert "S4" in top3 and scores["S1"] == 0 and scores["S8"] == 0, rows
     check("algo.betweenness(config map)", betweenness)
 
     check("algo.WCC -> componentId", lambda: q("CALL algo.WCC({nodeLabels:['Supplier'], relationshipTypes:['SUPPLIES_TO']}) YIELD node, componentId RETURN componentId, count(node)"))

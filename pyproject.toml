@@ -36,3 +36,5 @@ packages = ["ripple"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = ["slow: builds the full DataCo dataset (run with -m slow)"]
+addopts = "-m 'not slow' -p no:cacheprovider"
