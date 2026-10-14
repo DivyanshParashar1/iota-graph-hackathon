@@ -18,25 +18,14 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from ripple.ingest.dataco import OPEN_STATUSES, order_frame, read_raw  # noqa: E402
+from ripple.scenarios import load_scenarios, scenario_event  # noqa: E402  (YAML only)
 
 SYNTH = ROOT / "data" / "synthetic"
-SCENARIOS = ROOT / "data" / "scenarios"
-
-
-def load_scenarios() -> dict[str, dict]:
-    return {p.stem: yaml.safe_load(p.read_text()) for p in sorted(SCENARIOS.glob("*.yaml"))}
-
-
-def scenario_event(sc: dict, tenant: str) -> dict:
-    ev = dict(sc["event"])
-    ev.update((sc.get("tenant_overrides") or {}).get(tenant, {}))
-    return ev
 
 
 def _orders_and_lines(tenant: str, sample: list[int] | None):
@@ -74,8 +63,7 @@ def resolve_targets(ev: dict, tenant: str) -> list[str]:
 
 
 def ground_truth(scenario_id: str, tenant: str = "dataco", sample: list[int] | None = None) -> dict:
-    sc = load_scenarios()[scenario_id]
-    ev = scenario_event(sc, tenant)
+    ev = scenario_event(scenario_id, tenant)
     d = SYNTH / tenant
     orders, lines = _orders_and_lines(tenant, sample)
     targets = resolve_targets(ev, tenant)

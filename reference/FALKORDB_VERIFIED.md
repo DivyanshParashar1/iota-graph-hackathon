@@ -107,6 +107,10 @@ CALL algo.labelPropagation({nodeLabels: ['Supplier'], relationshipTypes: ['SUPPL
 MATCH (a:Supplier {id:'S1'}) CALL algo.BFS(a, 3, 'SUPPLIES_TO') YIELD nodes, edges
 ```
 
+* **Betweenness is sampled by default**: it uses `samplingSize: 32` random source nodes with a time-based seed, so
+  scores change between runs. Pass `samplingSize` larger than the node count (exact) and a fixed `samplingSeed`:
+  `algo.betweenness({nodeLabels: ['Supplier'], relationshipTypes: ['SUPPLIES_TO'], samplingSize: 100000, samplingSeed: 42})`.
+  (Found during the build session; the original smoke check failed intermittently because of this.)
 * Betweenness with `{}` includes every node in the graph (Chunks, Orders...). Always pass `nodeLabels` and
   `relationshipTypes`.
 * Betweenness respects edge direction. A planted chokepoint must sit *between* upstream and downstream suppliers

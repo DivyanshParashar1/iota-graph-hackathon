@@ -51,9 +51,10 @@ def main():
     check("algo.pageRank(label, relType)", lambda: q("CALL algo.pageRank('Supplier','SUPPLIES_TO') YIELD node, score RETURN node.id, score"))
 
     def betweenness():
-        rows = q("CALL algo.betweenness({nodeLabels:['Supplier'], relationshipTypes:['SUPPLIES_TO']}) YIELD node, score RETURN node.id, score ORDER BY score DESC")
-        # S1 -> ... -> S8 chain plus S1->S4 and S7->S4 (a cycle S4..S7). Directed betweenness puts the
-        # cycle members on top (S5 19, S4/S6 18); the source S1 and sink S8 score 0.
+        rows = q("CALL algo.betweenness({nodeLabels:['Supplier'], relationshipTypes:['SUPPLIES_TO'], samplingSize: 1000, samplingSeed: 1}) YIELD node, score RETURN node.id, score ORDER BY score DESC")
+        # S1 -> ... -> S8 chain plus S1->S4 and S7->S4 (a cycle S4..S7). Exact directed betweenness puts the
+        # cycle members on top; the source S1 and sink S8 score 0. Without samplingSize the procedure samples
+        # 32 random sources with a time-based seed, so scores vary run to run.
         top3 = {r[0] for r in rows[:3]}
         scores = dict(rows)
         assert "S4" in top3 and scores["S1"] == 0 and scores["S8"] == 0, rows
