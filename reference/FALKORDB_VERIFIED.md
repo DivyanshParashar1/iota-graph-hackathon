@@ -67,7 +67,9 @@ CALL db.idx.fulltext.queryNodes('Document', 'port') YIELD node, score RETURN nod
 * `UNWIND $rows AS r MERGE (o:Order {id: r.id}) SET o += r` works (r must not contain nested maps).
 * Pattern predicates work: `WHERE NOT (s)<-[:AFFECTS]-(:Disruption)`.
 * `EXISTS { MATCH ... }` subquery syntax is **not** supported. Use a pattern predicate or `OPTIONAL MATCH` + `IS NULL`.
-* `CALL { ... }` subqueries work. `FOREACH` works.
+* `CALL { ... }` subqueries work (including `WITH d` imports and `UNION` inside). `FOREACH` works.
+* **Trap:** a node returned by `CALL { ... UNION ... }` is not bound for a following pattern: `CALL {...} OPTIONAL MATCH
+  (k)-[:WITH]->(s)` matches every `k`. Pass it through `WITH DISTINCT s` first. (Found during the build session.)
 * `timestamp()` returns epoch ms. Store times as epoch-ms integers or ISO strings; compare consistently.
 
 ## Paths and routing

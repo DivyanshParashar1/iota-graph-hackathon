@@ -51,12 +51,17 @@ def match_event_to_entities(scope: TenantScope, event: dict) -> ToolResult:
                       queries, summary=f"Matched {desc}")
 
 
+def disruption_id_for(scope: TenantScope, event: dict, entity_ids: list[str]) -> str:
+    """Deterministic: the same event on the same entities is the same disruption (and incident)."""
+    return stable_id("DIS", scope.tenant_id, event.get("type"), sorted(entity_ids), event.get("started_at", ""))
+
+
 @logged_tool
 def create_disruption(scope: TenantScope, event: dict, entity_ids: list[str]) -> ToolResult:
     """MERGE a Disruption (deterministic id) that AFFECTS the matched entities."""
     if not entity_ids:
         raise ToolError("create_disruption needs entity_ids")
-    did = stable_id("DIS", scope.tenant_id, event.get("type"), sorted(entity_ids), event.get("started_at", ""))
+    did = disruption_id_for(scope, event, entity_ids)
     name = event.get("name") or f"{event.get('type', 'disruption').replace('_', ' ')}: " \
         f"{event.get('target_name') or event.get('target_id')}"
     rows = scope.ops.run("create_disruption", {
@@ -181,7 +186,8 @@ def blast_radius(scope: TenantScope, disruption_id: str | None = None, incident_
     if g.query("MATCH (i:Incident {id: $iid}) RETURN i.id AS id", {"iid": iid}):
         g.run("write_impacts", {"iid": iid, "rows": [{"id": o, "revenue": _money(t)} for o, t in orders]})
         g.run("set_incident_impact", {"iid": iid, "revenue": data["revenue_at_risk"], "orders": data["orders_at_risk"],
-                                      "customers": data["customers_affected"], "summary": summary})
+                                      "customers": data["customers_affected"], "summary": summary,
+                                      "parts": data.get("parts_impacted", [])})
         queries += ["write_impacts", "set_incident_impact"]
         nodes = [iid] + nodes
     data["highlight"] = {"nodes": nodes, "edges": [list(e) for e in edges]}

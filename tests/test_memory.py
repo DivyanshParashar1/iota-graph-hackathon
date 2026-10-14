@@ -57,3 +57,42 @@ def test_conversation_log(scope):
     conv = conversations(scope, "USR-alice")
     assert conv[0]["id"] == "CONV-1" and [m["role"] for m in conv[0]["messages"]] == ["user", "assistant"]
     assert conv[0]["messages"][1]["sources"][0]["doc_id"] == "DOC-CON-0001"
+
+
+def test_restart_recall_reuses_playbook(db_copy_path):
+    """Scenario A, close, restart (close the DB object, reopen the same file), scenario B recalls A."""
+    from ripple.agents.orchestrator import Orchestrator
+    from ripple.db import close_db, get_db
+    from ripple.tools.actions import approve_action, execute_action, list_actions
+    from ripple.tools.impact import get_incident
+    from ripple.tools.memory import close_incident
+
+    db = get_db(db_copy_path, mode="embedded")
+    s = TenantScope("dataco", db)
+    iid_a = Orchestrator(s, "scripted").run(scenario_event("port_closure_shanghai", "dataco"))
+    for a in list_actions(s, status="proposed", incident_id=iid_a):
+        approve_action(s, action_id=a["id"], user="USR-judge")
+        execute_action(s, action_id=a["id"])
+    closed = close_incident(s, incident_id=iid_a).data
+    assert closed["episode"]["outcome"] == "resolved"
+    assert closed["episode"]["playbook_id"] == "PB-port-closure"
+    assert closed["episode"]["playbook"]["uses"] == 7 and closed["episode"]["playbook"]["successes"] == 6
+    ep_a = closed["episode"]["episode_id"]
+    close_db(db)  # simulated restart: the embedded server stops, state is only in the .db file
+
+    db2 = get_db(db_copy_path, mode="embedded")
+    s2 = TenantScope("dataco", db2)
+    assert get_incident(s2, iid_a)["incident"]["status"] == "closed"
+    iid_b = Orchestrator(s2, "scripted").run(scenario_event("port_congestion_ningbo", "dataco"))
+    rec = get_incident(s2, iid_b)["incident"]
+    assert rec["recalled_episodes"][0] == ep_a
+    from ripple.agents.events import BUS
+
+    msg = next(e for e in BUS.history(iid_b) if e["agent"] == "sentinel" and e["kind"] == "message")
+    assert iid_a in msg["summary"]
+    assert rec["playbook_id"] == "PB-port-closure"
+    pb = get_playbook(s2, disruption_type="port_closure").data["playbook"]
+    assert pb["uses"] == 7 and pb["successes"] == 6
+    facts = facts_about(s2, subject_id="PORT-CNSHA").data["facts"]
+    assert facts and iid_a in facts[0]["object"]
+    close_db(db2)

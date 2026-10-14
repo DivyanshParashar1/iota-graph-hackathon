@@ -80,3 +80,11 @@ def full_db(tmp_path_factory):
     db.build_report = out
     yield db
     close_db(db)
+
+
+@pytest.fixture
+def db_copy_path(golden_path, tmp_path):
+    """A private copy of the golden DB file (not opened), for restart tests."""
+    p = tmp_path / "ripple.db"
+    shutil.copy(golden_path, p)
+    return p
