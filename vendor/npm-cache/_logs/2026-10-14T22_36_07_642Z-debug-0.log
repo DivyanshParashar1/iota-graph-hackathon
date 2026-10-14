@@ -1,0 +1,120 @@
+0 verbose cli /Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/bin/node /Users/divyanshparashar/.local/state/fnm_multishells/29141_1792016850155/bin/npm
+1 info using npm@10.9.8
+2 info using node@v22.23.2
+3 silly config load:file:/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/ui/.npmrc
+5 silly config load:file:/Users/divyanshparashar/.npmrc
+6 silly config load:file:/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/etc/npmrc
+7 verbose title npm cache add force-graph@1.52.0 fsevents@2.3.3 gensync@1.0.0-beta.2 graceful-fs@4.2.11 index-array-by@1.4.2 internmap@2.0.3 jerrypick@1.1.2 jiti@2.7.0 js-tokens@4.0.0 jsesc@3.1.0 json5@2.2.3 kapsule@1.16.3 leaflet@1.9.4 lightningcss-linux-x64-gnu@1.32.0 lightningcss@1.32.0 lodash-es@4.18.1 loose-envify@1.4.0 lru-cache@5.1.1 magic-string@0.30.21 ms@2.1.3
+8 verbose argv "cache" "add" "--cache" "../vendor/npm-cache" "force-graph@1.52.0" "fsevents@2.3.3" "gensync@1.0.0-beta.2" "graceful-fs@4.2.11" "index-array-by@1.4.2" "internmap@2.0.3" "jerrypick@1.1.2" "jiti@2.7.0" "js-tokens@4.0.0" "jsesc@3.1.0" "json5@2.2.3" "kapsule@1.16.3" "leaflet@1.9.4" "lightningcss-linux-x64-gnu@1.32.0" "lightningcss@1.32.0" "lodash-es@4.18.1" "loose-envify@1.4.0" "lru-cache@5.1.1" "magic-string@0.30.21" "ms@2.1.3"
+9 verbose logfile logs-max:10 dir:/Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_07_642Z-
+10 verbose logfile /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_07_642Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly cache add args [
+12 silly cache add   'force-graph@1.52.0',
+12 silly cache add   'fsevents@2.3.3',
+12 silly cache add   'gensync@1.0.0-beta.2',
+12 silly cache add   'graceful-fs@4.2.11',
+12 silly cache add   'index-array-by@1.4.2',
+12 silly cache add   'internmap@2.0.3',
+12 silly cache add   'jerrypick@1.1.2',
+12 silly cache add   'jiti@2.7.0',
+12 silly cache add   'js-tokens@4.0.0',
+12 silly cache add   'jsesc@3.1.0',
+12 silly cache add   'json5@2.2.3',
+12 silly cache add   'kapsule@1.16.3',
+12 silly cache add   'leaflet@1.9.4',
+12 silly cache add   'lightningcss-linux-x64-gnu@1.32.0',
+12 silly cache add   'lightningcss@1.32.0',
+12 silly cache add   'lodash-es@4.18.1',
+12 silly cache add   'loose-envify@1.4.0',
+12 silly cache add   'lru-cache@5.1.1',
+12 silly cache add   'magic-string@0.30.21',
+12 silly cache add   'ms@2.1.3'
+12 silly cache add ]
+13 silly cache add spec force-graph@1.52.0
+14 silly cache add spec fsevents@2.3.3
+15 silly cache add spec gensync@1.0.0-beta.2
+16 silly cache add spec graceful-fs@4.2.11
+17 silly cache add spec index-array-by@1.4.2
+18 silly cache add spec internmap@2.0.3
+19 silly cache add spec jerrypick@1.1.2
+20 silly cache add spec jiti@2.7.0
+21 silly cache add spec js-tokens@4.0.0
+22 silly cache add spec jsesc@3.1.0
+23 silly cache add spec json5@2.2.3
+24 silly cache add spec kapsule@1.16.3
+25 silly cache add spec leaflet@1.9.4
+26 silly cache add spec lightningcss-linux-x64-gnu@1.32.0
+27 silly cache add spec lightningcss@1.32.0
+28 silly cache add spec lodash-es@4.18.1
+29 silly cache add spec loose-envify@1.4.0
+30 silly cache add spec lru-cache@5.1.1
+31 silly cache add spec magic-string@0.30.21
+32 silly cache add spec ms@2.1.3
+33 http fetch GET 200 https://registry.npmjs.org/jsesc 104ms (cache miss)
+34 http fetch GET 200 https://registry.npmjs.org/json5 105ms (cache miss)
+35 http fetch GET 200 https://registry.npmjs.org/internmap 108ms (cache miss)
+36 http fetch GET 200 https://registry.npmjs.org/graceful-fs 109ms (cache miss)
+37 http fetch GET 200 https://registry.npmjs.org/fsevents 113ms (cache miss)
+38 http fetch GET 200 https://registry.npmjs.org/loose-envify 119ms (cache miss)
+39 http fetch GET 200 https://registry.npmjs.org/lightningcss-linux-x64-gnu 121ms (cache miss)
+40 http fetch GET 200 https://registry.npmjs.org/lightningcss 123ms (cache miss)
+41 http fetch GET 200 https://registry.npmjs.org/lodash-es 125ms (cache miss)
+42 http fetch GET 200 https://registry.npmjs.org/gensync 130ms (cache miss)
+43 http fetch GET 200 https://registry.npmjs.org/js-tokens 129ms (cache miss)
+44 http fetch GET 200 https://registry.npmjs.org/jiti 132ms (cache miss)
+45 http fetch GET 200 https://registry.npmjs.org/ms 143ms (cache miss)
+46 http fetch GET 200 https://registry.npmjs.org/jsesc/-/jsesc-3.1.0.tgz 41ms (cache miss)
+47 http fetch GET 200 https://registry.npmjs.org/internmap/-/internmap-2.0.3.tgz 42ms (cache miss)
+48 http fetch GET 200 https://registry.npmjs.org/magic-string 149ms (cache miss)
+49 http fetch GET 200 https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz 33ms (cache miss)
+50 http fetch GET 200 https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.11.tgz 52ms (cache miss)
+51 http fetch GET 200 https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz 53ms (cache miss)
+52 http fetch GET 200 https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz 47ms (cache miss)
+53 http fetch GET 200 https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 42ms (cache miss)
+54 http fetch GET 200 https://registry.npmjs.org/gensync/-/gensync-1.0.0-beta.2.tgz 65ms (cache miss)
+55 http fetch GET 200 https://registry.npmjs.org/jsesc 51ms (cache miss)
+56 http fetch GET 200 https://registry.npmjs.org/json5/-/json5-2.2.3.tgz 93ms (cache miss)
+57 http fetch GET 200 https://registry.npmjs.org/lru-cache 198ms (cache miss)
+58 http fetch GET 200 https://registry.npmjs.org/internmap 64ms (cache miss)
+59 http fetch GET 200 https://registry.npmjs.org/loose-envify 74ms (cache miss)
+60 http fetch GET 200 https://registry.npmjs.org/js-tokens 55ms (cache miss)
+61 http fetch GET 200 https://registry.npmjs.org/graceful-fs 97ms (cache miss)
+62 http fetch GET 200 https://registry.npmjs.org/ms 74ms (cache miss)
+63 http fetch GET 200 https://registry.npmjs.org/lightningcss/-/lightningcss-1.32.0.tgz 139ms (cache miss)
+64 http fetch GET 200 https://registry.npmjs.org/lru-cache/-/lru-cache-5.1.1.tgz 66ms (cache miss)
+65 http fetch GET 200 https://registry.npmjs.org/gensync 73ms (cache miss)
+66 http fetch GET 200 https://registry.npmjs.org/fsevents 110ms (cache miss)
+67 http fetch GET 200 https://registry.npmjs.org/magic-string/-/magic-string-0.30.21.tgz 145ms (cache miss)
+68 http fetch GET 200 https://registry.npmjs.org/json5 99ms (cache miss)
+69 http fetch GET 200 https://registry.npmjs.org/lodash-es/-/lodash-es-4.18.1.tgz 193ms (cache miss)
+70 http fetch GET 200 https://registry.npmjs.org/leaflet 330ms (cache miss)
+71 http fetch GET 200 https://registry.npmjs.org/index-array-by 335ms (cache miss)
+72 http fetch GET 200 https://registry.npmjs.org/jerrypick 336ms (cache miss)
+73 http fetch GET 200 https://registry.npmjs.org/kapsule 347ms (cache miss)
+74 http fetch GET 200 https://registry.npmjs.org/jerrypick/-/jerrypick-1.1.2.tgz 32ms (cache miss)
+75 http fetch GET 200 https://registry.npmjs.org/index-array-by/-/index-array-by-1.4.2.tgz 38ms (cache miss)
+76 http fetch GET 200 https://registry.npmjs.org/lodash-es 57ms (cache miss)
+77 http fetch GET 200 https://registry.npmjs.org/kapsule/-/kapsule-1.16.3.tgz 37ms (cache miss)
+78 http fetch GET 200 https://registry.npmjs.org/magic-string 94ms (cache miss)
+79 http fetch GET 200 https://registry.npmjs.org/jerrypick 29ms (cache miss)
+80 http fetch GET 200 https://registry.npmjs.org/lru-cache 150ms (cache miss)
+81 http fetch GET 200 https://registry.npmjs.org/kapsule 57ms (cache miss)
+82 http fetch GET 200 https://registry.npmjs.org/force-graph 455ms (cache miss)
+83 http fetch GET 200 https://registry.npmjs.org/lightningcss 259ms (cache miss)
+84 http fetch GET 200 https://registry.npmjs.org/jiti/-/jiti-2.7.0.tgz 428ms (cache miss)
+85 http fetch GET 200 https://registry.npmjs.org/jiti 86ms (cache miss)
+86 http fetch GET 200 https://registry.npmjs.org/index-array-by 274ms (cache miss)
+87 http fetch GET 200 https://registry.npmjs.org/leaflet/-/leaflet-1.9.4.tgz 564ms (cache miss)
+88 http fetch GET 200 https://registry.npmjs.org/leaflet 45ms (cache miss)
+89 http fetch GET 200 https://registry.npmjs.org/force-graph/-/force-graph-1.52.0.tgz 784ms (cache miss)
+90 http fetch GET 200 https://registry.npmjs.org/force-graph 80ms (cache miss)
+91 http fetch GET 200 https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.32.0.tgz 1499ms (cache miss)
+92 http fetch GET 200 https://registry.npmjs.org/lightningcss-linux-x64-gnu 28ms (cache miss)
+93 verbose cwd /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/ui
+94 verbose os Darwin 27.0.0
+95 verbose node v22.23.2
+96 verbose npm  v10.9.8
+97 verbose exit 0
+98 info ok

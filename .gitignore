@@ -1,0 +1,22 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+# embedded falkordb data files
+*.db
+*.db.settings
+*.rdb
+var/
+# data: the gzipped DataCo CSV is committed, the raw 96MB CSV is not
+data/raw/*.csv
+!data/raw/DescriptionDataCoSupplyChain.csv
+# node
+ui/node_modules/
+ui/dist/
+# env
+.env
+.DS_Store
+ui/*.tsbuildinfo

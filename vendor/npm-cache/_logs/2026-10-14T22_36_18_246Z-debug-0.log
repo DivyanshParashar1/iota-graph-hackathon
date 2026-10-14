@@ -1,0 +1,39 @@
+0 verbose cli /Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/bin/node /Users/divyanshparashar/.local/state/fnm_multishells/29141_1792016850155/bin/npm
+1 info using npm@10.9.8
+2 info using node@v22.23.2
+3 silly config load:file:/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/ui/node_modules/esbuild/lib/npm-install/.npmrc
+5 silly config load:file:/Users/divyanshparashar/.npmrc
+6 silly config load:file:/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/etc/npmrc
+7 verbose title npm install @esbuild/darwin-arm64@0.28.2
+8 verbose argv "install" "--loglevel" "error" "--prefer-offline" "--no-audit" "--progress" "false" "@esbuild/darwin-arm64@0.28.2"
+9 verbose logfile logs-max:10 dir:/Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_18_246Z-
+10 verbose logfile /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_18_246Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+13 silly idealTree buildDeps
+14 silly fetch manifest @esbuild/darwin-arm64@0.28.2
+15 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 cache-miss
+16 silly placeDep ROOT @esbuild/darwin-arm64@ OK for:  want: 0.28.2
+17 verbose stack Error: request to https://registry.npmjs.org/@esbuild%2fdarwin-arm64 failed: cache mode is 'only-if-cached' but no cached response is available.
+17 verbose stack     at cacheFetch (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/make-fetch-happen/lib/cache/index.js:12:13)
+17 verbose stack     at async fetch (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/make-fetch-happen/lib/fetch.js:98:7)
+17 verbose stack     at async RegistryFetcher.packument (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/pacote/lib/registry.js:90:19)
+17 verbose stack     at async RegistryFetcher.manifest (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/pacote/lib/registry.js:128:23)
+17 verbose stack     at async #fetchManifest (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:1202:20)
+17 verbose stack     at async #nodeFromEdge (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:1040:19)
+17 verbose stack     at async #buildDepStep (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:904:11)
+17 verbose stack     at async Arborist.buildIdealTree (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:181:7)
+17 verbose stack     at async Promise.all (index 1)
+17 verbose stack     at async Arborist.reify (/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:133:5)
+18 error code ENOTCACHED
+19 error request to https://registry.npmjs.org/@esbuild%2fdarwin-arm64 failed: cache mode is 'only-if-cached' but no cached response is available.
+20 silly unfinished npm timer reify 1792017378378
+21 silly unfinished npm timer reify:loadTrees 1792017378378
+22 verbose cwd /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/ui/node_modules/esbuild/lib/npm-install
+23 verbose os Darwin 27.0.0
+24 verbose node v22.23.2
+25 verbose npm  v10.9.8
+26 verbose exit 1
+27 verbose code 1
+28 error A complete log of this run can be found in: /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_18_246Z-debug-0.log

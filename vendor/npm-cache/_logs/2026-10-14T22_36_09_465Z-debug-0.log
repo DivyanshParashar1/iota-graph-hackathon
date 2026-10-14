@@ -1,0 +1,120 @@
+0 verbose cli /Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/bin/node /Users/divyanshparashar/.local/state/fnm_multishells/29141_1792016850155/bin/npm
+1 info using npm@10.9.8
+2 info using node@v22.23.2
+3 silly config load:file:/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/ui/.npmrc
+5 silly config load:file:/Users/divyanshparashar/.npmrc
+6 silly config load:file:/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/etc/npmrc
+7 verbose title npm cache add nanoid@3.3.20 node-releases@2.0.58 object-assign@4.1.1 picocolors@1.1.1 picomatch@4.0.7 postcss@8.5.30 preact@10.29.8 prop-types@15.8.1 react-dom@19.3.1 react-force-graph-2d@1.29.2 react-is@16.13.1 react-kapsule@2.6.0 react-leaflet@5.0.0 react-refresh@0.18.0 react-router-dom@7.18.4 react-router@7.18.4 react@19.3.1 rollup@4.64.6 scheduler@0.28.0 semver@6.3.1
+8 verbose argv "cache" "add" "--cache" "../vendor/npm-cache" "nanoid@3.3.20" "node-releases@2.0.58" "object-assign@4.1.1" "picocolors@1.1.1" "picomatch@4.0.7" "postcss@8.5.30" "preact@10.29.8" "prop-types@15.8.1" "react-dom@19.3.1" "react-force-graph-2d@1.29.2" "react-is@16.13.1" "react-kapsule@2.6.0" "react-leaflet@5.0.0" "react-refresh@0.18.0" "react-router-dom@7.18.4" "react-router@7.18.4" "react@19.3.1" "rollup@4.64.6" "scheduler@0.28.0" "semver@6.3.1"
+9 verbose logfile logs-max:10 dir:/Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_09_465Z-
+10 verbose logfile /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_09_465Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly cache add args [
+12 silly cache add   'nanoid@3.3.20',
+12 silly cache add   'node-releases@2.0.58',
+12 silly cache add   'object-assign@4.1.1',
+12 silly cache add   'picocolors@1.1.1',
+12 silly cache add   'picomatch@4.0.7',
+12 silly cache add   'postcss@8.5.30',
+12 silly cache add   'preact@10.29.8',
+12 silly cache add   'prop-types@15.8.1',
+12 silly cache add   'react-dom@19.3.1',
+12 silly cache add   'react-force-graph-2d@1.29.2',
+12 silly cache add   'react-is@16.13.1',
+12 silly cache add   'react-kapsule@2.6.0',
+12 silly cache add   'react-leaflet@5.0.0',
+12 silly cache add   'react-refresh@0.18.0',
+12 silly cache add   'react-router-dom@7.18.4',
+12 silly cache add   'react-router@7.18.4',
+12 silly cache add   'react@19.3.1',
+12 silly cache add   'rollup@4.64.6',
+12 silly cache add   'scheduler@0.28.0',
+12 silly cache add   'semver@6.3.1'
+12 silly cache add ]
+13 silly cache add spec nanoid@3.3.20
+14 silly cache add spec node-releases@2.0.58
+15 silly cache add spec object-assign@4.1.1
+16 silly cache add spec picocolors@1.1.1
+17 silly cache add spec picomatch@4.0.7
+18 silly cache add spec postcss@8.5.30
+19 silly cache add spec preact@10.29.8
+20 silly cache add spec prop-types@15.8.1
+21 silly cache add spec react-dom@19.3.1
+22 silly cache add spec react-force-graph-2d@1.29.2
+23 silly cache add spec react-is@16.13.1
+24 silly cache add spec react-kapsule@2.6.0
+25 silly cache add spec react-leaflet@5.0.0
+26 silly cache add spec react-refresh@0.18.0
+27 silly cache add spec react-router-dom@7.18.4
+28 silly cache add spec react-router@7.18.4
+29 silly cache add spec react@19.3.1
+30 silly cache add spec rollup@4.64.6
+31 silly cache add spec scheduler@0.28.0
+32 silly cache add spec semver@6.3.1
+33 http fetch GET 200 https://registry.npmjs.org/object-assign 108ms (cache miss)
+34 http fetch GET 200 https://registry.npmjs.org/picocolors 109ms (cache miss)
+35 http fetch GET 200 https://registry.npmjs.org/picomatch 110ms (cache miss)
+36 http fetch GET 200 https://registry.npmjs.org/prop-types 138ms (cache miss)
+37 http fetch GET 200 https://registry.npmjs.org/nanoid 153ms (cache miss)
+38 http fetch GET 200 https://registry.npmjs.org/node-releases 162ms (cache miss)
+39 http fetch GET 200 https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz 78ms (cache miss)
+40 http fetch GET 200 https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz 102ms (cache miss)
+41 http fetch GET 200 https://registry.npmjs.org/semver 225ms (cache miss)
+42 http fetch GET 200 https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz 149ms (cache miss)
+43 http fetch GET 200 https://registry.npmjs.org/postcss 267ms (cache miss)
+44 http fetch GET 200 https://registry.npmjs.org/prop-types/-/prop-types-15.8.1.tgz 131ms (cache miss)
+45 http fetch GET 200 https://registry.npmjs.org/nanoid/-/nanoid-3.3.20.tgz 147ms (cache miss)
+46 http fetch GET 200 https://registry.npmjs.org/node-releases/-/node-releases-2.0.58.tgz 141ms (cache miss)
+47 http fetch GET 200 https://registry.npmjs.org/object-assign 117ms (cache miss)
+48 http fetch GET 200 https://registry.npmjs.org/picocolors 121ms (cache miss)
+49 http fetch GET 200 https://registry.npmjs.org/semver/-/semver-6.3.1.tgz 143ms (cache miss)
+50 http fetch GET 200 https://registry.npmjs.org/react-kapsule 377ms (cache miss)
+51 http fetch GET 200 https://registry.npmjs.org/picomatch 149ms (cache miss)
+52 http fetch GET 200 https://registry.npmjs.org/prop-types 154ms (cache miss)
+53 http fetch GET 200 https://registry.npmjs.org/react-leaflet 437ms (cache miss)
+54 http fetch GET 200 https://registry.npmjs.org/react-kapsule/-/react-kapsule-2.6.0.tgz 102ms (cache miss)
+55 http fetch GET 200 https://registry.npmjs.org/postcss/-/postcss-8.5.30.tgz 220ms (cache miss)
+56 http fetch GET 200 https://registry.npmjs.org/react-force-graph-2d 522ms (cache miss)
+57 http fetch GET 200 https://registry.npmjs.org/react-leaflet/-/react-leaflet-5.0.0.tgz 85ms (cache miss)
+58 http fetch GET 200 https://registry.npmjs.org/preact 572ms (cache miss)
+59 http fetch GET 200 https://registry.npmjs.org/react-kapsule 99ms (cache miss)
+60 http fetch GET 200 https://registry.npmjs.org/semver 221ms (cache miss)
+61 http fetch GET 200 https://registry.npmjs.org/nanoid 315ms (cache miss)
+62 http fetch GET 200 https://registry.npmjs.org/node-releases 349ms (cache miss)
+63 http fetch GET 200 https://registry.npmjs.org/react-router-dom 684ms (cache miss)
+64 http fetch GET 200 https://registry.npmjs.org/react-leaflet 217ms (cache miss)
+65 http fetch GET 200 https://registry.npmjs.org/react-router-dom/-/react-router-dom-7.18.4.tgz 58ms (cache miss)
+66 http fetch GET 200 https://registry.npmjs.org/react-router 780ms (cache miss)
+67 http fetch GET 200 https://registry.npmjs.org/postcss 376ms (cache miss)
+68 http fetch GET 200 https://registry.npmjs.org/rollup 1015ms (cache miss)
+69 http fetch GET 200 https://registry.npmjs.org/react-force-graph-2d/-/react-force-graph-2d-1.29.2.tgz 648ms (cache miss)
+70 http fetch GET 200 https://registry.npmjs.org/preact/-/preact-10.29.8.tgz 737ms (cache miss)
+71 http fetch GET 200 https://registry.npmjs.org/react-force-graph-2d 173ms (cache miss)
+72 http fetch GET 200 https://registry.npmjs.org/react-router-dom 735ms (cache miss)
+73 http fetch GET 200 https://registry.npmjs.org/preact 276ms (cache miss)
+74 http fetch GET 200 https://registry.npmjs.org/rollup/-/rollup-4.64.6.tgz 866ms (cache miss)
+75 http fetch GET 200 https://registry.npmjs.org/react-is 1929ms (cache miss)
+76 http fetch GET 200 https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz 25ms (cache miss)
+77 http fetch GET 200 https://registry.npmjs.org/react 1981ms (cache miss)
+78 http fetch GET 200 https://registry.npmjs.org/react-dom 1999ms (cache miss)
+79 http fetch GET 200 https://registry.npmjs.org/react/-/react-19.3.1.tgz 52ms (cache miss)
+80 http fetch GET 200 https://registry.npmjs.org/react-refresh 2040ms (cache miss)
+81 http fetch GET 200 https://registry.npmjs.org/react-refresh/-/react-refresh-0.18.0.tgz 27ms (cache miss)
+82 http fetch GET 200 https://registry.npmjs.org/scheduler 2088ms (cache miss)
+83 http fetch GET 200 https://registry.npmjs.org/scheduler/-/scheduler-0.28.0.tgz 42ms (cache miss)
+84 http fetch GET 200 https://registry.npmjs.org/react-router/-/react-router-7.18.4.tgz 1449ms (cache miss)
+85 http fetch GET 200 https://registry.npmjs.org/rollup 678ms (cache miss)
+86 http fetch GET 200 https://registry.npmjs.org/react-router 566ms (cache miss)
+87 http fetch GET 200 https://registry.npmjs.org/react-is 1343ms (cache miss)
+88 http fetch GET 200 https://registry.npmjs.org/react-refresh 1285ms (cache miss)
+89 http fetch GET 200 https://registry.npmjs.org/react-dom/-/react-dom-19.3.1.tgz 1385ms (cache miss)
+90 http fetch GET 200 https://registry.npmjs.org/react 1357ms (cache miss)
+91 http fetch GET 200 https://registry.npmjs.org/scheduler 1291ms (cache miss)
+92 http fetch GET 200 https://registry.npmjs.org/react-dom 418ms (cache miss)
+93 verbose cwd /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/ui
+94 verbose os Darwin 27.0.0
+95 verbose node v22.23.2
+96 verbose npm  v10.9.8
+97 verbose exit 0
+98 info ok

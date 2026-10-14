@@ -1,0 +1,108 @@
+"""Smoke test for the embedded FalkorDB (falkordblite) and every Cypher feature Ripple depends on.
+
+Run: .venv/bin/python scripts/verify_falkordb.py
+Exits non-zero if any feature is missing. Each check mirrors a finding recorded in
+reference/FALKORDB_VERIFIED.md, so a failure here means that file is out of date.
+"""
+
+import os
+import sys
+import tempfile
+
+from redislite.falkordb_client import FalkorDB
+
+failures = []
+
+
+def check(name, fn):
+    try:
+        fn()
+        print(f"  ok   {name}")
+    except Exception as e:  # noqa: BLE001
+        failures.append(name)
+        print(f"  FAIL {name}: {e}")
+
+
+def main():
+    tmp = tempfile.mkdtemp(prefix="ripple-verify-")
+    db = FalkorDB(os.path.join(tmp, "verify.db"))
+    g = db.select_graph("verify")
+    q = lambda cy, p=None: g.query(cy, p or {}).result_set  # noqa: E731
+
+    q("UNWIND range(1,8) AS i CREATE (:Supplier:RiskBearing {id:'S'+toString(i), country: CASE WHEN i<4 THEN 'CN' ELSE 'VN' END})")
+    q("MATCH (a:Supplier),(b:Supplier) WHERE toInteger(substring(a.id,1))+1 = toInteger(substring(b.id,1)) CREATE (a)-[:SUPPLIES_TO]->(b)")
+    q("MATCH (a:Supplier {id:'S4'}),(b:Supplier) WHERE b.id IN ['S1','S7'] CREATE (b)-[:SUPPLIES_TO]->(a)")
+
+    check("range index", lambda: q("CREATE INDEX FOR (s:Supplier) ON (s.id)"))
+
+    def vector():
+        q("CREATE VECTOR INDEX FOR (c:Chunk) ON (c.embedding) OPTIONS {dimension:4, similarityFunction:'cosine'}")
+        q("UNWIND [[1,0,0,0],[0,1,0,0],[0.9,0.1,0,0]] AS v CREATE (:Chunk {id: toString(v[1]), embedding: vecf32(v)})")
+        rows = q("CALL db.idx.vector.queryNodes('Chunk','embedding',2,vecf32($v)) YIELD node, score RETURN node.id, score ORDER BY score ASC", {"v": [1, 0, 0, 0]})
+        assert rows[0][1] <= rows[1][1], "score is a distance: lower is closer"
+    check("vector index + queryNodes (score = distance)", vector)
+
+    def fulltext():
+        q("CALL db.idx.fulltext.createNodeIndex('Document','title')")
+        q("CREATE (:Document {title:'Shanghai port closure SOP'})")
+        assert q("CALL db.idx.fulltext.queryNodes('Document','port') YIELD node RETURN node.title")
+    check("fulltext index", fulltext)
+
+    check("algo.pageRank(label, relType)", lambda: q("CALL algo.pageRank('Supplier','SUPPLIES_TO') YIELD node, score RETURN node.id, score"))
+
+    def betweenness():
+        rows = q("CALL algo.betweenness({nodeLabels:['Supplier'], relationshipTypes:['SUPPLIES_TO']}) YIELD node, score RETURN node.id, score ORDER BY score DESC")
+        assert rows[0][0] == "S4", rows
+    check("algo.betweenness(config map)", betweenness)
+
+    check("algo.WCC -> componentId", lambda: q("CALL algo.WCC({nodeLabels:['Supplier'], relationshipTypes:['SUPPLIES_TO']}) YIELD node, componentId RETURN componentId, count(node)"))
+    check("algo.labelPropagation -> communityId", lambda: q("CALL algo.labelPropagation({nodeLabels:['Supplier'], relationshipTypes:['SUPPLIES_TO']}) YIELD node, communityId RETURN communityId, count(node)"))
+
+    def sppaths():
+        rows = q("MATCH (a:Supplier {id:'S1'}),(b:Supplier {id:'S8'}) "
+                 "CALL algo.SPpaths({sourceNode:a, targetNode:b, relTypes:['SUPPLIES_TO'], maxLen:10, pathCount:3}) "
+                 "YIELD path, pathWeight WITH path, pathWeight WHERE NONE(n IN nodes(path) WHERE n.id='S2') "
+                 "RETURN [n IN nodes(path) | n.id], pathWeight ORDER BY pathWeight")
+        assert rows and "S2" not in rows[0][0], rows
+    check("algo.SPpaths + avoid-node filter", sppaths)
+
+    check("shortestPath inside WITH", lambda: q("MATCH (a:Supplier {id:'S1'}),(b:Supplier {id:'S8'}) WITH shortestPath((a)-[:SUPPLIES_TO*..10]->(b)) AS p RETURN length(p)"))
+
+    def shortest_in_match_rejected():
+        try:
+            q("MATCH (a:Supplier {id:'S1'}),(b:Supplier {id:'S8'}) MATCH p=shortestPath((a)-[:SUPPLIES_TO*..10]->(b)) RETURN p")
+        except Exception:
+            return
+        raise AssertionError("MATCH p=shortestPath(...) unexpectedly works; FALKORDB_VERIFIED.md can be relaxed")
+    check("MATCH p=shortestPath(...) is rejected (known limitation)", shortest_in_match_rejected)
+
+    def map_props_rejected():
+        try:
+            q("CREATE (:Action {params: $p})", {"p": {"x": 1}})
+        except Exception:
+            return
+        raise AssertionError("map properties unexpectedly allowed")
+    check("map-valued properties rejected (store JSON strings)", map_props_rejected)
+
+    check("list properties", lambda: q("CREATE (:Playbook {steps: ['a','b']})"))
+    check("UNWIND $rows + MERGE + SET +=", lambda: q("UNWIND $rows AS r MERGE (o:Order {id:r.id}) SET o += r", {"rows": [{"id": 1, "total": 2.5}]}))
+    check("pattern predicate NOT (a)<-[:R]-()", lambda: q("MATCH (s:Supplier) WHERE NOT (s)<-[:AFFECTS]-(:Disruption) RETURN count(s)"))
+    check("CALL {} subquery", lambda: q("CALL { MATCH (s:Supplier) RETURN count(s) AS c } RETURN c"))
+    check("db.meta.stats()", lambda: q("CALL db.meta.stats()"))
+
+    def multigraph():
+        g2 = db.select_graph("verify_other")
+        g2.query("CREATE (:X)")
+        assert "verify_other" in db.list_graphs()
+        g2.delete()
+    check("multiple graphs in one db", multigraph)
+
+    db.close()
+    if failures:
+        print(f"FAILED: {failures}")
+        sys.exit(1)
+    print("all FalkorDB checks passed")
+
+
+if __name__ == "__main__":
+    main()

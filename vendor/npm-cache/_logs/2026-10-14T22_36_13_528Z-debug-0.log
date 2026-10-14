@@ -1,0 +1,70 @@
+0 verbose cli /Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/bin/node /Users/divyanshparashar/.local/state/fnm_multishells/29141_1792016850155/bin/npm
+1 info using npm@10.9.8
+2 info using node@v22.23.2
+3 silly config load:file:/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/ui/.npmrc
+5 silly config load:file:/Users/divyanshparashar/.npmrc
+6 silly config load:file:/Users/divyanshparashar/.local/share/fnm/node-versions/v22.23.2/installation/etc/npmrc
+7 verbose title npm cache add set-cookie-parser@2.7.2 source-map-js@1.2.2 tailwindcss@4.3.3 tapable@2.3.3 tinycolor2@1.6.0 tinyglobby@0.2.17 typescript@5.9.3 update-browserslist-db@1.3.4 vite@7.3.7 yallist@3.1.1
+8 verbose argv "cache" "add" "--cache" "../vendor/npm-cache" "set-cookie-parser@2.7.2" "source-map-js@1.2.2" "tailwindcss@4.3.3" "tapable@2.3.3" "tinycolor2@1.6.0" "tinyglobby@0.2.17" "typescript@5.9.3" "update-browserslist-db@1.3.4" "vite@7.3.7" "yallist@3.1.1"
+9 verbose logfile logs-max:10 dir:/Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_13_528Z-
+10 verbose logfile /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/vendor/npm-cache/_logs/2026-10-14T22_36_13_528Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly cache add args [
+12 silly cache add   'set-cookie-parser@2.7.2',
+12 silly cache add   'source-map-js@1.2.2',
+12 silly cache add   'tailwindcss@4.3.3',
+12 silly cache add   'tapable@2.3.3',
+12 silly cache add   'tinycolor2@1.6.0',
+12 silly cache add   'tinyglobby@0.2.17',
+12 silly cache add   'typescript@5.9.3',
+12 silly cache add   'update-browserslist-db@1.3.4',
+12 silly cache add   'vite@7.3.7',
+12 silly cache add   'yallist@3.1.1'
+12 silly cache add ]
+13 silly cache add spec set-cookie-parser@2.7.2
+14 silly cache add spec source-map-js@1.2.2
+15 silly cache add spec tailwindcss@4.3.3
+16 silly cache add spec tapable@2.3.3
+17 silly cache add spec tinycolor2@1.6.0
+18 silly cache add spec tinyglobby@0.2.17
+19 silly cache add spec typescript@5.9.3
+20 silly cache add spec update-browserslist-db@1.3.4
+21 silly cache add spec vite@7.3.7
+22 silly cache add spec yallist@3.1.1
+23 http fetch GET 200 https://registry.npmjs.org/source-map-js 101ms (cache miss)
+24 http fetch GET 200 https://registry.npmjs.org/tinyglobby 102ms (cache miss)
+25 http fetch GET 200 https://registry.npmjs.org/tapable 105ms (cache miss)
+26 http fetch GET 200 https://registry.npmjs.org/yallist 105ms (cache miss)
+27 http fetch GET 200 https://registry.npmjs.org/set-cookie-parser 108ms (cache miss)
+28 http fetch GET 200 https://registry.npmjs.org/update-browserslist-db 106ms (cache miss)
+29 http fetch GET 200 https://registry.npmjs.org/yallist/-/yallist-3.1.1.tgz 24ms (cache miss)
+30 http fetch GET 200 https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz 33ms (cache miss)
+31 http fetch GET 200 https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz 39ms (cache miss)
+32 http fetch GET 200 https://registry.npmjs.org/set-cookie-parser/-/set-cookie-parser-2.7.2.tgz 34ms (cache miss)
+33 http fetch GET 200 https://registry.npmjs.org/update-browserslist-db/-/update-browserslist-db-1.3.4.tgz 33ms (cache miss)
+34 http fetch GET 200 https://registry.npmjs.org/tapable/-/tapable-2.3.3.tgz 38ms (cache miss)
+35 http fetch GET 200 https://registry.npmjs.org/tinyglobby 23ms (cache miss)
+36 http fetch GET 200 https://registry.npmjs.org/yallist 31ms (cache miss)
+37 http fetch GET 200 https://registry.npmjs.org/source-map-js 32ms (cache miss)
+38 http fetch GET 200 https://registry.npmjs.org/set-cookie-parser 46ms (cache miss)
+39 http fetch GET 200 https://registry.npmjs.org/update-browserslist-db 49ms (cache miss)
+40 http fetch GET 200 https://registry.npmjs.org/tapable 59ms (cache miss)
+41 http fetch GET 200 https://registry.npmjs.org/tinycolor2 308ms (cache miss)
+42 http fetch GET 200 https://registry.npmjs.org/tinycolor2/-/tinycolor2-1.6.0.tgz 66ms (cache miss)
+43 http fetch GET 200 https://registry.npmjs.org/vite 374ms (cache miss)
+44 http fetch GET 200 https://registry.npmjs.org/tinycolor2 55ms (cache miss)
+45 http fetch GET 200 https://registry.npmjs.org/vite/-/vite-7.3.7.tgz 302ms (cache miss)
+46 http fetch GET 200 https://registry.npmjs.org/tailwindcss 741ms (cache miss)
+47 http fetch GET 200 https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.3.3.tgz 115ms (cache miss)
+48 http fetch GET 200 https://registry.npmjs.org/typescript 965ms (cache miss)
+49 http fetch GET 200 https://registry.npmjs.org/tailwindcss 783ms (cache miss)
+50 http fetch GET 200 https://registry.npmjs.org/vite 1956ms (cache miss)
+51 http fetch GET 200 https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz 1784ms (cache miss)
+52 http fetch GET 200 https://registry.npmjs.org/typescript 415ms (cache miss)
+53 verbose cwd /Users/divyanshparashar/Desktop/learning/iota-graph_hackathon/ui
+54 verbose os Darwin 27.0.0
+55 verbose node v22.23.2
+56 verbose npm  v10.9.8
+57 verbose exit 0
+58 info ok
