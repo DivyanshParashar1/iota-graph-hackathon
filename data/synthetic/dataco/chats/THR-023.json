@@ -1,0 +1,39 @@
+{
+ "authors": [
+  "EMP-002",
+  "EMP-038"
+ ],
+ "channel": "#sourcing",
+ "decisions": [],
+ "doc_id": "DOC-CHAT-023",
+ "id": "THR-023",
+ "mentions": [
+  "SUP-T1-0097",
+  "PRT-0328",
+  "PORT-USLAX"
+ ],
+ "messages": [
+  {
+   "author": "EMP-002",
+   "id": "MSG-023-01",
+   "text": "Wagner-King [SYNTH] wants a 6% price increase on Ball core type 7 from next quarter.",
+   "ts": "2025-05-21T09:00"
+  },
+  {
+   "author": "EMP-038",
+   "id": "MSG-023-02",
+   "text": "Their contract caps increases at 3%. I'll push back.",
+   "ts": "2025-05-21T09:13"
+  },
+  {
+   "author": "EMP-002",
+   "id": "MSG-023-03",
+   "text": "Legal confirms the cap applies.",
+   "ts": "2025-05-21T10:26"
+  }
+ ],
+ "title": "Price increase from Wagner-King [SYNTH]",
+ "type": "chat_thread",
+ "updated_at": "2025-05-21",
+ "version": 1
+}

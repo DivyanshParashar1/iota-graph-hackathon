@@ -1,0 +1,46 @@
+{
+ "authors": [
+  "EMP-N-004",
+  "EMP-N-005"
+ ],
+ "channel": "#logistics",
+ "decisions": [
+  {
+   "about": [
+    "PORT-N-KRPUS"
+   ],
+   "decided_at": "2023-06-30",
+   "id": "DEC-N-004",
+   "summary": "Split ocean volume across at least two carriers on every busy lane after the 2023 Pacific Arc Shipping strike"
+  }
+ ],
+ "doc_id": "DOC-N-CHAT-003",
+ "id": "THR-N-003",
+ "mentions": [
+  "PORT-N-KRPUS"
+ ],
+ "messages": [
+  {
+   "author": "EMP-N-004",
+   "id": "MSG-N-003-01",
+   "text": "Pacific Arc Shipping crews walk out tomorrow. Every lane they run is affected, Busan is the worst.",
+   "ts": "2023-06-12T09:00"
+  },
+  {
+   "author": "EMP-N-005",
+   "id": "MSG-N-003-02",
+   "text": "Moving the Standard Class orders to the same lanes on other carriers. Mostly one extra day.",
+   "ts": "2023-06-12T09:13"
+  },
+  {
+   "author": "EMP-N-004",
+   "id": "MSG-N-003-03",
+   "text": "Decision: from now on no busy lane depends on a single carrier. Split volume across at least two.",
+   "ts": "2023-06-12T10:26"
+  }
+ ],
+ "title": "Pacific Arc Shipping strike (2023)",
+ "type": "chat_thread",
+ "updated_at": "2023-06-12",
+ "version": 1
+}

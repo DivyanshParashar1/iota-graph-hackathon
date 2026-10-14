@@ -1,0 +1,46 @@
+{
+ "authors": [
+  "EMP-N-002",
+  "EMP-N-008"
+ ],
+ "channel": "#quality",
+ "decisions": [
+  {
+   "about": [
+    "SUP-N-T2-0013",
+    "SUP-N-T1-0004",
+    "SUP-N-T1-0006",
+    "SUP-N-T1-0007"
+   ],
+   "decided_at": "2022-03-15",
+   "id": "DEC-N-005",
+   "summary": "Map tier-2 dependencies and qualify alternates for parts fed through a single tier-2 supplier after the Fox Inc [SYNTH] fire"
+  }
+ ],
+ "doc_id": "DOC-N-CHAT-005",
+ "id": "THR-N-005",
+ "mentions": [
+  "SUP-N-T2-0013",
+  "SUP-N-T1-0004",
+  "SUP-N-T1-0006",
+  "SUP-N-T1-0007"
+ ],
+ "messages": [
+  {
+   "author": "EMP-N-002",
+   "id": "MSG-N-005-01",
+   "text": "Fox Inc [SYNTH] had a fire overnight. They are a tier-2 supplier but feed a lot of our tier-1s.",
+   "ts": "2022-02-21T09:00"
+  },
+  {
+   "author": "EMP-N-008",
+   "id": "MSG-N-005-02",
+   "text": "We had no idea how many parts depend on them. We need a tier-2 map.",
+   "ts": "2022-02-21T09:13"
+  }
+ ],
+ "title": "Fox Inc [SYNTH] fire (2022)",
+ "type": "chat_thread",
+ "updated_at": "2022-02-21",
+ "version": 1
+}

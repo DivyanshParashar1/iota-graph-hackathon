@@ -1,0 +1,79 @@
+{
+ "carrier_strike_carrier": "Pacific Arc Shipping",
+ "chokepoints": [
+  {
+   "id": "SUP-N-T2-0008",
+   "inputs": [
+    "SUP-N-T3-0007",
+    "SUP-N-T3-0008",
+    "SUP-N-T3-0010"
+   ],
+   "name": "Evans-Herrera [SYNTH]",
+   "outputs": [
+    "SUP-N-T1-0002",
+    "SUP-N-T1-0003",
+    "SUP-N-T1-0009"
+   ]
+  },
+  {
+   "id": "SUP-N-T2-0013",
+   "inputs": [
+    "SUP-N-T3-0013",
+    "SUP-N-T3-0014",
+    "SUP-N-T3-0018",
+    "SUP-N-T3-0020"
+   ],
+   "name": "Fox Inc [SYNTH]",
+   "outputs": [
+    "SUP-N-T1-0004",
+    "SUP-N-T1-0006",
+    "SUP-N-T1-0007"
+   ]
+  },
+  {
+   "id": "SUP-N-T2-0023",
+   "inputs": [
+    "SUP-N-T3-0003",
+    "SUP-N-T3-0015",
+    "SUP-N-T3-0016",
+    "SUP-N-T3-0019"
+   ],
+   "name": "Clark Barry and Gutierrez [SYNTH]",
+   "outputs": [
+    "SUP-N-T1-0005",
+    "SUP-N-T1-0011",
+    "SUP-N-T1-0013",
+    "SUP-N-T1-0014"
+   ]
+  }
+ ],
+ "hero": {
+  "alt_supplier_id": "SUP-N-T1-0008",
+  "battery_thread_doc": "DOC-N-CHAT-001",
+  "contract_doc": null,
+  "dual_sourcing_sop": "DOC-N-SOP-DUAL-SOURCING",
+  "owner_id": null,
+  "part_id": null,
+  "port_closure_expert": "EMP-N-004",
+  "port_closure_postmortems": [
+   "DOC-N-PM-2024-SZX-TYPHOON",
+   "DOC-N-PM-2021-ROTTERDAM-CONGESTION"
+  ],
+  "supplier_id": null,
+  "typhoon_postmortem": "DOC-N-PM-2024-SZX-TYPHOON"
+ },
+ "n_parts": 72,
+ "postmortems": {
+  "carrier_strike": [
+   "DOC-N-PM-2023-BUSAN-STRIKE"
+  ],
+  "port_closure": [
+   "DOC-N-PM-2024-SZX-TYPHOON",
+   "DOC-N-PM-2021-ROTTERDAM-CONGESTION"
+  ],
+  "supplier_failure": [
+   "DOC-N-PM-2022-TIER2-FIRE"
+  ]
+ },
+ "single_sourced_parts": 14
+}

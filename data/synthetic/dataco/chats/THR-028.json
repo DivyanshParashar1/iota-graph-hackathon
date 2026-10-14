@@ -1,0 +1,39 @@
+{
+ "authors": [
+  "EMP-008",
+  "EMP-033"
+ ],
+ "channel": "#sourcing",
+ "decisions": [],
+ "doc_id": "DOC-CHAT-028",
+ "id": "THR-028",
+ "mentions": [
+  "SUP-T1-0071",
+  "PRT-0026",
+  "PORT-CNSZX"
+ ],
+ "messages": [
+  {
+   "author": "EMP-008",
+   "id": "MSG-028-01",
+   "text": "Hancock Inc [SYNTH] wants a 6% price increase on Dye lot type 4 from next quarter.",
+   "ts": "2025-01-24T09:00"
+  },
+  {
+   "author": "EMP-033",
+   "id": "MSG-028-02",
+   "text": "Their contract caps increases at 3%. I'll push back.",
+   "ts": "2025-01-24T09:13"
+  },
+  {
+   "author": "EMP-008",
+   "id": "MSG-028-03",
+   "text": "Legal confirms the cap applies.",
+   "ts": "2025-01-24T10:26"
+  }
+ ],
+ "title": "Price increase from Hancock Inc [SYNTH]",
+ "type": "chat_thread",
+ "updated_at": "2025-01-24",
+ "version": 1
+}

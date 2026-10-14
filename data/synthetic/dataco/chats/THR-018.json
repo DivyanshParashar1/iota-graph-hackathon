@@ -1,0 +1,39 @@
+{
+ "authors": [
+  "EMP-004",
+  "EMP-023"
+ ],
+ "channel": "#sourcing",
+ "decisions": [],
+ "doc_id": "DOC-CHAT-018",
+ "id": "THR-018",
+ "mentions": [
+  "SUP-T1-0037",
+  "PRT-0322",
+  "PORT-BEANR"
+ ],
+ "messages": [
+  {
+   "author": "EMP-004",
+   "id": "MSG-018-01",
+   "text": "Rodriguez-Graham [SYNTH] wants a 6% price increase on Ferrule type 6 from next quarter.",
+   "ts": "2025-12-22T09:00"
+  },
+  {
+   "author": "EMP-023",
+   "id": "MSG-018-02",
+   "text": "Their contract caps increases at 3%. I'll push back.",
+   "ts": "2025-12-22T09:13"
+  },
+  {
+   "author": "EMP-004",
+   "id": "MSG-018-03",
+   "text": "Legal confirms the cap applies.",
+   "ts": "2025-12-22T10:26"
+  }
+ ],
+ "title": "Price increase from Rodriguez-Graham [SYNTH]",
+ "type": "chat_thread",
+ "updated_at": "2025-12-22",
+ "version": 1
+}

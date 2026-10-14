@@ -1,0 +1,11 @@
+{
+ "author_id": "EMP-001",
+ "channel": "#sourcing-electronics",
+ "expected": {
+  "new_owner_id": "EMP-002",
+  "old_owner_id": "EMP-001",
+  "supplier_id": "SUP-T1-0001"
+ },
+ "kind": "chat",
+ "text": "Heads up team: I'm handing over the Shenzhen Volt Components [SYNTH] relationship to Daniel Okafor [SYNTH] effective today. Daniel Okafor is the new owner; I stay on as backup during the transition."
+}

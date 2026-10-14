@@ -1,0 +1,39 @@
+{
+ "authors": [
+  "EMP-005",
+  "EMP-007"
+ ],
+ "channel": "#logistics",
+ "decisions": [],
+ "doc_id": "DOC-CHAT-014",
+ "id": "THR-014",
+ "mentions": [
+  "SUP-T1-0120",
+  "PRT-0620",
+  "PORT-AEJEA"
+ ],
+ "messages": [
+  {
+   "author": "EMP-007",
+   "id": "MSG-014-01",
+   "text": "Two containers are held by customs at Jebel Ali.",
+   "ts": "2025-03-20T09:00"
+  },
+  {
+   "author": "EMP-005",
+   "id": "MSG-014-02",
+   "text": "Paperwork issue on the commercial invoice. Expect two days.",
+   "ts": "2025-03-20T09:13"
+  },
+  {
+   "author": "EMP-007",
+   "id": "MSG-014-03",
+   "text": "Released this morning.",
+   "ts": "2025-03-20T10:26"
+  }
+ ],
+ "title": "Customs hold at Jebel Ali",
+ "type": "chat_thread",
+ "updated_at": "2025-03-20",
+ "version": 1
+}

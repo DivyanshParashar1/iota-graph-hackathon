@@ -1,0 +1,47 @@
+{
+ "authors": [
+  "EMP-N-001",
+  "EMP-N-004",
+  "EMP-N-005"
+ ],
+ "channel": "#incident-war-room",
+ "decisions": [],
+ "doc_id": "DOC-N-CHAT-002",
+ "id": "THR-N-002",
+ "mentions": [
+  "PORT-N-CNSZX",
+  "PORT-N-HKHKG",
+  "PORT-N-CNNGB",
+  "SUP-N-T1-0001"
+ ],
+ "messages": [
+  {
+   "author": "EMP-N-004",
+   "id": "MSG-N-002-01",
+   "text": "Typhoon warning for Shenzhen (Yantian). Port authority says PORT-N-CNSZX closes tonight, probably five to seven days.",
+   "ts": "2024-09-06T09:00"
+  },
+  {
+   "author": "EMP-N-005",
+   "id": "MSG-N-002-02",
+   "text": "We have open orders on lanes out of Shenzhen (Yantian). I'm checking alternate routing through Hong Kong.",
+   "ts": "2024-09-06T09:13"
+  },
+  {
+   "author": "EMP-N-004",
+   "id": "MSG-N-002-03",
+   "text": "Rerouting the larger customer orders through Hong Kong and Ningbo-Zhoushan. Adds two to four days. This is our standard port closure play.",
+   "ts": "2024-09-06T10:26"
+  },
+  {
+   "author": "EMP-N-001",
+   "id": "MSG-N-002-04",
+   "text": "Flowers-Gomez [SYNTH] just confirmed their plant is shut too. Battery packs will be the bottleneck.",
+   "ts": "2024-09-06T10:39"
+  }
+ ],
+ "title": "Shenzhen typhoon war room (2024)",
+ "type": "chat_thread",
+ "updated_at": "2024-09-06",
+ "version": 1
+}

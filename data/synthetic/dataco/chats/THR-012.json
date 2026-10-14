@@ -1,0 +1,49 @@
+{
+ "authors": [
+  "EMP-004",
+  "EMP-029"
+ ],
+ "channel": "#quality",
+ "decisions": [
+  {
+   "about": [
+    "PRT-0137",
+    "SUP-T1-0084"
+   ],
+   "decided_at": "2025-05-14",
+   "id": "DEC-011",
+   "summary": "100% inspection on Steel frame type 8 from Edwards Baker and Anderson [SYNTH] for the next three lots"
+  }
+ ],
+ "doc_id": "DOC-CHAT-012",
+ "id": "THR-012",
+ "mentions": [
+  "SUP-T1-0084",
+  "PRT-0137",
+  "PORT-HKHKG"
+ ],
+ "messages": [
+  {
+   "author": "EMP-004",
+   "id": "MSG-012-01",
+   "text": "Incoming inspection rejected a lot of Steel frame type 8 from Edwards Baker and Anderson [SYNTH]: defect rate 3.1%.",
+   "ts": "2025-05-14T09:00"
+  },
+  {
+   "author": "EMP-029",
+   "id": "MSG-012-02",
+   "text": "Placing the lot on quality hold and asking Edwards Baker and Anderson [SYNTH] for a corrective action report.",
+   "ts": "2025-05-14T09:13"
+  },
+  {
+   "author": "EMP-004",
+   "id": "MSG-012-03",
+   "text": "Decision: 100% inspection on Steel frame type 8 from Edwards Baker and Anderson [SYNTH] for the next three lots.",
+   "ts": "2025-05-14T10:26"
+  }
+ ],
+ "title": "Quality issue on Steel frame type 8",
+ "type": "chat_thread",
+ "updated_at": "2025-05-14",
+ "version": 1
+}

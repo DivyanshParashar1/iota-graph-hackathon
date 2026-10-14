@@ -1,0 +1,371 @@
+[
+ {
+  "about": [
+   "PRT-0075",
+   "SUP-T1-0001"
+  ],
+  "decided_at": "2024-11-15",
+  "id": "DEC-001",
+  "participants": [
+   "EMP-001",
+   "EMP-002"
+  ],
+  "sources": [
+   "DOC-SOP-DUAL-SOURCING"
+  ],
+  "summary": "Sourcing policy v2: every high-criticality part needs two qualified suppliers in different countries; parts single-sourced from China need an alternate outside China"
+ },
+ {
+  "about": [
+   "PRT-0075",
+   "SUP-T1-0001",
+   "SUP-T1-0095"
+  ],
+  "decided_at": "2024-09-20",
+  "disruption_type": "port_closure",
+  "id": "DEC-002",
+  "participants": [
+   "EMP-001",
+   "EMP-002",
+   "EMP-003",
+   "EMP-011",
+   "EMP-031"
+  ],
+  "sources": [
+   "DOC-PM-2024-SZX-TYPHOON",
+   "DOC-CHAT-001",
+   "MSG-001-05"
+  ],
+  "summary": "Dual-source the Li-ion battery pack: qualify Campbell-Clark [SYNTH] as an alternate to Shenzhen Volt Components [SYNTH] after the 2024 Shenzhen typhoon"
+ },
+ {
+  "about": [
+   "PRT-0075"
+  ],
+  "decided_at": "2024-09-20",
+  "disruption_type": "port_closure",
+  "id": "DEC-003",
+  "participants": [
+   "EMP-001",
+   "EMP-011"
+  ],
+  "sources": [
+   "DOC-PM-2024-SZX-TYPHOON"
+  ],
+  "summary": "Hold three weeks of safety stock for the Li-ion battery pack"
+ },
+ {
+  "about": [
+   "PORT-KRPUS"
+  ],
+  "decided_at": "2023-06-30",
+  "disruption_type": "carrier_strike",
+  "id": "DEC-004",
+  "participants": [
+   "EMP-011",
+   "EMP-012"
+  ],
+  "sources": [
+   "DOC-PM-2023-BUSAN-STRIKE",
+   "DOC-CHAT-003",
+   "MSG-003-03"
+  ],
+  "summary": "Split ocean volume across at least two carriers on every busy lane after the 2023 Pacific Arc Shipping strike"
+ },
+ {
+  "about": [
+   "SUP-T2-0185",
+   "SUP-T1-0006",
+   "SUP-T1-0007",
+   "SUP-T1-0026",
+   "SUP-T1-0027"
+  ],
+  "decided_at": "2022-03-15",
+  "disruption_type": "supplier_failure",
+  "id": "DEC-005",
+  "participants": [
+   "EMP-002",
+   "EMP-025"
+  ],
+  "sources": [
+   "DOC-PM-2022-TIER2-FIRE",
+   "DOC-CHAT-005",
+   "MSG-005-02"
+  ],
+  "summary": "Map tier-2 dependencies and qualify alternates for parts fed through a single tier-2 supplier after the Avery Horton and Fernandez [SYNTH] fire"
+ },
+ {
+  "about": [
+   "PORT-NLRTM",
+   "PORT-BEANR"
+  ],
+  "decided_at": "2021-11-30",
+  "disruption_type": "port_closure",
+  "id": "DEC-006",
+  "participants": [
+   "EMP-011",
+   "EMP-012"
+  ],
+  "sources": [
+   "DOC-PM-2021-ROTTERDAM-CONGESTION",
+   "DOC-CHAT-004",
+   "MSG-004-03"
+  ],
+  "summary": "Auto-approve reroutes that add three days or less for fifty orders or fewer"
+ },
+ {
+  "about": [
+   "PRT-0265",
+   "SUP-T1-0026"
+  ],
+  "decided_at": "2025-09-09",
+  "id": "DEC-007",
+  "participants": [
+   "EMP-001",
+   "EMP-040"
+  ],
+  "sources": [
+   "DOC-CHAT-006",
+   "MSG-006-03"
+  ],
+  "summary": "raise safety stock for Mesh upper type 9 to four weeks until Walter Edwards and Rios [SYNTH] recovers"
+ },
+ {
+  "about": [
+   "PRT-0325",
+   "SUP-T1-0077"
+  ],
+  "decided_at": "2025-09-07",
+  "id": "DEC-008",
+  "participants": [
+   "EMP-010",
+   "EMP-021"
+  ],
+  "sources": [
+   "DOC-CHAT-007",
+   "MSG-007-03"
+  ],
+  "summary": "100% inspection on Rubber grip type 7 from Daniels Adkins and Brown [SYNTH] for the next three lots"
+ },
+ {
+  "about": [
+   "PRT-0079",
+   "SUP-T1-0124"
+  ],
+  "decided_at": "2025-12-02",
+  "id": "DEC-009",
+  "participants": [
+   "EMP-010",
+   "EMP-027"
+  ],
+  "sources": [
+   "DOC-CHAT-010",
+   "MSG-010-03"
+  ],
+  "summary": "split the extra volume of Motion sensor type 1 with a second supplier"
+ },
+ {
+  "about": [
+   "PRT-0074",
+   "SUP-T1-0123"
+  ],
+  "decided_at": "2025-03-08",
+  "id": "DEC-010",
+  "participants": [
+   "EMP-002",
+   "EMP-030"
+  ],
+  "sources": [
+   "DOC-CHAT-011",
+   "MSG-011-03"
+  ],
+  "summary": "raise safety stock for Foil stamp type 8 to four weeks until Chandler-Edwards [SYNTH] recovers"
+ },
+ {
+  "about": [
+   "PRT-0137",
+   "SUP-T1-0084"
+  ],
+  "decided_at": "2025-05-14",
+  "id": "DEC-011",
+  "participants": [
+   "EMP-004",
+   "EMP-029"
+  ],
+  "sources": [
+   "DOC-CHAT-012",
+   "MSG-012-03"
+  ],
+  "summary": "100% inspection on Steel frame type 8 from Edwards Baker and Anderson [SYNTH] for the next three lots"
+ },
+ {
+  "about": [
+   "PRT-0514",
+   "SUP-T1-0089"
+  ],
+  "decided_at": "2025-02-12",
+  "id": "DEC-012",
+  "participants": [
+   "EMP-007",
+   "EMP-033"
+  ],
+  "sources": [
+   "DOC-CHAT-015",
+   "MSG-015-03"
+  ],
+  "summary": "split the extra volume of Nylon fabric type 22 with a second supplier"
+ },
+ {
+  "about": [
+   "PRT-0152",
+   "SUP-T1-0140"
+  ],
+  "decided_at": "2025-11-15",
+  "id": "DEC-013",
+  "participants": [
+   "EMP-009",
+   "EMP-012"
+  ],
+  "sources": [
+   "DOC-CHAT-016",
+   "MSG-016-03"
+  ],
+  "summary": "raise safety stock for Charging cable type 10 to four weeks until Chambers and Sons [SYNTH] recovers"
+ },
+ {
+  "about": [
+   "PRT-0088",
+   "SUP-T1-0064"
+  ],
+  "decided_at": "2025-12-02",
+  "id": "DEC-014",
+  "participants": [
+   "EMP-002",
+   "EMP-027"
+  ],
+  "sources": [
+   "DOC-CHAT-017",
+   "MSG-017-03"
+  ],
+  "summary": "100% inspection on Charging cable type 2 from Wright and Sons [SYNTH] for the next three lots"
+ },
+ {
+  "about": [
+   "PRT-0091",
+   "SUP-T1-0104"
+  ],
+  "decided_at": "2025-09-08",
+  "id": "DEC-015",
+  "participants": [
+   "EMP-004",
+   "EMP-024"
+  ],
+  "sources": [
+   "DOC-CHAT-020",
+   "MSG-020-03"
+  ],
+  "summary": "split the extra volume of Bluetooth module type 2 with a second supplier"
+ },
+ {
+  "about": [
+   "PRT-0023",
+   "SUP-T1-0121"
+  ],
+  "decided_at": "2025-05-26",
+  "id": "DEC-016",
+  "participants": [
+   "EMP-002",
+   "EMP-031"
+  ],
+  "sources": [
+   "DOC-CHAT-021",
+   "MSG-021-03"
+  ],
+  "summary": "raise safety stock for Zipper type 4 to four weeks until White-Estes [SYNTH] recovers"
+ },
+ {
+  "about": [
+   "PRT-0335",
+   "SUP-T1-0107"
+  ],
+  "decided_at": "2025-12-04",
+  "id": "DEC-017",
+  "participants": [
+   "EMP-007",
+   "EMP-018"
+  ],
+  "sources": [
+   "DOC-CHAT-022",
+   "MSG-022-03"
+  ],
+  "summary": "100% inspection on Rubber grip type 9 from Wright Garcia and Deleon [SYNTH] for the next three lots"
+ },
+ {
+  "about": [
+   "PRT-0168",
+   "SUP-T1-0095"
+  ],
+  "decided_at": "2025-11-04",
+  "id": "DEC-018",
+  "participants": [
+   "EMP-010",
+   "EMP-012"
+  ],
+  "sources": [
+   "DOC-CHAT-025",
+   "MSG-025-03"
+  ],
+  "summary": "split the extra volume of Printed fabric type 1 with a second supplier"
+ },
+ {
+  "about": [
+   "PRT-0053",
+   "SUP-T1-0113"
+  ],
+  "decided_at": "2025-05-27",
+  "id": "DEC-019",
+  "participants": [
+   "EMP-005",
+   "EMP-020"
+  ],
+  "sources": [
+   "DOC-CHAT-026",
+   "MSG-026-03"
+  ],
+  "summary": "raise safety stock for Foil stamp type 1 to four weeks until Rodriguez Brennan and Garrison [SYNTH] recovers"
+ },
+ {
+  "about": [
+   "PRT-0272",
+   "SUP-T1-0076"
+  ],
+  "decided_at": "2025-12-19",
+  "id": "DEC-020",
+  "participants": [
+   "EMP-009",
+   "EMP-026"
+  ],
+  "sources": [
+   "DOC-CHAT-027",
+   "MSG-027-03"
+  ],
+  "summary": "100% inspection on Laces type 10 from Novak PLC [SYNTH] for the next three lots"
+ },
+ {
+  "about": [
+   "PRT-0251",
+   "SUP-T1-0066"
+  ],
+  "decided_at": "2025-11-12",
+  "id": "DEC-021",
+  "participants": [
+   "EMP-001",
+   "EMP-003"
+  ],
+  "sources": [
+   "DOC-CHAT-030",
+   "MSG-030-03"
+  ],
+  "summary": "split the extra volume of Heel counter type 6 with a second supplier"
+ }
+]

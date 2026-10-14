@@ -1,0 +1,13 @@
+id,name,role,team_id,contact
+EMP-N-001,Adam Khan [SYNTH],Sourcing Specialist,TEAM-N-PROC,adam.khan@ripple-demo.example
+EMP-N-002,Jack Rogers [SYNTH],Category Manager,TEAM-N-PROC,jack.rogers@ripple-demo.example
+EMP-N-003,Gabriella Curtis [SYNTH],Sourcing Specialist,TEAM-N-PROC,gabriella.curtis@ripple-demo.example
+EMP-N-004,Jennifer Durham [SYNTH],Logistics Lead,TEAM-N-LOG,jennifer.durham@ripple-demo.example
+EMP-N-005,Jasmine Owens [SYNTH],Customs Specialist,TEAM-N-LOG,jasmine.owens@ripple-demo.example
+EMP-N-006,Jeffrey Ramirez [SYNTH],Demand Planner,TEAM-N-PLAN,jeffrey.ramirez@ripple-demo.example
+EMP-N-007,Robert Allen [SYNTH],Supply Planner,TEAM-N-PLAN,robert.allen@ripple-demo.example
+EMP-N-008,Craig Gardner [SYNTH],Supplier Quality Lead,TEAM-N-QA,craig.gardner@ripple-demo.example
+EMP-N-009,Kristen Mcdonald [SYNTH],Supplier Quality Lead,TEAM-N-QA,kristen.mcdonald@ripple-demo.example
+EMP-N-010,Cynthia Richardson [SYNTH],Commercial Counsel,TEAM-N-LEGAL,cynthia.richardson@ripple-demo.example
+EMP-N-011,Jared Soto [SYNTH],Account Specialist,TEAM-N-COPS,jared.soto@ripple-demo.example
+EMP-N-012,Elizabeth Alvarez [SYNTH],Customer Ops Manager,TEAM-N-COPS,elizabeth.alvarez@ripple-demo.example

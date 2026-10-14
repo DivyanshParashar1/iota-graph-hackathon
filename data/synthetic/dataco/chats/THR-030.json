@@ -1,0 +1,49 @@
+{
+ "authors": [
+  "EMP-001",
+  "EMP-003"
+ ],
+ "channel": "#planning",
+ "decisions": [
+  {
+   "about": [
+    "PRT-0251",
+    "SUP-T1-0066"
+   ],
+   "decided_at": "2025-11-12",
+   "id": "DEC-021",
+   "summary": "split the extra volume of Heel counter type 6 with a second supplier"
+  }
+ ],
+ "doc_id": "DOC-CHAT-030",
+ "id": "THR-030",
+ "mentions": [
+  "SUP-T1-0066",
+  "PRT-0251",
+  "PORT-VNSGN"
+ ],
+ "messages": [
+  {
+   "author": "EMP-001",
+   "id": "MSG-030-01",
+   "text": "Can Baxter Inc [SYNTH] cover a 20% forecast increase on Heel counter type 6 in Q3?",
+   "ts": "2025-11-12T09:00"
+  },
+  {
+   "author": "EMP-003",
+   "id": "MSG-030-02",
+   "text": "They can do 10% from the current plant, the rest needs overtime.",
+   "ts": "2025-11-12T09:13"
+  },
+  {
+   "author": "EMP-001",
+   "id": "MSG-030-03",
+   "text": "Decision: split the extra volume of Heel counter type 6 with a second supplier.",
+   "ts": "2025-11-12T10:26"
+  }
+ ],
+ "title": "Capacity check with Baxter Inc [SYNTH]",
+ "type": "chat_thread",
+ "updated_at": "2025-11-12",
+ "version": 1
+}

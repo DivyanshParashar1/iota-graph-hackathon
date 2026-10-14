@@ -1,0 +1,39 @@
+{
+ "authors": [
+  "EMP-002",
+  "EMP-020"
+ ],
+ "channel": "#sourcing",
+ "decisions": [],
+ "doc_id": "DOC-CHAT-013",
+ "id": "THR-013",
+ "mentions": [
+  "SUP-T1-0133",
+  "PRT-0344",
+  "PORT-ZADUR"
+ ],
+ "messages": [
+  {
+   "author": "EMP-002",
+   "id": "MSG-013-01",
+   "text": "Bentley Byrd and Orr [SYNTH] wants a 6% price increase on Mesh panel type 1 from next quarter.",
+   "ts": "2025-07-24T09:00"
+  },
+  {
+   "author": "EMP-020",
+   "id": "MSG-013-02",
+   "text": "Their contract caps increases at 3%. I'll push back.",
+   "ts": "2025-07-24T09:13"
+  },
+  {
+   "author": "EMP-002",
+   "id": "MSG-013-03",
+   "text": "Legal confirms the cap applies.",
+   "ts": "2025-07-24T10:26"
+  }
+ ],
+ "title": "Price increase from Bentley Byrd and Orr [SYNTH]",
+ "type": "chat_thread",
+ "updated_at": "2025-07-24",
+ "version": 1
+}

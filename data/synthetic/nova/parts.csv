@@ -1,0 +1,73 @@
+id,name,category,department,unit_cost,criticality
+PRT-N-0001,Fabric panel type 1 (Nova),Fabric panel,Apparel,3.9,medium
+PRT-N-0002,Zipper type 1 (Nova),Zipper,Apparel,1.61,medium
+PRT-N-0003,Thread spool type 1 (Nova),Thread spool,Apparel,1.61,medium
+PRT-N-0004,Woven label type 1 (Nova),Woven label,Apparel,2.03,high
+PRT-N-0005,Dye lot type 1 (Nova),Dye lot,Apparel,4.08,low
+PRT-N-0006,Button set type 1 (Nova),Button set,Apparel,3.95,medium
+PRT-N-0007,Elastic band type 1 (Nova),Elastic band,Apparel,5.85,low
+PRT-N-0008,Fabric panel type 2 (Nova),Fabric panel,Apparel,0.28,high
+PRT-N-0009,Zipper type 2 (Nova),Zipper,Apparel,3.51,medium
+PRT-N-0010,Thread spool type 2 (Nova),Thread spool,Apparel,4.41,low
+PRT-N-0011,Woven label type 2 (Nova),Woven label,Apparel,2.64,low
+PRT-N-0012,Dye lot type 2 (Nova),Dye lot,Apparel,0.86,medium
+PRT-N-0013,Button set type 2 (Nova),Button set,Apparel,3.58,medium
+PRT-N-0014,Elastic band type 2 (Nova),Elastic band,Apparel,1.92,low
+PRT-N-0015,Fabric panel type 3 (Nova),Fabric panel,Apparel,3.74,medium
+PRT-N-0016,Zipper type 3 (Nova),Zipper,Apparel,5.3,medium
+PRT-N-0017,Thread spool type 3 (Nova),Thread spool,Apparel,3.29,medium
+PRT-N-0018,Woven label type 3 (Nova),Woven label,Apparel,5.55,medium
+PRT-N-0019,PCB assembly type 1 (Nova),PCB assembly,Electronics,20.83,medium
+PRT-N-0020,Polymer casing type 1 (Nova),Polymer casing,Electronics,34.24,medium
+PRT-N-0021,LCD display type 1 (Nova),LCD display,Electronics,10.18,medium
+PRT-N-0022,Motion sensor type 1 (Nova),Motion sensor,Electronics,15.27,medium
+PRT-N-0023,Charging cable type 1 (Nova),Charging cable,Electronics,10.65,medium
+PRT-N-0024,Steel frame type 1 (Nova),Steel frame,Electronics,23.44,medium
+PRT-N-0025,Resistance cord type 1 (Nova),Resistance cord,Electronics,26.25,medium
+PRT-N-0026,Bluetooth module type 1 (Nova),Bluetooth module,Electronics,27.72,medium
+PRT-N-0027,PCB assembly type 2 (Nova),PCB assembly,Electronics,32.19,high
+PRT-N-0028,Polymer casing type 2 (Nova),Polymer casing,Electronics,24.24,high
+PRT-N-0029,LCD display type 2 (Nova),LCD display,Electronics,24.74,high
+PRT-N-0030,Motion sensor type 2 (Nova),Motion sensor,Electronics,20.1,high
+PRT-N-0031,Charging cable type 2 (Nova),Charging cable,Electronics,2.96,high
+PRT-N-0032,Steel frame type 2 (Nova),Steel frame,Electronics,8.18,high
+PRT-N-0033,Resistance cord type 2 (Nova),Resistance cord,Electronics,8.71,high
+PRT-N-0034,Bluetooth module type 2 (Nova),Bluetooth module,Electronics,19.67,medium
+PRT-N-0035,PCB assembly type 3 (Nova),PCB assembly,Electronics,27.59,medium
+PRT-N-0036,Polymer casing type 3 (Nova),Polymer casing,Electronics,30.42,low
+PRT-N-0037,Rubber sole type 1 (Nova),Rubber sole,Footwear,6.83,medium
+PRT-N-0038,Mesh upper type 1 (Nova),Mesh upper,Footwear,3.62,high
+PRT-N-0039,Laces type 1 (Nova),Laces,Footwear,7.09,high
+PRT-N-0040,Eyelets type 1 (Nova),Eyelets,Footwear,3.5,low
+PRT-N-0041,Insole foam type 1 (Nova),Insole foam,Footwear,6.51,low
+PRT-N-0042,Heel counter type 1 (Nova),Heel counter,Footwear,3.02,low
+PRT-N-0043,Rubber sole type 2 (Nova),Rubber sole,Footwear,3.28,high
+PRT-N-0044,Mesh upper type 2 (Nova),Mesh upper,Footwear,3.43,medium
+PRT-N-0045,Laces type 2 (Nova),Laces,Footwear,8.54,low
+PRT-N-0046,Eyelets type 2 (Nova),Eyelets,Footwear,5.63,medium
+PRT-N-0047,Insole foam type 2 (Nova),Insole foam,Footwear,4.64,high
+PRT-N-0048,Heel counter type 2 (Nova),Heel counter,Footwear,10.4,medium
+PRT-N-0049,Rubber sole type 3 (Nova),Rubber sole,Footwear,7.46,high
+PRT-N-0050,Mesh upper type 3 (Nova),Mesh upper,Footwear,3.6,high
+PRT-N-0051,Laces type 3 (Nova),Laces,Footwear,8.88,high
+PRT-N-0052,Eyelets type 3 (Nova),Eyelets,Footwear,11.74,high
+PRT-N-0053,Insole foam type 3 (Nova),Insole foam,Footwear,0.66,low
+PRT-N-0054,Heel counter type 3 (Nova),Heel counter,Footwear,8.46,high
+PRT-N-0055,Aluminum frame type 1 (Nova),Aluminum frame,Outdoors,8.01,high
+PRT-N-0056,Nylon fabric type 1 (Nova),Nylon fabric,Outdoors,13.3,medium
+PRT-N-0057,Side-release buckle type 1 (Nova),Side-release buckle,Outdoors,7.98,medium
+PRT-N-0058,Waterproof coating type 1 (Nova),Waterproof coating,Outdoors,1.39,low
+PRT-N-0059,Foam padding type 1 (Nova),Foam padding,Outdoors,12.06,medium
+PRT-N-0060,Carabiner type 1 (Nova),Carabiner,Outdoors,6.76,high
+PRT-N-0061,Tent pole type 1 (Nova),Tent pole,Outdoors,24.62,medium
+PRT-N-0062,Mesh panel type 1 (Nova),Mesh panel,Outdoors,4.11,medium
+PRT-N-0063,Aluminum frame type 2 (Nova),Aluminum frame,Outdoors,24.21,low
+PRT-N-0064,Nylon fabric type 2 (Nova),Nylon fabric,Outdoors,1.4,medium
+PRT-N-0065,Side-release buckle type 2 (Nova),Side-release buckle,Outdoors,17.1,medium
+PRT-N-0066,Waterproof coating type 2 (Nova),Waterproof coating,Outdoors,8.68,low
+PRT-N-0067,Foam padding type 2 (Nova),Foam padding,Outdoors,13.5,medium
+PRT-N-0068,Carabiner type 2 (Nova),Carabiner,Outdoors,8.66,high
+PRT-N-0069,Tent pole type 2 (Nova),Tent pole,Outdoors,23.92,low
+PRT-N-0070,Mesh panel type 2 (Nova),Mesh panel,Outdoors,21.9,medium
+PRT-N-0071,Aluminum frame type 3 (Nova),Aluminum frame,Outdoors,11.56,medium
+PRT-N-0072,Nylon fabric type 3 (Nova),Nylon fabric,Outdoors,14.8,low

@@ -1,0 +1,39 @@
+{
+ "authors": [
+  "EMP-009",
+  "EMP-010"
+ ],
+ "channel": "#logistics",
+ "decisions": [],
+ "doc_id": "DOC-CHAT-029",
+ "id": "THR-029",
+ "mentions": [
+  "SUP-T1-0035",
+  "PRT-0208",
+  "PORT-ZADUR"
+ ],
+ "messages": [
+  {
+   "author": "EMP-009",
+   "id": "MSG-029-01",
+   "text": "Two containers are held by customs at Durban.",
+   "ts": "2025-05-22T09:00"
+  },
+  {
+   "author": "EMP-010",
+   "id": "MSG-029-02",
+   "text": "Paperwork issue on the commercial invoice. Expect two days.",
+   "ts": "2025-05-22T09:13"
+  },
+  {
+   "author": "EMP-009",
+   "id": "MSG-029-03",
+   "text": "Released this morning.",
+   "ts": "2025-05-22T10:26"
+  }
+ ],
+ "title": "Customs hold at Durban",
+ "type": "chat_thread",
+ "updated_at": "2025-05-22",
+ "version": 1
+}
