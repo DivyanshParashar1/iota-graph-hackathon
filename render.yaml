@@ -12,9 +12,12 @@ services:
         value: embedded
       - key: RIPPLE_DB_PATH
         value: /app/var/ripple.db
-      - key: RIPPLE_AUTOBUILD
-        value: "1"
-      - key: ANTHROPIC_API_KEY
+      - key: RIPPLE_TENANTS_DIR
+        value: /app/var/tenants
+      # There is no `claude` CLI in a Render container, so a hosted deploy needs an API key.
+      - key: RIPPLE_LLM_PROVIDER
+        value: openrouter
+      - key: OPENROUTER_API_KEY
         sync: false
     disk:
       name: ripple-data

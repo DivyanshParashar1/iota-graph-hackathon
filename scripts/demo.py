@@ -1,11 +1,15 @@
-"""Terminal fallback demo: the three acts of the video (idea.md section 17), against an embedded DB.
+"""Terminal walk-through of the three demo acts, against a real LLM and a real FalkorDB.
 
-    .venv/bin/python scripts/demo.py [--db var/demo.db] [--sample 3000] [--rebuild]
+    .venv/bin/python scripts/demo.py --company "Northwind Trainers" --industry footwear
 
-Act 1 (Track 1): Shanghai closes -> four agents trace, decide, act -> approve the reroute -> revenue at risk drops.
-Act 2 (Track 2): close + record episode -> restart (DB closed and reopened) -> Ningbo congestion recalls Shanghai and
-                 reuses its playbook -> tenant switch to Nova -> 20-session load test.
-Act 3 (Track 3): five brain questions with sources -> owner handover posted -> the answer changes.
+It plays the user's half of the interview with a second LLM (the persona in `tests/test_llm_live.py`), so the
+whole thing runs unattended: interview -> forms -> ontology -> approve and load -> experts -> ask one a
+question. Everything it does goes through the same code the UI drives, and everything it writes stays in the
+`.db` file it was given, so you can point the API at it afterwards and click through the result.
+
+    --db var/demo.db        where to put the graph (default: a temporary directory)
+    --turns 20              cap on interview turns
+    --stop-after ontology   stop early (interview | data | ontology | experts)
 """
 
 from __future__ import annotations
@@ -13,114 +17,195 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import textwrap
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "eval"))
 
-from ripple.agents.events import BUS  # noqa: E402
-from ripple.agents.orchestrator import Orchestrator  # noqa: E402
-from ripple.db import TenantScope, close_db, get_db  # noqa: E402
-from ripple.ingest.build import build_all, is_built  # noqa: E402
-from ripple.ingest.delta import ingest_delta  # noqa: E402
-from ripple.ingest.synth import SYNTH_DIR  # noqa: E402
-from ripple.scenarios import scenario_event  # noqa: E402
-from ripple.tools.actions import approve_action, execute_action, get_action, list_actions  # noqa: E402
-from ripple.tools.brain import ask  # noqa: E402
-from ripple.tools.memory import close_incident  # noqa: E402
+from ripple.config import get_settings  # noqa: E402
+from ripple.db import TenantScope, close_db, get_db, slug_tenant_id  # noqa: E402
+from ripple.experts import runtime  # noqa: E402
+from ripple.llm.base import LLMError, get_client  # noqa: E402
+from ripple.llm.structured import ask_model  # noqa: E402
+from ripple.onboarding import session as sess  # noqa: E402
+from ripple.onboarding import store  # noqa: E402
+from ripple.onboarding.agents import ontologist  # noqa: E402
+from ripple.onboarding.agents.common import state_message  # noqa: E402
+from ripple.onboarding.agents.data_agent import save_values  # noqa: E402
+from ripple.onboarding.events import BUS  # noqa: E402
+from ripple.onboarding.models import SynthesizedForm  # noqa: E402
 
-W = 110
-
-
-def h(title: str) -> None:
-    print("\n" + "=" * W + f"\n{title}\n" + "=" * W)
+C = {"dim": "\033[2m", "b": "\033[1m", "cyan": "\033[36m", "green": "\033[32m", "yellow": "\033[33m",
+     "red": "\033[31m", "violet": "\033[35m", "off": "\033[0m"}
 
 
-def say(prefix: str, text: str) -> None:
-    print(textwrap.fill(text, W, initial_indent=f"{prefix:>10} | ", subsequent_indent=" " * 13))
+def say(tag: str, text: str, colour: str = "off") -> None:
+    print(f"{C[colour]}{tag:>12}{C['off']} {text}")
 
 
-def timeline(iid: str) -> None:
-    for e in BUS.history(iid):
-        if e["kind"] == "tool_call":
-            continue
-        tag = f"{e['agent']}" + (f":{e['tool']}" if e["tool"] else "")
-        if e["kind"] in ("handoff",):
-            say("->", e["summary"])
-        else:
-            say(tag[:10], e["summary"])
+def rule(title: str) -> None:
+    print(f"\n{C['b']}{'─' * 4} {title} {'─' * max(4, 72 - len(title))}{C['off']}")
+
+
+def drain(tenant: str, after: int) -> int:
+    """Print the agent steps that happened since `after` - the terminal's version of the live trail."""
+    for ev in BUS.history(tenant, after):
+        after = ev["seq"]
+        say(ev["agent"], f"{C['dim']}{ev['kind']}: {ev['summary']}{C['off']}")
+    return after
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=str(ROOT / "var" / "demo.db"))
-    ap.add_argument("--sample", type=int, default=3000, help="DataCo orders to load (0 = full dataset)")
-    ap.add_argument("--rebuild", action="store_true")
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--company", default="Northwind Trainers")
+    ap.add_argument("--industry", default="footwear")
+    ap.add_argument("--db", default="")
+    ap.add_argument("--turns", type=int, default=24)
+    ap.add_argument("--stop-after", choices=["interview", "data", "ontology", "experts"], default="experts")
+    ap.add_argument("--question", default="")
     a = ap.parse_args()
-    path = Path(a.db)
-    if a.rebuild and path.exists():
-        path.unlink()
-    db = get_db(path, mode="embedded")
-    if not is_built(db, "dataco"):
-        print(f"building both tenants into {path} (sample={a.sample or 'full'}) ...")
-        build_all(db, a.sample or None)
-    s = TenantScope("dataco", db)
 
-    h("ACT 1 - Agents that act on connected data: Port of Shanghai closes for 10 days")
-    iid = Orchestrator(s, "scripted").run(scenario_event("port_closure_shanghai", "dataco"))
-    timeline(iid)
-    for act in list_actions(s, status="proposed", incident_id=iid):
-        say("human", f"approves {act['type']} {act['id']}: {act['summary']}")
-        approve_action(s, action_id=act["id"], user="USR-judge", user_name="Judge")
-        r = execute_action(s, action_id=act["id"]).data
-        say("graph", f"revenue at risk ${r['revenue_before']:,.0f} -> ${r['revenue_after']:,.0f}")
-        ev = get_action(s, act["id"])["evidence"]
-        say("evidence", ", ".join(f"{e['label']} {e['id']}" for e in ev[:8]) + (" ..." if len(ev) > 8 else ""))
+    s = get_settings()
+    if not s.has_llm:
+        print(f"{C['red']}No LLM provider.{C['off']} Install the `claude` CLI and log in, or set "
+              "OPENROUTER_API_KEY / ANTHROPIC_API_KEY. See .env.example.")
+        raise SystemExit(2)
+    from tests.test_llm_live import PERSONA  # the demo's user is the live suite's persona
 
-    h("ACT 2 - Memory and coordination: close, restart, a similar incident, tenant switch")
-    c = close_incident(s, incident_id=iid).data
-    say("memory", f"episode {c['episode']['episode_id']} recorded, outcome {c['episode']['outcome']}; playbook "
-                  f"{c['episode']['playbook_id']} now {c['episode']['playbook']['successes']}/{c['episode']['playbook']['uses']}")
-    close_db(db)
-    say("restart", "embedded FalkorDB stopped; reopening from the .db file")
-    db = get_db(path, mode="embedded")
-    s = TenantScope("dataco", db)
-    iid2 = Orchestrator(s, "scripted").run(scenario_event("port_congestion_ningbo", "dataco"))
-    for e in BUS.history(iid2):
-        if e["agent"] in ("sentinel", "planner") and e["kind"] == "message":
-            say(e["agent"], e["summary"])
-    nova = TenantScope("nova", db)
-    q = "Who on the team has handled a port closure before?"
-    for sc in (s, nova):
-        r = ask(sc, question=q).data
-        say(sc.tenant_id, f"{r['answer'][:220]} [sources: {', '.join(x['doc_id'] for x in r['sources'][:3])}]")
-    from load_test import run_load_test
+    client = get_client()
+    db_path = Path(a.db) if a.db else Path(__import__("tempfile").mkdtemp()) / "demo.db"
+    db = get_db(db_path, mode="embedded")
+    seen = 0
+    t0 = time.time()
+    try:
+        rule(f"Act 1 · an empty database, then an interview ({s.llm_provider} · {s.model_name})")
+        say("ripple", f"graphs before: {db.list_graphs() or 'none'}", "dim")
+        tid = slug_tenant_id(a.company)
+        scope = sess.start(db, a.company, a.industry, tenant_id=tid)
+        sid = store.get_session(scope)["id"]
+        say("ripple", f"tenant {C['b']}{scope.tenant_id}{C['off']} · graphs: {db.list_graphs()}", "green")
+        seen = drain(scope.tenant_id, seen)
 
-    lt = run_load_test(db, 20)
-    say("load", f"{lt['sessions']} sessions, {lt['ops']} ops in {lt['wall_s']}s: {len(lt['leaks'])} cross-tenant leaks, "
-                f"{lt['duplicates']} duplicate actions")
+        for turn in range(a.turns):
+            state = sess.state(scope)
+            if state["stage"] != "interview" and a.stop_after == "interview":
+                break
+            if state["stage"] in ("ontology", "experts", "ready"):
+                break
+            agent_msgs = [m for m in state["messages"] if m["role"] == "agent"]
+            text = agent_msgs[-1]["text"] if agent_msgs else ""
+            if state["open_form"]:
+                form = store.open_form(scope)
+                rule(f"Act 1 · form round {form.round}: {form.title}")
+                for f in form.fields:
+                    kind = f"{f.type}{f' in {f.unit}' if f.unit else ''}"
+                    say("form", f"{f.label} {C['dim']}({kind}){C['off']}")
+                values = fill_form(client, PERSONA, form)
+                save_values(scope, form, values, confidences={k: "ballpark" for k in values})
+                store.set_form_status(scope, form.id, "submitted")
+                say("user", f"filled {len(values)} of {len(form.fields)} fields", "cyan")
+                sess.run_turn(scope, sid, None)
+                seen = drain(scope.tenant_id, seen)
+                continue
+            say(state["stage"], text.replace("\n", "\n             "))
+            reply = client.complete(system=PERSONA, messages=[{"role": "user", "content": text}],
+                                    max_tokens=800, effort="low").text.strip()
+            say("user", reply.replace("\n", " ")[:400], "cyan")
+            sess.run_turn(scope, sid, reply)
+            seen = drain(scope.tenant_id, seen)
 
-    h("ACT 3 - Company brain: answers with sources, kept current")
-    for question in ["Who owns our relationship with Shenzhen Volt Components, and who backs them up?",
-                     "Why did we dual-source the Li-ion battery pack?",
-                     "What does the contract with Shenzhen Volt Components say about delay penalties, and are we owed "
-                     "anything for this incident?",
-                     "Who on the team has handled a port closure before?",
-                     "What changed in our sourcing policy since the 2024 typhoon?"]:
-        r = ask(s, question=question, user_id="USR-judge").data
-        say("Q", question)
-        say("A", r["answer"])
-        say("sources", ", ".join(x["doc_id"] for x in r["sources"][:4]))
-    item = json.loads((SYNTH_DIR / "dataco" / "delta" / "handover.json").read_text())
-    say("chat", item["text"])
-    d = ingest_delta(s, kind="chat", text=item["text"], author_id=item["author_id"], channel=item["channel"]).data
-    say("ingest", f"{d['message_id']}: {d.get('handover')}")
-    r = ask(s, question="Who owns our relationship with Shenzhen Volt Components?", user_id="USR-judge").data
-    say("A", r["answer"])
-    say("sources", ", ".join(x["doc_id"] for x in r["sources"][:4]))
-    close_db(db)
+        brief, row = store.current_brief(scope)
+        rule("Act 1 · the brief")
+        if brief:
+            say("brief", f"v{row['version']} · {len(brief.products)} products, {len(brief.suppliers)} suppliers, "
+                         f"{len(brief.sites)} sites, gaps: {brief.core_gaps() or 'none'}", "green")
+            for p in brief.pains[:3]:
+                say("pain", p, "yellow")
+        if a.stop_after == "interview":
+            return summary(scope, t0, db_path)
+
+        rule("Act 2 · the ontology")
+        spec, srow = store.current_spec(scope)
+        if spec is None:
+            say("ripple", "no spec yet (the data stage is still open)", "red")
+            return summary(scope, t0, db_path)
+        say("spec", f"v{srow['version']} · {len(spec.types)} types, {len(spec.relationships)} relationships",
+            "violet")
+        for t in spec.types:
+            say(t.label, f"{C['dim']}{', '.join(p.name for p in t.properties)}{C['off']}")
+        for r in spec.relationships:
+            say("edge", f"({r.from_})-[{r.type}]->({r.to})", "violet")
+        if a.stop_after == "ontology":
+            return summary(scope, t0, db_path)
+
+        rule("Act 2 · approve: indexes, instance data, provenance")
+        from ripple.onboarding.events import StepEmitter
+
+        out = ontologist.approve(scope, sid, StepEmitter(scope, "ontology", "ontologist"), client=client)
+        seen = drain(scope.tenant_id, seen)
+        say("loaded", f"{out['nodes']} nodes, {out['edges']} edges, {out['provenance']} provenance links", "green")
+        counts = store.instance_counts(scope)
+        say("counts", json.dumps(counts["nodes"]), "dim")
+        node_id = next(iter(scope.ops.query(
+            "MATCH (n) WHERE NOT any(l IN labels(n) WHERE l STARTS WITH '_') RETURN n.id AS id LIMIT 1")), {})
+        if node_id.get("id"):
+            prov = store.provenance_of(scope, node_id["id"])
+            say("provenance", f"{node_id['id']} <- " + ", ".join(
+                f"{p['source_label']}:{p['source_ref']}={str(p['source_value'])[:40]}" for p in prov) or "none",
+                "green")
+        sess.advance(scope, sid, "ontology", reason="approved by scripts/demo.py")
+        seen = drain(scope.tenant_id, seen)
+
+        rule("Act 3 · the experts this supply chain needs")
+        roles = store.list_experts(scope)
+        for r in roles:
+            say(r.name, f"{r.title} · {', '.join(r.focus_types)}", "green")
+            say("", f"{C['dim']}{r.justification[:160]}{C['off']}")
+        if not roles:
+            return summary(scope, t0, db_path)
+
+        rule("Act 3 · ask one of them, over the real graph")
+        role = roles[0]
+        store.set_expert_status(scope, role.id, "approved")
+        question = a.question or (role.playbook[0] if role.playbook else f"What do you cover for {a.company}?")
+        say("question", question, "cyan")
+        res = runtime.ask(scope, role, question, client=client,
+                          on_step=lambda ev: say(role.name, f"{C['dim']}{ev['kind']}: "
+                                                            f"{ev.get('tool') or ev.get('summary', '')}{C['off']}"))
+        say(role.name, (res["text"] or res["reason"]).replace("\n", "\n             "),
+            "green" if res["ok"] else "red")
+        say("ids", ", ".join(res["ids"][:12]) or "none", "dim")
+        summary(scope, t0, db_path)
+    except LLMError as e:
+        say("error", str(e), "red")
+        raise SystemExit(1) from None
+    finally:
+        db.save()
+        close_db(db)
+
+
+def fill_form(client, persona: str, form) -> dict:
+    out, _ = ask_model(client, SynthesizedForm, persona + (
+        "\n\nFill in this form about your own company. Return one value per field id, using the real numbers "
+        "from your brief where they apply and leaving out anything you would not know."),
+        [state_message("Form", {"form": {"title": form.title, "intro": form.intro,
+                                          "fields": [x.model_dump() for x in form.fields]}})])
+    fields = form.field_map()
+    return {k: v for k, v in (out.values or {}).items() if k in fields}
+
+
+def summary(scope: TenantScope, t0: float, db_path: Path) -> None:
+    rule("summary")
+    c = store.counts(scope)
+    steps = store.list_steps(scope, limit=5000)
+    say("graph", f"{c['nodes']} nodes, {c['edges']} edges in {scope.ops.name}", "green")
+    say("agents", f"{len(steps)} recorded steps, {len([s for s in steps if s['kind'] == 'llm'])} LLM calls",
+        "green")
+    say("time", f"{time.time() - t0:.0f}s", "dim")
+    say("db", str(db_path), "dim")
+    print(f"\n{C['dim']}Point the API at it:  RIPPLE_DB_PATH={db_path} .venv/bin/uvicorn "
+          f"ripple.api.app:app{C['off']}")
 
 
 if __name__ == "__main__":

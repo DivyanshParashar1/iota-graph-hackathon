@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 # --------------------------------------------------------------------------- shared
 
@@ -97,7 +97,12 @@ class Brief(Model):
     scale: str = ""  # revenue band, headcount, order volume - whatever they gave
 
     def merge(self, patch: dict | None) -> "Brief":
-        """A new Brief with `patch` applied: lists and dicts are merged, scalars overwritten when non-empty."""
+        """A new Brief with `patch` applied: lists and dicts are merged, scalars overwritten when non-empty.
+
+        `brief_patch` is free-form by design - the interviewer sends only the fields that changed, so there is
+        no schema to hold it to. That means the patch arrives in whatever shape the model found natural: a
+        product can come back as `"Runner (road running)"` where a `BriefProduct` was expected. Coerce what
+        can be coerced, drop what cannot, and never let a patch lose a turn's worth of interview."""
         if not patch:
             return self.model_copy(deep=True)
         data = self.model_dump()
@@ -105,14 +110,21 @@ class Brief(Model):
             if k not in data or v in (None, "", [], {}):
                 continue
             cur = data[k]
-            if isinstance(cur, list) and isinstance(v, list):
+            if isinstance(cur, list):
+                items = [_coerce_item(k, x) for x in (v if isinstance(v, list) else [v])]
                 seen = {_key(x) for x in cur}
-                data[k] = cur + [x for x in v if _key(x) not in seen]
-            elif isinstance(cur, dict) and isinstance(v, dict):
-                data[k] = {**cur, **v}
-            else:
-                data[k] = v
-        return Brief.model_validate(data)
+                data[k] = cur + [x for x in items if x is not None and _key(x) not in seen]
+            elif isinstance(cur, dict):
+                data[k] = {**cur, **v} if isinstance(v, dict) else cur
+            elif isinstance(v, (str, int, float, bool)):
+                data[k] = str(v) if isinstance(cur, str) else v
+        try:
+            return Brief.model_validate(data)
+        except ValidationError as e:  # a field we could not coerce: keep the brief, drop that field's patch
+            bad = {str(err["loc"][0]) for err in e.errors() if err["loc"]}
+            for k in bad:
+                data[k] = self.model_dump().get(k)
+            return Brief.model_validate(data)
 
     def core_gaps(self) -> list[str]:
         """Core topics the stage machine will not let the interviewer close on while they are empty."""
@@ -128,10 +140,40 @@ class Brief(Model):
         return [k for k, ok in checks.items() if not ok]
 
 
+# A list field whose entries are objects, and the property a bare string should become.
+_LIST_ITEMS: dict[str, tuple[type[Model], str]] = {}
+
+
+def _coerce_item(field: str, value: Any) -> Any:
+    """One entry of a list field, in whatever shape the model sent it."""
+    spec = _LIST_ITEMS.get(field)
+    if spec is None:  # list[str]
+        if isinstance(value, (str, int, float)):
+            return str(value)
+        if isinstance(value, dict):
+            return str(value.get("name") or value.get("kind") or next(iter(value.values()), ""))
+        return None
+    cls, key = spec
+    if isinstance(value, cls):
+        return value.model_dump()
+    if isinstance(value, dict):
+        try:
+            return cls.model_validate(value).model_dump()
+        except ValidationError:
+            return None
+    if isinstance(value, str):
+        return cls.model_validate({key: value}).model_dump()
+    return None
+
+
 def _key(x: Any) -> str:
     if isinstance(x, dict):
         return str(x.get("name") or x.get("kind") or sorted(x.items()))
     return str(x)
+
+
+_LIST_ITEMS.update({"products": (BriefProduct, "name"), "suppliers": (BriefSupplier, "name"),
+                    "sites": (BriefSite, "name")})
 
 
 class InterviewTurn(Model):
@@ -147,8 +189,37 @@ class InterviewTurn(Model):
 
 # --------------------------------------------------------------------------- stage 2: data pack
 
+ColumnType = Literal["text", "longtext", "number", "integer", "currency", "percent", "date", "daterange",
+                     "select", "multiselect", "boolean", "geo", "file"]
 FieldType = Literal["text", "longtext", "number", "integer", "currency", "percent", "date", "daterange",
                     "select", "multiselect", "boolean", "geo", "file", "group"]
+
+
+def _check_id(v: str) -> str:
+    if not v or not all(c.isalnum() or c in "_-" for c in v):
+        raise ValueError("field id must be alphanumeric with _ or -")
+    return v
+
+
+class FormColumn(Model):
+    """One column of a repeating group. Columns hold scalars - a group inside a group is not a form, it is a
+    schema, and it also makes the JSON schema recursive, which structured output cannot express."""
+
+    id: str
+    label: str
+    type: ColumnType = "text"
+    help: str = ""
+    placeholder: str = ""
+    unit: str = ""
+    required: bool = False
+    example: str = ""
+    options: list[str] = Field(default_factory=list)
+    maps_to: str = ""
+
+    @field_validator("id")
+    @classmethod
+    def _id_shape(cls, v: str) -> str:
+        return _check_id(v)
 
 
 class FormField(Model):
@@ -162,7 +233,7 @@ class FormField(Model):
     example: str = ""
     options: list[str] = Field(default_factory=list)  # select / multiselect
     show_if: dict = Field(default_factory=dict)  # {"field": "<id>", "equals": <value>} - conditional visibility
-    fields: list["FormField"] = Field(default_factory=list)  # type == "group": the columns of a repeating table
+    fields: list[FormColumn] = Field(default_factory=list)  # type == "group": the columns of a repeating table
     min_rows: int = 0
     max_rows: int = 50
     maps_to: str = ""  # the ontology concept this answer is about, when the agent knows it
@@ -170,12 +241,7 @@ class FormField(Model):
     @field_validator("id")
     @classmethod
     def _id_shape(cls, v: str) -> str:
-        if not v or not all(c.isalnum() or c in "_-" for c in v):
-            raise ValueError("field id must be alphanumeric with _ or -")
-        return v
-
-
-FormField.model_rebuild()
+        return _check_id(v)
 
 
 class FormSpec(Model):
@@ -189,16 +255,13 @@ class FormSpec(Model):
     status: Literal["open", "submitted"] = "open"
     ts: int = 0
 
-    def field_map(self) -> dict[str, FormField]:
-        out: dict[str, FormField] = {}
-
-        def walk(fs: list[FormField], prefix: str = "") -> None:
-            for f in fs:
-                out[f"{prefix}{f.id}"] = f
-                if f.type == "group":
-                    walk(f.fields, f"{prefix}{f.id}.")
-
-        walk(self.fields)
+    def field_map(self) -> dict[str, FormField | FormColumn]:
+        """Every field by id, with a group's columns as `<group id>.<column id>`."""
+        out: dict[str, FormField | FormColumn] = {}
+        for f in self.fields:
+            out[f.id] = f
+            for c in f.fields:
+                out[f"{f.id}.{c.id}"] = c
         return out
 
 

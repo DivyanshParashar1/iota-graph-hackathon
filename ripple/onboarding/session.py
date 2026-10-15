@@ -18,6 +18,7 @@ every downstream artifact is flagged stale, so the user can see exactly what wil
 
 from __future__ import annotations
 
+import logging
 from typing import Callable
 
 from ripple.config import get_settings
@@ -64,6 +65,7 @@ DOWNSTREAM = {
 }
 AGENT_OF = {"interview": "interviewer", "data": "data_agent", "ontology": "ontologist",
             "experts": "expert_generator", "ready": "ripple"}
+log = logging.getLogger("ripple.onboarding")
 
 
 class StageError(RuntimeError):
@@ -178,10 +180,18 @@ def run_turn(scope: TenantScope, sid: str, user_text: str | None, *,
     try:
         client = get_client()
         out = module.turn(scope, sid, client, emit)
-    except LLMError as e:
-        emit("error", f"{agent} could not run: {e}", data={"fatal": True})
-        msgs = [append_message(scope, sid, Message(role="system", stage=stage, kind="system",
-                                                   text=f"The {agent} could not run: {e}"))]
+    except Exception as e:  # noqa: BLE001
+        # A failed turn must not cost the session. Everything up to this point is already in FalkorDB, so the
+        # failure goes into the thread (and the trail) and the user can answer again or go back a stage.
+        # A provider failure is expected; anything else is a bug, and is logged as one.
+        fatal = not isinstance(e, LLMError)
+        log.exception("%s turn failed", agent) if fatal else log.warning("%s: %s", agent, e)
+        emit("error", f"{agent} could not run: {e}", data={"fatal": True, "bug": fatal,
+                                                           "error": type(e).__name__})
+        msgs = [append_message(scope, sid, Message(
+            role="system", stage=stage, kind="system",
+            text=f"The {agent} could not run: {e}",
+            payload={"error": type(e).__name__, "bug": fatal}))]
         set_pending(scope, sid, None)
         return msgs
     finally:

@@ -123,6 +123,29 @@ MATCH (a:Supplier {id:'S1'}) CALL algo.BFS(a, 3, 'SUPPLIES_TO') YIELD nodes, edg
 * Harmonic centrality, A*, max-flow and MSF exist in the docs (reference/falkordb-docs/algorithms) but are not
   needed.
 
+## Generated (per-tenant) ontologies
+
+Verified while building v2, where labels and relationship types come from a model rather than from the repo.
+
+* **A label cannot be a parameter.** There is no `MERGE (n:$label)`. The label has to be in the query text, so
+  v2 validates every generated label (`ripple/onboarding/validate.py`) and then interpolates it through one
+  guarded function (`ripple.graph.queries.ident`, `^[A-Za-z][A-Za-z0-9_]{0,63}$`). The query text itself stays
+  in `graph/queries/*.cypher` with `{placeholders}`.
+* **`MERGE` on an unlabelled pattern scans the graph.** `MATCH (a {id: r.from}) MATCH (b {id: r.to}) MERGE
+  (a)-[:REL]->(b)` cannot use an id index, because the index is per label. Loading 6,000 nodes and 5,500 edges
+  that way took **16.3 s**; grouping edges by `(relationship, from label, to label)` so both `MATCH`es are
+  labelled took **0.33 s** - a ~50x difference, and the single biggest performance finding of the v2 build.
+* **`SET n += r.props` works with a map inside a parameter row.** The restriction is on *stored* property
+  values, not on reading a map out of a parameter: `UNWIND $rows AS r ... SET e += r.props` is how edge
+  properties are loaded. (A property whose own value is a map is still rejected, so
+  `ripple/graph/apply.py:_flat` flattens one level and JSON-encodes anything deeper.)
+* **`labels(n)` can carry a naming convention.** Every platform label is `_`-prefixed and every generated label
+  is rejected if it is, so `MATCH (n) WHERE NOT any(l IN labels(n) WHERE l STARTS WITH '_') DETACH DELETE n`
+  reloads a tenant's instance data without touching its onboarding state.
+* **A duplicate `CREATE INDEX` raises**, so both the platform schema and `apply_spec` treat an
+  "already exists" error as success; approving an ontology twice is a no-op rather than a failure.
+* `scripts/verify_falkordb.py` checks all four of these.
+
 ## Other notes
 
 * Labels: multiple labels per node work (`:Supplier:RiskBearing`). `labels(n)[0]` returns the first one.

@@ -330,3 +330,52 @@ def test_reply_assistant_message_round_trip():
     assert msg["role"] == "assistant"
     assert [b["type"] for b in msg["content"]] == ["text", "tool_use"]
     assert Reply().assistant_message()["content"] == [{"type": "text", "text": ""}]
+
+
+# --------------------------------------------------------------------------- schemas the providers accept
+
+def test_every_agent_turn_schema_is_flat_and_finite():
+    """A provider rejects a schema with an unresolved or truncated `$ref`, so build every one the agents send.
+
+    This is the deterministic counterpart to a failure that only a real provider found: `FormField.fields` used
+    to be `list[FormField]`, and inlining it produced a schema whose innermost `fields` was no longer an array.
+    """
+    from ripple.onboarding.models import (
+        DataTurn,
+        ExpertsTurn,
+        InstanceBatch,
+        InterviewTurn,
+        OntologyTurn,
+        SynthesizedForm,
+    )
+
+    for cls in (InterviewTurn, DataTurn, OntologyTurn, ExpertsTurn, InstanceBatch, SynthesizedForm):
+        schema = json_schema(cls)
+        body = json.dumps(schema)
+        assert "$ref" not in body and "$defs" not in body, cls.__name__
+        assert len(body) < 60_000, f"{cls.__name__} schema is {len(body)} chars"
+        _assert_well_formed(schema, cls.__name__)
+
+
+def _assert_well_formed(node, where: str, depth: int = 0) -> None:
+    assert depth < 30, f"{where}: schema nests more than 30 deep"
+    if isinstance(node, dict):
+        if node.get("type") == "array":
+            assert "items" in node, f"{where}: an array with no items"
+        for k, v in node.items():
+            _assert_well_formed(v, f"{where}.{k}", depth + 1)
+    elif isinstance(node, list):
+        for v in node:
+            _assert_well_formed(v, where, depth + 1)
+
+
+def test_a_recursive_model_is_refused_at_build_time():
+    from ripple.llm.structured import RecursiveModel
+
+    class Node(BaseModel):
+        name: str
+        children: list["Node"] = Field(default_factory=list)
+
+    Node.model_rebuild()
+    with pytest.raises(RecursiveModel):
+        json_schema(Node)

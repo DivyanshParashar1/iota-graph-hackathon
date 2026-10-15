@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from ripple.onboarding.agents.data_agent import coerce, missing_required, save_values
-from ripple.onboarding.models import FormField, FormSpec
+from ripple.onboarding.models import FormColumn, FormField, FormSpec
 from ripple.onboarding.store import list_answers, save_form
 from tests import factories as f
 
@@ -15,7 +15,7 @@ def test_every_declared_field_type_round_trips():
              "multiselect", "boolean", "geo", "file", "group"]
     form = FormSpec(title="All types", fields=[
         FormField(id=f"f_{t}", label=t, type=t, options=["a", "b"],
-                  fields=[FormField(id="col", label="col")] if t == "group" else [])
+                  fields=[FormColumn(id="col", label="col")] if t == "group" else [])
         for t in types])
     assert {fl.type for fl in form.fields} == set(types)
     assert "f_group.col" in form.field_map()
@@ -80,7 +80,7 @@ def test_conditional_fields_are_not_required_when_hidden():
 
 def test_required_group_is_reported():
     form = f.form(fields=[FormField(id="tier1", label="Tier-1", type="group", required=True,
-                                     fields=[FormField(id="name", label="Name")])])
+                                     fields=[FormColumn(id="name", label="Name")])])
     assert missing_required(form, {}) == ["tier1"]
     assert missing_required(form, {"tier1": [{"name": "GZ"}]}) == []
 

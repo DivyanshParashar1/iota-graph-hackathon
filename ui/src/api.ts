@@ -1,302 +1,430 @@
-// All API types and calls. The tenant is sent as X-Ripple-Tenant (and ?tenant= for EventSource).
-
-export type Tenant = "dataco" | "nova";
+// Every API type and call. The tenant travels in a cookie the server sets on /api/onboarding/start; a header
+// is sent too so a browser with several tenants open still hits the right one.
 
 const TENANT_KEY = "ripple.tenant";
 
-export function getTenant(): Tenant {
+export function getTenant(): string {
   try {
-    const t = localStorage.getItem(TENANT_KEY);
-    return t === "nova" ? "nova" : "dataco";
+    return localStorage.getItem(TENANT_KEY) ?? "";
   } catch {
-    return "dataco";
+    return "";
   }
 }
 
-export function setTenant(t: Tenant): void {
+export function setTenant(t: string): void {
   try {
-    localStorage.setItem(TENANT_KEY, t);
+    if (t) localStorage.setItem(TENANT_KEY, t);
+    else localStorage.removeItem(TENANT_KEY);
   } catch {
-    /* private mode: tenant just won't persist */
+    /* private mode: the cookie still carries it */
+  }
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public errors: string[] = [],
+  ) {
+    super(message);
   }
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const tenant = getTenant();
   const res = await fetch(path, {
+    credentials: "include",
     ...init,
-    headers: { "Content-Type": "application/json", "X-Ripple-Tenant": getTenant(), ...(init?.headers ?? {}) },
+    headers: {
+      ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+      ...(tenant ? { "X-Ripple-Tenant": tenant } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
+    let errors: string[] = [];
     try {
-      const body = (await res.json()) as { detail?: string };
-      if (body.detail) msg = body.detail;
+      const body = (await res.json()) as { detail?: string | { message?: string; errors?: string[] } };
+      if (typeof body.detail === "string") msg = body.detail;
+      else if (body.detail) {
+        msg = body.detail.message ?? msg;
+        errors = body.detail.errors ?? [];
+      }
     } catch {
       /* not json */
     }
-    throw new Error(msg);
+    throw new ApiError(msg, res.status, errors);
   }
   return (await res.json()) as T;
 }
 
 const get = <T,>(p: string) => req<T>(p);
 const post = <T,>(p: string, body?: unknown) => req<T>(p, { method: "POST", body: JSON.stringify(body ?? {}) });
+const patch = <T,>(p: string, body?: unknown) => req<T>(p, { method: "PATCH", body: JSON.stringify(body ?? {}) });
+const del = <T,>(p: string) => req<T>(p, { method: "DELETE" });
 
 // ------------------------------------------------------------------ types
-export type Edge = [string, string, string];
+export type Stage = "interview" | "data" | "ontology" | "experts" | "ready";
 
-export interface AgentEvent {
+export interface Step {
   seq: number;
   ts: number;
-  incident_id: string;
+  tenant: string;
+  stage: string;
   agent: string;
-  kind: "tool_call" | "tool_result" | "handoff" | "message" | "action" | "done" | "error";
-  tool: string | null;
-  args: Record<string, unknown>;
+  kind: string;
   summary: string;
   node_ids: string[];
-  edges: Edge[];
   data: Record<string, unknown> | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "agent" | "system";
+  agent: string;
+  stage: Stage;
+  kind: "text" | "form" | "attachment" | "system" | "artifact";
+  text: string;
+  payload: Record<string, unknown>;
+  ts: number;
+  seq: number;
+}
+
+export type FieldType =
+  | "text"
+  | "longtext"
+  | "number"
+  | "integer"
+  | "currency"
+  | "percent"
+  | "date"
+  | "daterange"
+  | "select"
+  | "multiselect"
+  | "boolean"
+  | "geo"
+  | "file"
+  | "group";
+
+/** A column of a repeating group. Columns hold scalars: a group cannot contain another group. */
+export interface FormColumn {
+  id: string;
+  label: string;
+  type: Exclude<FieldType, "group">;
+  help: string;
+  placeholder: string;
+  unit: string;
+  required: boolean;
+  example: string;
+  options: string[];
+  maps_to: string;
+}
+
+export interface FormField {
+  id: string;
+  label: string;
+  type: FieldType;
+  help: string;
+  placeholder: string;
+  unit: string;
+  required: boolean;
+  example: string;
+  options: string[];
+  show_if: { field?: string; equals?: unknown };
+  fields: FormColumn[];
+  min_rows: number;
+  max_rows: number;
+  maps_to: string;
+}
+
+export interface FormSpec {
+  id: string;
+  round: number;
+  title: string;
+  intro: string;
+  fields: FormField[];
+  status: "open" | "submitted";
+  ts: number;
+}
+
+export interface Answer {
+  id: string;
+  form_id: string;
+  field_id: string;
+  value: unknown;
+  source: "user" | "file" | "synthetic" | "agent";
+  confidence: "exact" | "ballpark" | "unknown" | "synthetic";
+  ts: number;
+}
+
+export interface Attachment {
+  id: string;
+  filename: string;
+  mime: string;
+  bytes: number;
+  kind: "table" | "document";
+  summary: string;
+  profile?: TableProfile | { chars: number; lines: number };
+}
+
+export interface TableProfile {
+  rows: number;
+  columns: { name: string; dtype: string; nulls: number; distinct: number; min?: number; max?: number; examples?: string[] }[];
+  sample: Record<string, unknown>[];
+}
+
+export interface PropertySpec {
+  name: string;
+  type: string;
+  unit: string;
+  required: boolean;
+  description: string;
+  options: string[];
+}
+
+export interface TypeSpec {
+  label: string;
+  description: string;
+  id_pattern: string;
+  properties: PropertySpec[];
+  tags: string[];
+  display: { icon: string; color: string; title_property: string };
+}
+
+export interface RelationshipSpec {
+  type: string;
+  from: string;
+  to: string;
+  cardinality: string;
+  properties: PropertySpec[];
+  description: string;
+}
+
+export interface OntologySpec {
+  version: number;
+  types: TypeSpec[];
+  relationships: RelationshipSpec[];
+  indexes: { label: string; property: string }[];
+  rationale: string;
+  coverage: { unmapped_answers: string[]; assumed: string[] };
+}
+
+export interface ExpertRole {
+  id: string;
+  name: string;
+  title: string;
+  mandate: string;
+  justification: string;
+  focus_types: string[];
+  focus_relationships: string[];
+  playbook: string[];
+  tools: string[];
+  system_prompt: string;
+  status: "draft" | "approved" | "retired";
+  version: number;
+  origin: "generated" | "user";
+  stale: boolean;
+  ts: number;
+}
+
+export interface StageProgress {
+  stage: Stage;
+  index: number;
+  reached: boolean;
+  current: boolean;
+  open_items: number;
+  resolved_items: number;
+  artifact: Record<string, unknown>;
+}
+
+export interface SessionState {
+  tenant: { id?: string; name?: string; stage?: string; status?: string; has_synthetic?: boolean; stages: Stage[] };
+  session: { id?: string; provider?: string; model?: string };
+  stage: Stage;
+  busy: boolean;
+  pending: { stage?: string; user_text?: string } | null;
+  messages: ChatMessage[];
+  open_form: FormSpec | null;
+  answers: Answer[];
+  attachments: Attachment[];
+  artifacts: {
+    brief: { version?: number; stale?: boolean; approved?: boolean; data: Brief | null; versions: ArtifactVersion[] };
+    ontology: { version?: number; status?: string; stale?: boolean; data: OntologySpec | null; versions: ArtifactVersion[] };
+    experts: ExpertRole[];
+  };
+  counts: { nodes: Record<string, number>; edges: Record<string, number> };
+  progress: { stages: StageProgress[]; stage: Stage; steps: number };
+  tenant_id?: string;
+}
+
+export interface ArtifactVersion {
+  id: string;
+  version: number;
+  status?: string;
+  approved?: boolean;
+  stale?: boolean;
+  created_at?: number;
+  ts?: number;
+}
+
+export interface Brief {
+  company: string;
+  industry: string;
+  summary: string;
+  products: { name: string; description: string; components: string[]; volume: string; markets: string[] }[];
+  components: string[];
+  suppliers: { kind: string; name: string; country: string; notes: string }[];
+  sites: { kind: string; name: string; location: string; notes: string }[];
+  manufacturing: string;
+  transport_modes: string[];
+  warehousing: string;
+  distribution: string;
+  customers: string[];
+  markets: string[];
+  commercial: string;
+  constraints: string[];
+  risks: string[];
+  pains: string[];
+  vocabulary: Record<string, string>;
+  unknowns: string[];
+  scale: string;
+}
+
+export interface OntologyView {
+  spec: OntologySpec | null;
+  row: { id?: string; version?: number; status?: string; stale?: boolean; rationale?: string };
+  approved_version: number | null;
+  errors: string[];
+  diagram: { nodes: DiagramNode[]; links: DiagramLink[] };
+  versions: ArtifactVersion[];
+  counts: { nodes: Record<string, number>; edges: Record<string, number> };
+  has_approved: boolean;
+}
+
+export interface DiagramNode {
+  id: string;
+  label: string;
+  description: string;
+  properties: number;
+  color: string;
+  icon: string;
+  tags: string[];
+}
+
+export interface DiagramLink {
+  source: string;
+  target: string;
+  type: string;
+  cardinality: string;
+}
+
+export interface AskResult {
+  ok: boolean;
+  text: string;
+  reason: string;
+  turns: number;
+  ids: string[];
+  steps: { kind: string; tool?: string; summary?: string; args?: Record<string, unknown> }[];
+  tools: string[];
+  role: string;
 }
 
 export interface Health {
   ok: boolean;
   db_mode: string;
   graphs: string[];
-  agent_mode: string;
-  default_mode: string;
+  llm_provider: string | null;
+  model: string;
+  has_llm: boolean;
+  stages: Stage[];
 }
 
-export interface TenantInfo {
-  id: Tenant;
-  name: string;
-  nodes: number;
-  edges: number;
-  memory_nodes: number;
-}
-
-export interface Scenario {
+export interface TenantRow {
   id: string;
-  name: string;
-  description: string;
-  event: Record<string, unknown>;
+  name?: string;
+  stage?: string;
+  status?: string;
+  nodes?: number;
+  edges?: number;
+  created_at?: number;
 }
 
-export interface IncidentRow {
+export interface GraphSample {
+  nodes: { id: string; label: string; title: string }[];
+  edges: { source: string; type: string; target: string }[];
+}
+
+export interface Provenance {
   id: string;
-  title: string;
-  type: string;
-  status: string;
-  opened_at: number;
-  closed_at: number | null;
-  revenue_at_risk: number | null;
-  revenue_at_risk_initial: number | null;
-  orders_at_risk: number | null;
-  customers_affected: number | null;
-  mode: string | null;
-  outcome: string | null;
-}
-
-export interface Target {
-  id: string;
-  label: string;
-  name: string;
-  country: string | null;
-}
-
-export interface Episode {
-  id: string;
-  incident_id: string;
-  disruption_type: string;
-  entity_ids: string[];
-  countries: string[];
-  actions_taken: string[];
-  outcome: string;
-  revenue_before: number;
-  revenue_after: number;
-  summary: string;
-  ts: number;
-  title: string;
-  seeded: boolean;
-  playbook_id: string | null;
-  playbook: string | null;
-  playbook_success_rate: number | null;
-}
-
-export interface Playbook {
-  id: string;
-  disruption_type: string;
-  name: string;
-  steps: string[];
-  uses: number;
-  successes: number;
-  success_rate: number;
-  episodes?: string[];
-}
-
-export interface Action {
-  id: string;
-  type: string;
-  status: string;
-  summary: string;
-  incident_id: string;
-  created_at: number;
-  executed_at?: number;
-  expected_impact?: number;
-  params: Record<string, unknown>;
-  agent: string | null;
-  approved_by?: string | null;
-  evidence?: { label: string; id: string; name: string; role: string }[];
-}
-
-export interface Handoff {
-  src: string;
-  dst: string;
-  ts: number;
-  summary: string;
-}
-
-export interface IncidentDetail {
-  incident: Record<string, unknown> & {
-    id: string;
-    title: string;
-    status: string;
-    type: string;
-    revenue_at_risk?: number;
-    revenue_at_risk_initial?: number;
-    orders_at_risk?: number;
-    orders_at_risk_initial?: number;
-    customers_affected?: number;
-    summary?: string;
-    impact_summary?: string;
-    mode?: string;
-  };
-  disruption: Record<string, unknown> & { id: string; type: string; name: string; expected_days?: number };
-  targets: Target[];
-  actions: Action[];
-  handoffs: Handoff[];
-  recalled: Episode[];
-  playbook: Playbook | null;
-  running: boolean;
-}
-
-export interface GraphNode {
-  id: string;
-  label: string;
-  name: string;
-}
-
-export interface GraphLink {
-  source: string;
-  target: string;
-  type: string;
-}
-
-export interface SubGraph {
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
-
-export interface Source {
-  doc_id: string;
-  title: string;
-  uri: string;
-  chunk_id: string | null;
-  snippet: string;
-}
-
-export interface Answer {
-  answer: string;
-  sources: Source[];
-  path: string[];
-  edges: Edge[];
-  intent: string[];
-  entities: string[];
-  mode: string;
-  conversation_id?: string;
-}
-
-export interface MapData {
-  ports: { id: string; name: string; country: string; lat: number; lon: number; status: string; risk_score: number; disruptions: string[] }[];
-  plants: { id: string; name: string; country: string; lat: number; lon: number; port: string }[];
-  suppliers: { id: string; name: string; tier: number; country: string; lat: number; lon: number; risk_score: number; status: string; disruptions: string[] }[];
-  disruptions: { id: string; type: string; name: string; incident_id: string | null; targets: string[]; n_targets: number }[];
-}
-
-export interface Fact {
-  id: string;
-  subject_id: string;
-  predicate: string;
-  object: string;
-  valid_at: number;
-  invalid_at: number | null;
-  source: string;
-  supersedes: string | null;
-}
-
-export interface Ontology {
-  labels: { label: string; graph: string; description: string; properties: Record<string, string>; count: number }[];
-  relationships: { type: string; from: string; to: string; properties: string; description: string; count: number }[];
-  interfaces: { label: string; on: string; description: string }[];
-  totals: { nodes: number; edges: number; memory_nodes: number };
-}
-
-export interface Person {
-  id: string;
-  name: string;
-  role: string;
-  team: string;
-}
-
-export interface ApproveResult {
-  action_id: string;
-  status: string;
-  revenue_before: number | null;
-  revenue_after: number | null;
+  sources: {
+    node_id: string;
+    source_label: string;
+    source_id: string;
+    source_ref: string;
+    source_value: string;
+    source: string;
+    confidence: string;
+  }[];
 }
 
 // ------------------------------------------------------------------ calls
 export const api = {
   health: () => get<Health>("/api/health"),
-  tenants: () => get<TenantInfo[]>("/api/tenants"),
-  scenarios: () => get<Scenario[]>("/api/scenarios"),
-  map: () => get<MapData>("/api/map"),
-  ontology: () => get<Ontology>("/api/ontology"),
-  incidents: () => get<IncidentRow[]>("/api/incidents"),
-  incident: (id: string) => get<IncidentDetail>(`/api/incidents/${id}`),
-  incidentGraph: (id: string) => get<SubGraph>(`/api/incidents/${id}/graph`),
-  trigger: (scenario_id: string, mode: string) =>
-    post<{ incident_id: string; mode: string }>("/api/incidents", { scenario_id, mode }),
-  close: (id: string) => post<{ data: { episode: { episode_id: string; outcome: string } } }>(`/api/incidents/${id}/close`),
-  actions: (status?: string) => get<Action[]>(`/api/actions${status ? `?status=${status}` : ""}`),
-  action: (id: string) => get<Action>(`/api/actions/${id}`),
-  approve: (id: string) => post<ApproveResult>(`/api/actions/${id}/approve`, { user: "USR-demo", user_name: "Demo user" }),
-  reject: (id: string) => post<{ status: string }>(`/api/actions/${id}/reject`, { user: "USR-demo", reason: "rejected in UI" }),
-  execute: (id: string) => post<ApproveResult>(`/api/actions/${id}/execute`),
-  undo: (id: string) => post<ApproveResult>(`/api/actions/${id}/undo`),
-  ask: (question: string, user_id: string, incident_id?: string) =>
-    post<Answer>("/api/brain/ask", { question, user_id, incident_id: incident_id || null }),
-  ingest: (text: string, author_id: string, channel: string) =>
-    post<{ message_id: string; handover?: { supplier_id: string; to: string; from: string[] } }>("/api/brain/ingest", {
-      kind: "chat",
-      text,
-      author_id,
-      channel,
-    }),
-  handoverSample: () => get<{ text: string; author_id: string; channel: string }>("/api/brain/handover-sample"),
-  people: () => get<Person[]>("/api/people"),
-  episodes: () => get<Episode[]>("/api/memory/episodes"),
-  playbooks: () => get<Playbook[]>("/api/memory/playbooks"),
-  facts: (history: boolean) => get<Fact[]>(`/api/memory/facts?history=${history}`),
-  conversations: () => get<{ user_id: string; id: string; started_at: number; messages: number }[]>("/api/memory/conversations"),
-  spof: () => get<{ data: { chokepoints: { id: string; name: string; score: number; downstream_tier1: number; single_sourced_parts_downstream: number }[] } }>("/api/algos/spof?top_k=5"),
+  config: () => get<{ llm_provider: string | null; model: string; has_llm: boolean; max_upload_mb: number }>("/api/config"),
+  tenants: () => get<TenantRow[]>("/api/tenants"),
+  tenant: () => get<TenantRow & { counts: SessionState["counts"]; progress: SessionState["progress"] }>("/api/tenant"),
+  selectTenant: (id: string) => post<TenantRow>(`/api/tenant/select/${id}`),
+  graph: (limit = 400) => get<GraphSample>(`/api/graph?limit=${limit}`),
+
+  start: (company: string, industry: string) => post<SessionState>("/api/onboarding/start", { company, industry }),
+  session: () => get<SessionState>("/api/onboarding/session"),
+  send: (text: string) => post<{ messages: ChatMessage[]; state: SessionState }>("/api/onboarding/message", { text }),
+  resume: () => post<{ messages: ChatMessage[]; state: SessionState }>("/api/onboarding/resume"),
+  goto: (stage: Stage, note = "") => post<{ stage: Stage; stale_flagged: number; state: SessionState }>("/api/onboarding/goto", { stage, note }),
+  reonboard: (note = "") => post<{ stage: Stage; state: SessionState }>("/api/onboarding/reonboard", { stage: "interview", note }),
+  steps: (stage = "") => get<{ steps: Step[] }>(`/api/onboarding/steps?stage=${stage}`),
+
+  saveAnswers: (formId: string, values: Record<string, unknown>, confidences: Record<string, string> = {}) =>
+    post<{ saved: Answer[]; answers: Answer[] }>(`/api/onboarding/forms/${formId}/answers`, { values, confidences }),
+  submitForm: (formId: string, values: Record<string, unknown>) =>
+    post<{ messages: ChatMessage[]; state: SessionState }>(`/api/onboarding/forms/${formId}/submit`, { values }),
+  synthesize: (formId: string) =>
+    post<{ saved: Answer[]; answers: Answer[]; synthetic: boolean }>(`/api/onboarding/forms/${formId}/synthesize`),
+  upload: (file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return req<{ attachment: Attachment; profile: TableProfile }>("/api/onboarding/attachments", { method: "POST", body });
+  },
+
+  ontology: () => get<OntologyView>("/api/ontology"),
+  patchDraft: (spec: OntologySpec) => patch<OntologyView>("/api/ontology/draft", { spec }),
+  approveOntology: () => post<{ nodes: number; edges: number; types: number; state: SessionState }>("/api/ontology/approve"),
+  provenance: (nodeId: string) => get<Provenance>(`/api/ontology/provenance/${encodeURIComponent(nodeId)}`),
+
+  experts: () => get<{ experts: ExpertRole[]; ontology_types: string[]; pending: number; approved: number }>("/api/experts"),
+  createExpert: (role: Partial<ExpertRole>) => post<ExpertRole>("/api/experts", { role }),
+  editExpert: (id: string, role: Partial<ExpertRole>) => patch<ExpertRole>(`/api/experts/${id}`, { role }),
+  approveExpert: (id: string) => post<{ experts: ExpertRole[] }>(`/api/experts/${id}/approve`),
+  retireExpert: (id: string) => post<{ experts: ExpertRole[] }>(`/api/experts/${id}/retire`),
+  deleteExpert: (id: string) => del<{ experts: ExpertRole[] }>(`/api/experts/${id}`),
+  exportExperts: () => post<{ files: string[] }>("/api/experts/export"),
+  importExperts: () => post<{ imported: ExpertRole[] }>("/api/experts/import"),
+  askExpert: (id: string, question: string) => post<AskResult>(`/api/experts/${id}/ask`, { question }),
+  finishOnboarding: () => post<{ state: SessionState }>("/api/experts/finish"),
 };
 
-export function eventsUrl(incidentId: string): string {
-  return `/api/incidents/${incidentId}/events?tenant=${getTenant()}`;
+/** Subscribe to the agent step stream. EventSource cannot send headers, so the tenant goes in the query. */
+export function streamSteps(after: number, onStep: (s: Step) => void): () => void {
+  const tenant = getTenant();
+  const url = `/api/onboarding/stream?after=${after}${tenant ? `&tenant=${encodeURIComponent(tenant)}` : ""}`;
+  const es = new EventSource(url, { withCredentials: true });
+  es.addEventListener("step", (e) => {
+    try {
+      onStep(JSON.parse((e as MessageEvent).data) as Step);
+    } catch {
+      /* ignore a malformed frame */
+    }
+  });
+  return () => es.close();
 }
-
-export const money = (x: number | null | undefined): string =>
-  x == null ? "-" : x >= 1e6 ? `$${(x / 1e6).toFixed(2)}M` : x >= 1e3 ? `$${(x / 1e3).toFixed(1)}K` : `$${x.toFixed(0)}`;
-
-export const fmtTime = (ms: number | null | undefined): string => (ms ? new Date(ms).toLocaleString() : "-");

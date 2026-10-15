@@ -1,17 +1,20 @@
 """Measure every number the README quotes and write docs/numbers.md + docs/numbers.json.
 
-    .venv/bin/python scripts/report_numbers.py            # full DataCo + Nova, ~3-5 minutes
+    .venv/bin/python scripts/report_numbers.py              # deterministic only, ~1 minute
+    .venv/bin/python scripts/report_numbers.py --with-llm   # also fold in the newest artifacts/llm_runs/
 
-Steps: full build of both tenants (timed) -> node/edge counts per label/type and tenant -> scenario eval (agents vs
-pandas ground truth, with agent wall times) -> p50/p95 latency of 20 runs for the key queries (Q1-Q10) -> brain
-eval -> load test (20 concurrent sessions over 2 tenants).
+v2 has no dataset to build, so the measurements are about the platform rather than a corpus: how long the
+deterministic suite takes, how fast a generated ontology is applied and loaded, what one tenant's graph costs,
+and - when a live run has been recorded - what the four agents actually produced.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import platform
 import statistics
+import subprocess
 import sys
 import tempfile
 import time
@@ -19,147 +22,208 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "eval"))
-
-import load_test  # noqa: E402
-import run_brain_eval  # noqa: E402
-import run_scenarios  # noqa: E402
 
 from ripple.db import TenantScope, close_db, get_db  # noqa: E402
-from ripple.embed import get_embedder  # noqa: E402
-from ripple.graph.queries import Q  # noqa: E402
-from ripple.ingest.build import build_tenant  # noqa: E402
-from ripple.ingest.synth import SYNTH_DIR  # noqa: E402
-from ripple.tools.base import call_context  # noqa: E402
+from ripple.graph.apply import apply_spec, load_instances  # noqa: E402
+from ripple.graph.queries import all_queries  # noqa: E402
+from ripple.onboarding import store  # noqa: E402
+from ripple.onboarding.models import (  # noqa: E402
+    InstanceBatch,
+    InstanceEdge,
+    InstanceNode,
+    OntologySpec,
+    PropertySpec,
+    RelationshipSpec,
+    TypeDisplay,
+    TypeSpec,
+)
+from ripple.tools.registry import TOOLS, call_tool  # noqa: E402
 
 OUT_MD = ROOT / "docs" / "numbers.md"
 OUT_JSON = ROOT / "docs" / "numbers.json"
+LLM_RUNS = ROOT / "artifacts" / "llm_runs"
 
 
-def latencies(scope: TenantScope, incidents: dict[str, str], runs: int = 20) -> list[dict]:
-    g = scope.ops
-    planted = json.loads((SYNTH_DIR / "dataco" / "planted.json").read_text())
-    did = {sid: g.query("MATCH (d:Disruption)-[:TRIGGERED]->(:Incident {id: $iid}) RETURN d.id AS d", {"iid": iid})[0]["d"]
-           for sid, iid in incidents.items()}
-    action = g.query("MATCH (a:Action) RETURN a.id AS id LIMIT 1")[0]["id"]
-    qvec = get_embedder().embed("battery dual source")
-    cases = [
-        ("Q1", "blast_radius_port", {"did": did["port_closure_shanghai"]}),
-        ("Q2", "blast_radius_supplier", {"did": did["tier2_fire"]}),
-        ("Q2b", "blast_radius_carrier", {"did": did["carrier_strike"]}),
-        ("Q3", "single_sourced_parts", {"limit": 50}),
-        ("Q4", "alt_suppliers", {"part": planted["hero"]["part_id"], "exclude_country": "CN", "limit": 5}),
-        ("Q5", "late_risk_baseline", {"mode": "Standard Class", "market": "Europe"}),
-        ("Q6", "who_owns", {"sid": planted["hero"]["supplier_id"], "now": time.strftime("%Y-%m-%d")}),
-        ("Q7", "trace_decision", {"ids": [planted["hero"]["part_id"]]}),
-        ("Q8", "doc_search", {"qvec": qvec, "k": 40, "scope": []}),
-        ("Q9", "action_get", {"aid": action}),
-        ("Q10a", "betweenness_suppliers", {"top_k": 10}),
-        ("Q10b", "pagerank_suppliers", {"top_k": 10}),
-        ("Q10c", "alt_route", {"from": "PORT-CNNGB", "to": "PORT-USLAX", "avoid": ["PORT-CNSHA"]}),
-        ("live", "revenue_at_risk", {"iid": incidents["port_closure_shanghai"]}),
-        ("algo", "wcc_suppliers", {}),
-    ]
-    out = []
-    for qid, name, params in cases:
-        text = Q(name)
-        ms = []
-        for _ in range(runs):
-            t0 = time.perf_counter()
-            g.query(text, params)
-            ms.append((time.perf_counter() - t0) * 1000)
-        ms.sort()
-        out.append({"id": qid, "query": name, "p50_ms": round(statistics.median(ms), 1),
-                    "p95_ms": round(ms[max(0, int(runs * 0.95) - 1)], 1), "runs": runs})
-        print(f"  {qid:5} {name:24} p50 {out[-1]['p50_ms']:8.1f} ms  p95 {out[-1]['p95_ms']:8.1f} ms")
-    return out
+def synthetic_spec(n_types: int = 12) -> OntologySpec:
+    """A spec the size of a mid-sized manufacturer's, used only to time schema and loading."""
+    types = [TypeSpec(label=f"Type{i}", description=f"type {i}", id_pattern=f"T{i}-####",
+                      properties=[PropertySpec(name="name", type="string"),
+                                  PropertySpec(name="country", type="string"),
+                                  PropertySpec(name="value", type="float", unit="USD")],
+                      display=TypeDisplay(title_property="name")) for i in range(n_types)]
+    rels = [RelationshipSpec(type=f"REL_{i}", **{"from": f"Type{i}"}, to=f"Type{i + 1}",
+                             properties=[PropertySpec(name="weight", type="float")])
+            for i in range(n_types - 1)]
+    return OntologySpec(version=1, types=types, relationships=rels, rationale="timing fixture")
 
 
-def counts(scope: TenantScope) -> dict:
-    st = scope.ops.run("meta_stats", {})[0]
-    ms = scope.mem.run("meta_stats", {})[0]
-    return {"nodes": st["nodeCount"], "edges": st["relCount"], "labels": dict(st["labels"]), "rels": dict(st["relTypes"]),
-            "memory_nodes": ms["nodeCount"], "memory_edges": ms["relCount"], "memory_labels": dict(ms["labels"])}
+def batch_for(spec: OntologySpec, per_type: int) -> InstanceBatch:
+    nodes, edges = [], []
+    for t in spec.types:
+        for i in range(per_type):
+            nodes.append(InstanceNode(label=t.label, id=f"{t.label}-{i:05d}",
+                                      properties={"name": f"{t.label} {i}", "country": "CN",
+                                                  "value": float(i)}))
+    for r in spec.relationships:
+        for i in range(per_type):
+            edges.append(InstanceEdge(type=r.type, **{"from": f"{r.from_}-{i:05d}"},
+                                      to=f"{r.to}-{i:05d}", properties={"weight": 1.0}))
+    return InstanceBatch(nodes=nodes, edges=edges)
 
 
-def md(res: dict) -> str:
-    b = res["build"]
-    L = ["# Ripple: measured numbers", "",
-         f"Generated by `scripts/report_numbers.py` on {res['generated']} ({res['platform']}). Embedded FalkorDB "
-         f"(falkordblite), full DataCo dataset + Nova Retail. Do not edit by hand.", "",
-         "## Build", "",
-         "| Tenant | Build time (s) | Nodes | Edges | Memory nodes |", "|---|---|---|---|---|"]
-    for t in ("dataco", "nova"):
-        c = res["counts"][t]
-        L.append(f"| {t} | {b[t]['seconds']} | {c['nodes']:,} | {c['edges']:,} | {c['memory_nodes']} |")
-    L += ["", "### Nodes per label (dataco, after the scenario runs)", "", "| Label | Count |", "|---|---|"]
-    for k, v in sorted(res["counts"]["dataco"]["labels"].items(), key=lambda kv: -kv[1]):
-        if v:
-            L.append(f"| `{k}` | {v:,} |")
-    L += ["", "### Relationships per type (dataco)", "", "| Type | Count |", "|---|---|"]
-    for k, v in sorted(res["counts"]["dataco"]["rels"].items(), key=lambda kv: -kv[1]):
-        if v:
-            L.append(f"| `{k}` | {v:,} |")
-    s = res["scenarios"]
-    L += ["", f"## Scenario eval: {s['exact']}/{s['total']} exact (agents vs pandas ground truth, full data)", "",
-          "| Scenario | Open orders (agents / truth) | Revenue at risk (agents / truth) | Customers | Exact | Agent run (s) |",
-          "|---|---|---|---|---|---|"]
-    for r in s["rows"]:
-        L.append(f"| {r['scenario']} | {r['orders']:,} / {r['gt_orders']:,} | ${r['revenue']:,.2f} / ${r['gt_revenue']:,.2f} "
-                 f"| {r['customers']:,} | {'yes' if r['exact'] else 'NO'} | {r['wall_s']} |")
-    L += ["", "## Query latency (20 runs each, full dataco graph, single client)", "",
-          "| Id | Query file | p50 (ms) | p95 (ms) |", "|---|---|---|---|"]
-    for q in res["latency"]:
-        L.append(f"| {q['id']} | `graph/queries/{q['query']}.cypher` | {q['p50_ms']} | {q['p95_ms']} |")
-    be = res["brain"]
-    L += ["", f"## Brain eval: {be['passed']}/{be['total']} questions cite an expected source in the top 3 "
-              f"(intent routing {be['intent_accuracy']:.0%})", "", "| Intent | Question | Pass |", "|---|---|---|"]
-    for r in be["rows"]:
-        L.append(f"| {r['intent']} | {r['question']} | {'yes' if r['pass'] else 'no'} |")
-    lt = res["load"]
-    L += ["", f"## Load test: {lt['sessions']} concurrent sessions over 2 tenants", "",
-          f"{lt['ops']} operations in {lt['wall_s']} s; cross-tenant leaks: **{len(lt['leaks'])}**; duplicate actions: "
-          f"**{lt['duplicates']}**; errors: {len(lt['errors'])}. Algorithm caches warmed first, as the API does at "
-          "startup.", "", "| Operation | n | p50 (ms) | p95 (ms) |", "|---|---|---|---|"]
-    for k, v in lt["latency"].items():
-        L.append(f"| {k} | {v['n']} | {v['p50_ms']} | {v['p95_ms']} |")
-    L.append("")
-    return "\n".join(L)
+def timed(fn, *a, **kw):
+    t0 = time.perf_counter()
+    out = fn(*a, **kw)
+    return out, round((time.perf_counter() - t0) * 1000, 1)
 
 
-def main() -> int:
+def measure_graph(per_type: int = 500) -> dict:
     d = Path(tempfile.mkdtemp())
     db = get_db(d / "numbers.db", mode="embedded")
-    res: dict = {"generated": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()),
-                 "platform": f"{platform.system()} {platform.machine()}, Python {platform.python_version()}"}
-    print("[1/6] full build")
-    res["build"] = {}
-    for t in ("dataco", "nova"):
-        r = build_tenant(TenantScope(t, db), None)
-        res["build"][t] = {"seconds": r["seconds"], "detail": r}
-        print(f"  {t}: {r['seconds']} s")
-    print("[2/6] scenario eval (full data)")
-    res["scenarios"] = run_scenarios.run(db, None)
-    incidents = {r["scenario"]: r["incident"] for r in res["scenarios"]["rows"]}
-    print("[3/6] counts")
-    res["counts"] = {t: counts(TenantScope(t, db)) for t in ("dataco", "nova")}
-    print("[4/6] query latency")
-    with call_context(no_log=True):
-        res["latency"] = latencies(TenantScope("dataco", db), incidents)
-    print("[5/6] brain eval")
-    res["brain"] = run_brain_eval.run(TenantScope("dataco", db), verbose=False)
-    print(f"  {res['brain']['passed']}/{res['brain']['total']}")
-    print("[6/6] load test")
-    res["load"] = load_test.run_load_test(db, 20)
-    print(f"  leaks {len(res['load']['leaks'])}, duplicates {res['load']['duplicates']}, wall {res['load']['wall_s']} s")
-    close_db(db)
-    OUT_MD.write_text(md(res))
-    OUT_JSON.write_text(json.dumps(res, indent=1, default=str))
-    print(f"wrote {OUT_MD.relative_to(ROOT)}")
-    ok = (res["scenarios"]["exact"] == res["scenarios"]["total"] and res["brain"]["passed"] >= 18
-          and not res["load"]["leaks"] and not res["load"]["duplicates"])
-    return 0 if ok else 1
+    try:
+        scope = TenantScope("numbers_run", db)
+        _, t_tenant = timed(store.create_tenant, scope, "Numbers Run", "timing")
+        spec = synthetic_spec()
+        applied, t_apply = timed(apply_spec, scope, spec)
+        store.set_spec_status(scope, store.save_spec(scope, spec)["id"], "approved")
+        batch = batch_for(spec, per_type)
+        loaded, t_load = timed(load_instances, scope, spec, batch)
+        counts = store.instance_counts(scope)
+        db.save()  # the .db file is only written on SAVE, and the README quotes its size
+        tool_ms = {}
+        for name, args in (("describe_ontology", {}), ("find_nodes", {"label": "Type0", "limit": 25}),
+                           ("get_node", {"label": "Type0", "id": "Type0-00001"}),
+                           ("neighbours", {"label": "Type0", "id": "Type0-00001"}),
+                           ("aggregate", {"label": "Type0", "property": "value"})):
+            runs = [timed(call_tool, scope, name, args)[1] for _ in range(20)]
+            tool_ms[name] = {"p50": round(statistics.median(runs), 2),
+                             "p95": round(sorted(runs)[int(0.95 * len(runs)) - 1], 2)}
+        return {"tenant_create_ms": t_tenant, "apply_spec_ms": t_apply, "applied": applied,
+                "load_instances_ms": t_load, "loaded": loaded,
+                "nodes": sum(counts["nodes"].values()), "edges": sum(counts["edges"].values()),
+                "nodes_per_second": round(loaded["nodes"] / (t_load / 1000), 1) if t_load else None,
+                "db_bytes": (d / "numbers.db").stat().st_size if (d / "numbers.db").exists() else None,
+                "tool_latency_ms": tool_ms}
+    finally:
+        close_db(db)
+
+
+def measure_suite() -> dict:
+    t0 = time.perf_counter()
+    p = subprocess.run([str(ROOT / ".venv/bin/pytest"), "-q", "--no-header", "-p", "no:cacheprovider"],
+                       capture_output=True, text=True, cwd=ROOT)
+    secs = round(time.perf_counter() - t0, 1)
+    tail = (p.stdout or "").strip().splitlines()[-1] if p.stdout else ""
+    passed = next((int(w) for i, w in enumerate(tail.split()) if w.isdigit() and "pass" in tail), 0)
+    return {"deterministic_tests": passed, "seconds": secs, "exit_code": p.returncode, "summary": tail}
+
+
+def measure_counts() -> dict:
+    qs = all_queries()
+    tests = sorted((ROOT / "tests").glob("test_*.py"))
+    prompts = sorted((ROOT / "ripple" / "onboarding" / "agents" / "prompts").glob("*.md"))
+    py = sorted(ROOT.glob("ripple/**/*.py"))
+    ts = sorted(ROOT.glob("ui/src/**/*.ts")) + sorted(ROOT.glob("ui/src/**/*.tsx"))
+    return {
+        "query_files": len(qs),
+        "query_kinds": {k: sum(1 for q in qs.values() if q.kind == k) for k in {q.kind for q in qs.values()}},
+        "tools": len(TOOLS),
+        "prompt_files": len(prompts),
+        "prompt_words": sum(len(p.read_text().split()) for p in prompts),
+        "test_files": len(tests),
+        "python_files": len(py),
+        "python_lines": sum(len(p.read_text().splitlines()) for p in py),
+        "ui_files": len(ts),
+        "ui_lines": sum(len(p.read_text().splitlines()) for p in ts),
+    }
+
+
+def newest_llm_run() -> dict | None:
+    if not LLM_RUNS.exists():
+        return None
+    runs = [d for d in sorted(LLM_RUNS.iterdir()) if d.is_dir() and (d / "brief.json").exists()]
+    if not runs:
+        return None
+    d = runs[-1]
+    read = lambda name: json.loads((d / name).read_text()) if (d / name).exists() else None  # noqa: E731
+    brief, onto, loaded, experts = read("brief"), read("ontology"), read("loaded"), read("experts")
+    transcript = read("transcript") or {}
+    calls = len(list(d.glob("*-claude_code-*.json"))) + len(list(d.glob("*-openrouter-*.json")))
+    return {
+        "run": d.name,
+        "llm_calls": calls,
+        "interview_turns": len([t for t in transcript.get("turns", []) if t.get("user")]),
+        "form_rounds": len([t for t in transcript.get("turns", []) if t.get("form")]),
+        "brief_products": len((brief or {}).get("products") or []),
+        "brief_suppliers": len((brief or {}).get("suppliers") or []),
+        "ontology_types": len((onto or {}).get("types") or []),
+        "ontology_relationships": len((onto or {}).get("relationships") or []),
+        "nodes_loaded": (loaded or {}).get("counts", {}).get("nodes"),
+        "experts": [{"name": e["name"], "focus": e["focus_types"], "prompt_words": len(e["system_prompt"].split())}
+                    for e in (experts or [])],
+    }
+
+
+def to_markdown(data: dict) -> str:
+    g, c, s = data["graph"], data["counts"], data["suite"]
+    out = ["# Measured numbers", "",
+           f"_Generated by `scripts/report_numbers.py` on {data['generated_at']} "
+           f"({data['platform']['python']} on {data['platform']['machine']})._", "",
+           "## The platform", "", "| | |", "|---|---|",
+           f"| Query files (`graph/queries/*.cypher`) | {c['query_files']} |",
+           f"| Tools in the registry | {c['tools']} |",
+           f"| Agent prompts | {c['prompt_files']} files, {c['prompt_words']:,} words |",
+           f"| Python | {c['python_files']} files, {c['python_lines']:,} lines |",
+           f"| UI | {c['ui_files']} files, {c['ui_lines']:,} lines |",
+           f"| Deterministic suite | {s['deterministic_tests']} tests in {s['seconds']}s |", "",
+           "## One tenant's graph (12 generated types, 500 instances each)", "", "| | |", "|---|---|",
+           f"| Tenant create + platform indexes | {g['tenant_create_ms']} ms |",
+           f"| Apply the generated spec ({g['applied']['indexes_created']} indexes) | {g['apply_spec_ms']} ms |",
+           f"| Load {g['loaded']['nodes']:,} nodes + {g['loaded']['edges']:,} edges | "
+           f"{g['load_instances_ms']} ms ({g['nodes_per_second']:,.0f} nodes/s) |",
+           f"| Graph on disk | {(g['db_bytes'] or 0) / 1e6:.1f} MB |", "",
+           "### Tool latency (20 runs each)", "", "| Tool | p50 | p95 |", "|---|---|---|"]
+    for name, lat in g["tool_latency_ms"].items():
+        out.append(f"| `{name}` | {lat['p50']} ms | {lat['p95']} ms |")
+    live = data.get("llm_run")
+    if live:
+        out += ["", "## The newest recorded live run", "",
+                f"_`artifacts/llm_runs/{live['run']}`, provider calls: {live['llm_calls']}._", "",
+                "| | |", "|---|---|",
+                f"| Interview turns | {live['interview_turns']} |",
+                f"| Form rounds | {live['form_rounds']} |",
+                f"| Brief: products / suppliers | {live['brief_products']} / {live['brief_suppliers']} |",
+                f"| Ontology: types / relationships | {live['ontology_types']} / "
+                f"{live['ontology_relationships']} |",
+                f"| Instance nodes loaded | {sum((live['nodes_loaded'] or {}).values()):,} |",
+                f"| Expert roles generated | {len(live['experts'])} |", ""]
+        if live["experts"]:
+            out += ["| Role | Focus types | Prompt |", "|---|---|---|"]
+            out += [f"| `{e['name']}` | {', '.join(e['focus'])} | {e['prompt_words']} words |"
+                    for e in live["experts"]]
+    return "\n".join(out) + "\n"
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--with-llm", action="store_true", help="fold in the newest artifacts/llm_runs/ summary")
+    ap.add_argument("--skip-suite", action="store_true", help="do not run pytest")
+    a = ap.parse_args()
+    data = {
+        "generated_at": time.strftime("%Y-%m-%d"),
+        "platform": {"python": platform.python_version(), "machine": platform.machine(),
+                     "system": platform.system()},
+        "counts": measure_counts(),
+        "graph": measure_graph(),
+        "suite": {"deterministic_tests": 0, "seconds": 0.0, "exit_code": -1, "summary": "skipped"}
+        if a.skip_suite else measure_suite(),
+    }
+    if a.with_llm:
+        data["llm_run"] = newest_llm_run()
+    OUT_JSON.write_text(json.dumps(data, indent=2) + "\n")
+    OUT_MD.write_text(to_markdown(data))
+    print(f"wrote {OUT_MD.relative_to(ROOT)} and {OUT_JSON.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

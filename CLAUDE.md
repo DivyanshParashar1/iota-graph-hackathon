@@ -1,15 +1,31 @@
 # Ripple (FalkorDB hackathon project)
 
-Spec: `idea.md`. Build plan and milestones: `plan.md` (wins over idea.md). FalkorDB syntax truth:
-`reference/FALKORDB_VERIFIED.md` (wins over both).
+v2 interviews a company and builds its supply chain knowledge graph. Build plan and milestones: `plan.md`
+(wins over `idea.md`, which is v1's pitch). FalkorDB syntax truth: `reference/FALKORDB_VERIFIED.md` (wins over
+both). v1 (a DataCo control tower) is at commit `04d4bd4` / local tag `v1-dataco`; its plan is
+`docs/plan_v1_dataco.md`.
 
 * Setup: `bash scripts/setup_env.sh` (offline from `vendor/`). Use `.venv/bin/python` and `.venv/bin/pytest`.
-* Tests: `.venv/bin/pytest -q` (fast, sampled data) and `.venv/bin/pytest -m slow` (full dataset). UI: `cd ui && npm run build`.
+* Tests: `.venv/bin/pytest -q` (deterministic, no network) and `.venv/bin/pytest -q -m llm` (real LLM calls,
+  costs money). `-m "llm and slow"` is the full end-to-end onboarding. UI: `cd ui && npm run build`.
+* **No fakes.** There is no scripted agent mode and no fake LLM client. `tests/conftest.StubClient` is a
+  transport stub at the provider boundary for route tests - never add logic or prompts to it.
+* Every agent step is a real LLM call through `ripple/llm/`. Default provider: the local `claude` CLI login
+  (no API key). Anthropic SDK docs: `reference/claude-api/`.
 * DB: embedded FalkorDB (`falkordblite`) by default (`RIPPLE_DB_MODE=embedded`); one process per `.db` file.
-* Agents default to scripted mode; LLM mode needs `ANTHROPIC_API_KEY` (model `claude-opus-5-5`, Anthropic SDK docs in `reference/claude-api/`).
-* Every product Cypher query lives in `graph/queries/*.cypher`; don't inline queries in Python.
+* Every product Cypher query lives in `graph/queries/*.cypher`; don't inline queries in Python. A query against
+  a *generated* type is `kind: template` with `{placeholders}` filled by `Q(name, label=...)`, which validates
+  each one through `ripple.graph.queries.ident`. That function is the only place a model-authored string may
+  reach Cypher.
+* Platform labels are `_`-prefixed (`_Tenant`, `_Session`, `_Brief`, ...) and `validate_spec` rejects any
+  generated label starting with `_`. `instance_wipe` depends on that split.
 * Don't add dependencies; everything is pinned in `requirements.lock` / `ui/package-lock.json` and vendored.
+  If you change `ui/package.json`, regenerate the lockfile or `npm ci` breaks.
+* The agents' prompts in `ripple/onboarding/agents/prompts/*.md` are product behaviour: change them
+  deliberately, and re-run `-m llm -k prompt` afterwards.
 * Commit after each milestone with tests green.
-* Remote mode tests: `docker run -d -p 6379:6379 falkordb/falkordb:v4.18.3` then `RIPPLE_DB_MODE=remote .venv/bin/pytest -q` (`:latest` panics, see docs/KNOWN_ISSUES.md).
-* README is generated: edit `docs/README.template.md`, then `.venv/bin/python scripts/report_numbers.py && .venv/bin/python scripts/build_docs.py`.
-* Synthetic data is committed; after changing the generator run `.venv/bin/python -m ripple.ingest.synth` (test_synth checks they match).
+* Remote mode tests: `docker run -d -p 6379:6379 falkordb/falkordb:v4.18.3` then
+  `RIPPLE_DB_MODE=remote .venv/bin/pytest -q` (`:latest` panics, see `docs/KNOWN_ISSUES.md`).
+* README is generated: edit `docs/README.template.md`, then
+  `.venv/bin/python scripts/report_numbers.py && .venv/bin/python scripts/build_docs.py`.
+* `tenants/` and `artifacts/` are runtime output and git-ignored.

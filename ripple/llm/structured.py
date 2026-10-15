@@ -42,25 +42,34 @@ def extract_json(text: str) -> dict | None:
     return None
 
 
+class RecursiveModel(ValueError):
+    """A model that refers to itself cannot be expressed as a flat structured-output schema."""
+
+
 def json_schema(model_cls: type[BaseModel]) -> dict:
-    """A JSON schema for a pydantic model, flattened enough for strict structured-output modes."""
+    """A JSON schema for a pydantic model, with `$ref`s inlined for strict structured-output modes.
+
+    A self-referencing model raises rather than being truncated: a provider that is handed a schema whose
+    innermost level was quietly replaced rejects the whole call (which is how this was found - a recursive
+    `FormField` only failed against a real provider), so the failure belongs at schema-build time where a
+    deterministic test can see it."""
     schema = model_cls.model_json_schema()
     defs = schema.pop("$defs", {})
-    return _inline(schema, defs)
+    return _inline(schema, defs, ())
 
 
-def _inline(node: Any, defs: dict, depth: int = 0) -> Any:
-    if depth > 24:
-        return {"type": "object"}
+def _inline(node: Any, defs: dict, open_refs: tuple[str, ...]) -> Any:
     if isinstance(node, dict):
         ref = node.get("$ref")
         if isinstance(ref, str) and ref.startswith("#/$defs/"):
-            target = defs.get(ref.split("/")[-1], {})
-            merged = {**_inline(target, defs, depth + 1), **{k: v for k, v in node.items() if k != "$ref"}}
-            return merged
-        return {k: _inline(v, defs, depth + 1) for k, v in node.items()}
+            name = ref.split("/")[-1]
+            if name in open_refs:
+                raise RecursiveModel(f"{name} refers to itself ({' -> '.join(open_refs)} -> {name})")
+            target = _inline(defs.get(name, {}), defs, open_refs + (name,))
+            return {**target, **{k: v for k, v in node.items() if k != "$ref"}}
+        return {k: _inline(v, defs, open_refs) for k, v in node.items()}
     if isinstance(node, list):
-        return [_inline(v, defs, depth + 1) for v in node]
+        return [_inline(v, defs, open_refs) for v in node]
     return node
 
 

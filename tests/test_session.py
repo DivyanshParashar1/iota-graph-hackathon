@@ -274,3 +274,53 @@ def test_reonboarding_keeps_the_artifacts_and_goes_back_to_the_interview(started
     assert store.current_spec(scope)[1]["stale"] is True
     assert store.current_brief(scope)[0].company == "Acme Shoes"  # nothing was deleted
     assert out["messages"][-1]["text"] == "What changed?"
+
+
+def test_a_bad_brief_patch_does_not_lose_the_turn(started, stub):
+    """The interviewer's `brief_patch` is free-form, so it arrives in whatever shape the model chose.
+
+    This is the shape a real Claude Opus turn sent during the live run: products and sites as prose strings
+    where objects were expected. It used to raise inside `Brief.merge` and take the whole turn with it.
+    """
+    scope = started
+    sid = store.get_session(scope)["id"]
+    stub.load(interview_turn(reply="Noted.", brief_patch={
+        "products": ["Runner (road running trainers)", "Trail (trail running trainers)"],
+        "sites": ["Own assembly factory - Dongguan, China"],
+        "suppliers": [{"kind": "tier-1 leather", "name": "Guangzhou Leather", "country": "CN"}],
+        "transport_modes": ["sea", "road"],
+        "scale": 850000,
+        "pains": ["a port delay blows the delivery promise on the big three"],
+    }))
+    msgs = sess.run_turn(scope, sid, "we make three lines of trainers")
+    assert msgs[-1].role == "agent" and msgs[-1].text == "Noted."
+    brief, _ = store.current_brief(scope)
+    assert [p.name for p in brief.products] == ["Runner (road running trainers)",
+                                                "Trail (trail running trainers)"]
+    assert [s.name for s in brief.sites] == ["Own assembly factory - Dongguan, China"]
+    assert brief.suppliers[0].country == "CN"
+    assert brief.scale == "850000" and brief.transport_modes == ["sea", "road"]
+
+
+def test_an_uncoercible_patch_field_is_dropped_not_fatal(started, stub):
+    scope = started
+    sid = store.get_session(scope)["id"]
+    stub.load(interview_turn(reply="Noted.", brief_patch={"products": [1, 2, 3], "company": "Acme GmbH"}))
+    sess.run_turn(scope, sid, "...")
+    brief, _ = store.current_brief(scope)
+    assert brief.company == "Acme GmbH" and brief.products == []
+
+
+def test_an_unexpected_agent_bug_is_reported_in_the_thread(started, stub, monkeypatch):
+    """A bug in a turn must not cost the session: everything so far is already in the graph."""
+    from ripple.onboarding.agents import interviewer
+
+    scope = started
+    sid = store.get_session(scope)["id"]
+    before = len(store.list_messages(scope, sid))
+    monkeypatch.setattr(interviewer, "turn", lambda *a, **k: (_ for _ in ()).throw(KeyError("boom")))
+    msgs = sess.run_turn(scope, sid, "hello")
+    assert msgs[-1].role == "system" and "could not run" in msgs[-1].text
+    assert msgs[-1].payload["bug"] is True and msgs[-1].payload["error"] == "KeyError"
+    assert len(store.list_messages(scope, sid)) == before + 2  # the user turn survived
+    assert store.get_pending(scope) is None

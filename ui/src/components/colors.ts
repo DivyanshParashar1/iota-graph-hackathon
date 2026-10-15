@@ -1,30 +1,55 @@
-export const LABEL_COLORS: Record<string, string> = {
-  Disruption: "#ef4444",
-  Incident: "#f97316",
-  Port: "#38bdf8",
-  Lane: "#818cf8",
-  Order: "#facc15",
-  Customer: "#a3e635",
-  Product: "#f472b6",
-  Part: "#c084fc",
-  Supplier: "#fb923c",
-  Plant: "#2dd4bf",
-  Action: "#22c55e",
-  Employee: "#e2e8f0",
-  Team: "#94a3b8",
-  Document: "#fde68a",
-  Chunk: "#fef3c7",
-  Contract: "#fcd34d",
-  Decision: "#f0abfc",
-  ChatMessage: "#cbd5e1",
-};
+// A per-tenant ontology has labels we cannot know in advance, so a label's colour is derived from its name:
+// stable across reloads, distinct enough to read, and overridden by the spec's own `display.color` when the
+// ontology agent chose one.
+
+const PALETTE = [
+  "#38bdf8", // sky
+  "#fb923c", // orange
+  "#a3e635", // lime
+  "#c084fc", // purple
+  "#f472b6", // pink
+  "#2dd4bf", // teal
+  "#facc15", // yellow
+  "#818cf8", // indigo
+  "#f87171", // red
+  "#4ade80", // green
+  "#fdba74", // amber
+  "#67e8f9", // cyan
+];
+
+function hash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+export const colorFor = (label: string, override = ""): string =>
+  override || PALETTE[hash(label) % PALETTE.length];
 
 export const AGENT_COLORS: Record<string, string> = {
-  sentinel: "bg-rose-600",
-  analyst: "bg-sky-600",
-  planner: "bg-emerald-600",
-  comms: "bg-amber-500",
-  orchestrator: "bg-slate-600",
+  interviewer: "bg-sky-600",
+  data_agent: "bg-amber-600",
+  ontologist: "bg-violet-600",
+  expert_generator: "bg-emerald-600",
+  synthesize: "bg-fuchsia-700",
+  attachments: "bg-slate-600",
+  user: "bg-slate-700",
+  ripple: "bg-slate-600",
 };
 
-export const colorFor = (label: string): string => LABEL_COLORS[label] ?? "#64748b";
+export const agentColor = (agent: string): string => AGENT_COLORS[agent] ?? "bg-slate-700";
+
+export const STAGE_LABELS: Record<string, string> = {
+  interview: "Interview",
+  data: "Data",
+  ontology: "Ontology",
+  experts: "Experts",
+  ready: "Ready",
+};
+
+export const CONFIDENCE_COLORS: Record<string, string> = {
+  exact: "bg-slate-700",
+  ballpark: "bg-amber-800",
+  unknown: "bg-slate-800",
+  synthetic: "bg-fuchsia-800",
+};

@@ -25,7 +25,8 @@ the user fills in the blanks. Field types available:
 A `group` is a **repeating table**: its `fields` are the columns and the user adds rows ("list your tier-1
 suppliers: name, country, part supplied, lead time in days, share of volume"). Use a group whenever you are
 asking for a list of things that each have the same attributes - never ask for "supplier 1, supplier 2,
-supplier 3" as separate fields.
+supplier 3" as separate fields. A column holds a single value: a group cannot contain another group, so when a
+row needs its own list, ask for that list as a second group keyed by the first one's name.
 
 Every field carries `label` and `help`. Add `placeholder`, `example`, `unit` and `required` where they help.
 Use `show_if: {"field": "<other field id>", "equals": <value>}` to keep a form short: ask the follow-up only

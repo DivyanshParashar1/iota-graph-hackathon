@@ -90,14 +90,20 @@ def load_instances(scope: TenantScope, spec: OntologySpec, batch: InstanceBatch,
             res = scope.ops.run("instance_merge_nodes", {"rows": rows[i:i + BATCH]}, label=label)
             nodes += res[0]["merged"] if res else 0
 
-    by_rel: dict[str, list[dict]] = {}
+    # Grouped by (relationship, endpoint labels) so the MATCHes hit the id index of a known label rather
+    # than scanning every node: without the labels this is the slowest step in the whole load.
+    rel_of = {r.type: r for r in spec.relationships}
+    label_of = {n.id: n.label for n in batch.nodes}
+    by_rel: dict[tuple[str, str, str], list[dict]] = {}
     for e in batch.edges:
-        by_rel.setdefault(e.type, []).append({"from": e.from_id, "to": e.to_id,
-                                              "props": _flat(e.properties)})
+        r = rel_of[e.type]
+        key = (e.type, label_of.get(e.from_id, r.from_), label_of.get(e.to_id, r.to))
+        by_rel.setdefault(key, []).append({"from": e.from_id, "to": e.to_id, "props": _flat(e.properties)})
     edges = 0
-    for rel, rows in by_rel.items():
+    for (rel, from_label, to_label), rows in by_rel.items():
         for i in range(0, len(rows), BATCH):
-            res = scope.ops.run("instance_merge_edges", {"rows": rows[i:i + BATCH]}, rel=rel)
+            res = scope.ops.run("instance_merge_edges", {"rows": rows[i:i + BATCH]}, rel=rel,
+                                from_label=from_label, to_label=to_label)
             edges += res[0]["merged"] if res else 0
 
     links = 0

@@ -102,6 +102,43 @@ def main():
         g2.delete()
     check("multiple graphs in one db", multigraph)
 
+    # --- what v2's generated ontology depends on -------------------------------------------------------
+    def nested_map_in_a_row():
+        """`SET e += r.props` reads a map out of a parameter row: how edge properties are loaded."""
+        q("UNWIND $rows AS r MERGE (a:Gen {id: r.id}) SET a += r.props",
+          {"rows": [{"id": "G-1", "props": {"name": "one", "value": 1.5}}]})
+        rows = q("MATCH (a:Gen {id:'G-1'}) RETURN a.name, a.value")
+        assert rows == [["one", 1.5]], rows
+    check("UNWIND $rows + SET n += r.props (a nested map in a row)", nested_map_in_a_row)
+
+    def label_grouped_edge_merge():
+        """Both endpoints labelled, so each MATCH uses the id index. Unlabelled, this scans the graph - which
+        made v2's instance load ~50x slower (see docs/KNOWN_ISSUES.md)."""
+        q("CREATE INDEX FOR (n:Gen) ON (n.id)")
+        q("UNWIND range(1,50) AS i MERGE (:Gen {id:'G-'+toString(i)})")
+        q("UNWIND $rows AS r MATCH (a:Gen {id: r.from}) MATCH (b:Gen {id: r.to}) MERGE (a)-[e:GEN_REL]->(b) "
+          "SET e += r.props", {"rows": [{"from": "G-1", "to": "G-2", "props": {"weight": 1.0}}]})
+        assert q("MATCH (:Gen {id:'G-1'})-[e:GEN_REL]->(:Gen {id:'G-2'}) RETURN e.weight") == [[1.0]]
+    check("label-grouped edge MERGE (uses the id index)", label_grouped_edge_merge)
+
+    def platform_prefix_split():
+        """A generated label can never start with `_`, which is what makes "wipe the instance data but keep the
+        onboarding state" a one-line predicate."""
+        q("CREATE (:_Session {id:'SES-keep'})")
+        q("MATCH (n) WHERE NOT any(l IN labels(n) WHERE l STARTS WITH '_') AND 'Gen' IN labels(n) DETACH DELETE n")
+        assert q("MATCH (n:Gen) RETURN count(n)") == [[0]]
+        assert q("MATCH (n:_Session) RETURN count(n)") == [[1]]
+    check("labels(n) STARTS WITH '_' separates platform state from instance data", platform_prefix_split)
+
+    def duplicate_index_raises():
+        try:
+            q("CREATE INDEX FOR (n:Gen) ON (n.id)")
+        except Exception as e:
+            assert "already" in str(e).lower() or "exists" in str(e).lower(), e
+            return
+        raise AssertionError("a duplicate CREATE INDEX unexpectedly succeeded; schema setup can be simplified")
+    check("duplicate CREATE INDEX raises (schema setup must be idempotent)", duplicate_index_raises)
+
     db.close()
     if failures:
         print(f"FAILED: {failures}")

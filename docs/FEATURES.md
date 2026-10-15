@@ -1,36 +1,35 @@
 # Ripple v2 — Feature Summary
 
-A plain-language read of where the product is today and what it becomes. Build sequence: `plan.md`.
+A plain-language read of what the product does. Build sequence and milestones: `plan.md`. What was measured:
+`docs/numbers.md`. What is not verified: `docs/KNOWN_ISSUES.md`.
 
 ---
 
 ## The shift in one sentence
 
-Today Ripple is a supply chain control tower that only works on one dataset; v2 turns it into a product that
-**interviews any company and builds their supply chain brain from scratch** — their ontology, their data,
-their expert agents.
+v1 was a supply chain control tower that only worked on one dataset; v2 is a product that **interviews any
+company and builds their supply chain brain from scratch** — their ontology, their data, their expert agents.
 
 ---
 
-## Where it stands today (v1, shipped)
+## What changed from v1
 
-| Area | Today |
-|---|---|
-| Data | One public dataset (DataCo) plus committed synthetic suppliers/parts/ports/lanes |
-| Ontology | Hand-written in Python (`ripple/ontology.py`); identical for every user |
-| Agents | Four fixed agents (sentinel, analyst, planner, comms), scripted by default, LLM optional |
-| Queries | ~30 hand-written Cypher files that assume DataCo's labels |
-| UI | Control tower, incident timeline, actions, company brain, memory |
-| Onboarding | None — the app arrives pre-filled |
-| Verdict | A strong demo of one supply chain. Not a product anyone else can use. |
+| Area | v1 | v2 |
+|---|---|---|
+| Data | One public dataset (DataCo) plus committed synthetic suppliers/parts/ports/lanes | None shipped. The company's own answers and uploads |
+| Ontology | Hand-written in Python; identical for every user | Generated per tenant, reviewed and approved by the user, versioned in FalkorDB |
+| Agents | Four fixed agents, scripted by default, LLM optional | Four onboarding agents (always real LLM calls) plus the expert roles they invent for this company |
+| Queries | ~130 Cypher files that assume DataCo's labels | 59 files; the ones against generated types are templates filled from the approved spec |
+| UI | Control tower, incident timeline, actions, brain, memory | Onboarding chat with inline forms and a live agent trail, ontology review, experts CRUD, graph |
+| Onboarding | None — the app arrived pre-filled | The whole product |
 
-**All of it is archived at git tag `v1-dataco` and removed from `main`.** The useful bones survive: FalkorDB
-access with tenant isolation, the named-query loader, the FastAPI/React shell, the Claude Code and OpenRouter
-LLM clients, the graph and map views.
+v1 is preserved in git (commit `04d4bd4`, local tag `v1-dataco`) and removed from the branch. The bones that
+survived: FalkorDB access with tenant isolation, the named-query loader, the FastAPI/React shell, the Claude
+Code and OpenRouter clients, the force-graph view.
 
 ---
 
-## What v2 adds
+## What v2 does
 
 ### 1. A first-run experience that is a conversation, not a config screen
 
@@ -116,18 +115,31 @@ compliance and cold-chain expert. Single-source components → a sourcing and re
   expert roles, the provenance trail, agent memory.
 * **Real LLM calls only.** Scripted agent modes and fake clients are gone. The default provider is the
   **Claude Code bridge** (runs on the local `claude` login, no API key); **OpenRouter** stays available.
-* **Testing without fakes:** deterministic tests cover everything that isn't a model call; a live suite drives
-  a full onboarding with a second model playing a shoe manufacturer, and keeps the transcripts.
+* **Testing without fakes:** 175 deterministic tests cover everything that is not a model call (the provider
+  is replaced by a transport stub, not a fake agent); a live suite under `-m llm` checks every prompt's output
+  against its schema three times over and drives a full onboarding with a second model playing a shoe
+  manufacturer, keeping the transcripts in `artifacts/llm_runs/`.
 
 ---
+
+## Decided during the build
+
+* **Uploads are parsed with the standard library**, not three new dependencies and not by handing binaries to
+  the model: `.docx` text comes out of its XML, `.pdf` text out of its content streams, tables go through
+  pandas. A scanned PDF is refused with a message that says what to upload instead. The agents only ever see a
+  profile (columns, dtypes, null rates, sample rows) or a short summary — never the file.
+* **Query templates**, not a base-concept layer and not runtime Cypher from the model. The text stays in
+  `graph/queries/*.cypher`; the label is interpolated once, after validation, through one guarded function.
+  That decision only binds the expert runtime's read-only tools; the main application can still revisit it.
 
 ## What is not decided yet
 
 * **The main application** — what the user sees once onboarding is done, how the experts are orchestrated, and
-  how incidents, actions and memory work on a generated ontology. Spec pending; the plan leaves it as the last
-  milestone.
-* **How analytical queries work against a per-tenant ontology** — fixed base concepts the generated types map
-  onto, per-tenant query templates, or agents writing validated Cypher at runtime. This one has to be settled
-  before the main application is built.
-* **Parsing of Excel/PDF/Word uploads** — add three small libraries, or hand those files to the Claude Code
-  bridge to read.
+  how incidents, actions and memory work on a generated ontology. Spec pending; `plan.md` §10 is where it picks
+  up, and the expert runtime's six read-only tools are the deliberate minimum until then.
+* **How *analytical* queries work against a per-tenant ontology.** Templates cover lookup, neighbourhood and
+  aggregation. Blast-radius-style multi-hop analytics over types nobody wrote by hand is the open question:
+  a fixed base-concept layer the generated types map onto, richer templates, or agents writing Cypher that is
+  validated before it runs.
+* **Identity.** There is no auth: one user = one tenant, the id in a cookie. Multi-user changes the API's
+  trust boundary, not its shape.

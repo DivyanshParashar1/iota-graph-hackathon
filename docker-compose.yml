@@ -1,4 +1,5 @@
 # FalkorDB server (with the FalkorDB Browser on :3000) + the Ripple API/UI in remote mode.
+# Starts empty: a tenant is created when a company starts onboarding at http://localhost:8000.
 # Secrets and keys come from .env (copy .env.example). FalkorDB requires a password: the server is started with
 # --requirepass $FALKORDB_PASSWORD and Ripple connects as the Redis "default" user. In the Browser, log in with
 # host falkordb (or localhost), port 6379, username default and that password.
@@ -35,13 +36,18 @@ services:
       FALKORDB_PORT: "6379"
       FALKORDB_USERNAME: ${FALKORDB_USERNAME:-default}
       FALKORDB_PASSWORD: ${FALKORDB_PASSWORD}
-      RIPPLE_AUTOBUILD: "1"
-      # RIPPLE_LLM_PROVIDER=claude_code: the container has no `claude` CLI, so it calls the host bridge
-      # (.venv/bin/python -m ripple.claude_code_bridge), which runs Claude Code on the host's login.
+      RIPPLE_TENANTS_DIR: /app/var/tenants
+      # RIPPLE_LLM_PROVIDER=claude_code (the default): the container has no `claude` CLI, so it calls the host
+      # bridge, which runs Claude Code on the host's login. Start it first:
+      #   .venv/bin/python -m ripple.claude_code_bridge
+      # With a key instead, set RIPPLE_LLM_PROVIDER=openrouter and OPENROUTER_API_KEY in .env.
       CLAUDE_CODE_BRIDGE_URL: ${CLAUDE_CODE_BRIDGE_URL:-http://host.docker.internal:8765}
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Docker Desktop has it already; this covers Linux
     ports:
       - "8000:8000"
+    volumes:
+      - ripple-var:/app/var   # each tenant's uploads and exported expert prompts
 volumes:
   falkordb-data:
+  ripple-var:
