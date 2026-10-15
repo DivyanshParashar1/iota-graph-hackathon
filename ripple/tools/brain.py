@@ -8,6 +8,7 @@ rewrites the final answer from the same tool results and is checked by the ID va
 from __future__ import annotations
 
 import re
+import threading
 import time
 
 from ripple.db import TenantScope
@@ -35,16 +36,18 @@ def _today() -> str:
 
 
 _LINKERS: dict = {}
+_LINKER_LOCK = threading.Lock()
 
 
 def linker(scope: TenantScope):
     """Entity linker for a tenant (cached per DB): names and ids of suppliers, parts, ports, products, employees."""
     key = (scope.tenant_id, id(scope.db))
-    if key not in _LINKERS:
-        from ripple.ingest.docs import linker_for
+    with _LINKER_LOCK:
+        if key not in _LINKERS:
+            from ripple.ingest.docs import linker_for
 
-        _LINKERS[key] = linker_for(scope)
-    return _LINKERS[key]
+            _LINKERS[key] = linker_for(scope)
+        return _LINKERS[key]
 
 
 def _src(doc_id: str, title: str | None, uri: str | None, chunk_id: str | None = None, snippet: str = "") -> dict:

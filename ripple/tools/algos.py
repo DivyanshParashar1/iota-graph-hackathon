@@ -4,6 +4,7 @@ label propagation) and alternate routing (weighted k-shortest paths over CONNECT
 from __future__ import annotations
 
 import math
+import threading
 
 from ripple.db import TenantScope
 from ripple.geo import haversine_km
@@ -13,12 +14,35 @@ MODE_MULT = {"Standard Class": 1.0, "Second Class": 0.8, "First Class": 0.6, "Sa
 DRAYAGE_KM_PER_DAY = 500.0
 MAX_DRAYAGE_KM = 1500.0
 
+_CACHE: dict[tuple, tuple[tuple, list]] = {}
+_LOCKS: dict[tuple, threading.Lock] = {}
+_LOCKS_GUARD = threading.Lock()
+
+
+def cached_algo(scope: TenantScope, qname: str, params: dict) -> list[dict]:
+    """Run a graph-algorithm query once per supplier-network version (single-flight across threads).
+
+    The supplier network only changes on ingest, while exact betweenness costs seconds; 20 concurrent sessions
+    would otherwise queue on FalkorDB's worker threads."""
+    key = (id(scope.db), scope.ops.name, qname, tuple(sorted(params.items())))
+    ver_row = scope.ops.run("supplier_network_version", {})[0]
+    ver = (ver_row["suppliers"], ver_row["edges"])
+    with _LOCKS_GUARD:
+        lock = _LOCKS.setdefault(key, threading.Lock())
+    with lock:
+        hit = _CACHE.get(key)
+        if hit and hit[0] == ver:
+            return [dict(r) for r in hit[1]]
+        rows = scope.ops.run(qname, params)
+        _CACHE[key] = (ver, rows)
+        return [dict(r) for r in rows]
+
 
 @logged_tool
 def single_points_of_failure(scope: TenantScope, top_k: int = 5, focus_ids: list[str] | None = None) -> ToolResult:
     """Chokepoint suppliers: betweenness centrality on SUPPLIES_TO combined with single-sourced parts downstream."""
     g = scope.ops
-    top = g.run("betweenness_suppliers", {"top_k": int(top_k)})
+    top = cached_algo(scope, "betweenness_suppliers", {"top_k": int(top_k)})
     single = g.run("single_sourced_parts", {"limit": 10000})
     down = {r["id"]: set(r["downstream"]) for r in g.run("supplier_downstream", {"ids": [t["id"] for t in top]})}
     focus = set(focus_ids or [])
@@ -45,7 +69,7 @@ def single_points_of_failure(scope: TenantScope, top_k: int = 5, focus_ids: list
 @logged_tool
 def supplier_influence(scope: TenantScope, top_k: int = 10) -> ToolResult:
     """PageRank over SUPPLIES_TO: the suppliers that the most (important) suppliers depend on."""
-    rows = scope.ops.run("pagerank_suppliers", {"top_k": int(top_k)})
+    rows = cached_algo(scope, "pagerank_suppliers", {"top_k": int(top_k)})
     for r in rows:
         r["score"] = round(float(r["score"]), 5)
     return ToolResult({"suppliers": rows}, [r["id"] for r in rows], [], ["pagerank_suppliers"],
@@ -55,8 +79,8 @@ def supplier_influence(scope: TenantScope, top_k: int = 10) -> ToolResult:
 @logged_tool
 def supplier_clusters(scope: TenantScope, top_k: int = 10) -> ToolResult:
     """Correlated-risk groups: weakly connected components and label-propagation communities of the supplier network."""
-    wcc = scope.ops.run("wcc_suppliers", {})
-    cdlp = scope.ops.run("cdlp_suppliers", {})
+    wcc = cached_algo(scope, "wcc_suppliers", {})
+    cdlp = cached_algo(scope, "cdlp_suppliers", {})
 
     def fmt(rows):
         return [{"cluster": r["cluster"], "size": r["size"], "countries": sorted(r["countries"]),
@@ -125,3 +149,13 @@ def alt_route(scope: TenantScope, origin_port: str, dest_port: str, avoid_ports:
     return ToolResult(best, dedupe(best["route"] + [origin_port, dest_port]), edges, dedupe(queries),
                       summary=f"Route {' -> '.join(best['route'])}: {best['lane_transit_days']} days "
                               f"(+{best['added_days']} vs original)")
+
+
+def warm_caches(scope: TenantScope) -> None:
+    """Pre-compute the cached algorithm results and the entity linker (the API calls this at startup)."""
+    from ripple.tools.brain import linker
+
+    for qn, params in (("betweenness_suppliers", {"top_k": 5}), ("pagerank_suppliers", {"top_k": 10}),
+                       ("wcc_suppliers", {}), ("cdlp_suppliers", {})):
+        cached_algo(scope, qn, params)
+    linker(scope)
