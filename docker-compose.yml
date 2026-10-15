@@ -5,9 +5,12 @@
 services:
   falkordb:
     image: falkordb/falkordb:v4.18.3   # pinned: latest (Rust server) panicked on a build query, see docs/KNOWN_ISSUES.md
-    environment:  # only the password: the DB container never sees the LLM keys
+    environment:  # only DB and Browser secrets: the DB container never sees the LLM keys
       FALKORDB_PASSWORD: ${FALKORDB_PASSWORD:?set FALKORDB_PASSWORD in .env}
       REDIS_ARGS: "--requirepass ${FALKORDB_PASSWORD}"
+      # the Browser stores the login session encrypted; without these, password logins are rejected
+      ENCRYPTION_KEY: ${FALKORDB_BROWSER_ENCRYPTION_KEY:?set FALKORDB_BROWSER_ENCRYPTION_KEY in .env (openssl rand -hex 32)}
+      NEXTAUTH_SECRET: ${FALKORDB_BROWSER_NEXTAUTH_SECRET:?set FALKORDB_BROWSER_NEXTAUTH_SECRET in .env (openssl rand -hex 32)}
     ports:
       - "6379:6379"
       - "3000:3000"
@@ -33,6 +36,11 @@ services:
       FALKORDB_USERNAME: ${FALKORDB_USERNAME:-default}
       FALKORDB_PASSWORD: ${FALKORDB_PASSWORD}
       RIPPLE_AUTOBUILD: "1"
+      # RIPPLE_LLM_PROVIDER=claude_code: the container has no `claude` CLI, so it calls the host bridge
+      # (.venv/bin/python -m ripple.claude_code_bridge), which runs Claude Code on the host's login.
+      CLAUDE_CODE_BRIDGE_URL: ${CLAUDE_CODE_BRIDGE_URL:-http://host.docker.internal:8765}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Docker Desktop has it already; this covers Linux
     ports:
       - "8000:8000"
 volumes:

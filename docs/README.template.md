@@ -160,6 +160,14 @@ container.
 `RIPPLE_MODEL`, default `claude-opus-5-5`) also works; `RIPPLE_LLM_PROVIDER=auto` prefers OpenRouter. Without a
 key the UI reports `scripted (no API key)` and runs scripted agents.
 
+**Claude agents via Claude Code (no API key):** `RIPPLE_LLM_PROVIDER=claude_code` runs each agent turn as a
+headless `claude -p` call on this machine's Claude Code login (its own tools and MCP servers off; Ripple's tools
+are offered through structured output and still run, logged and validated, inside Ripple). Model:
+`CLAUDE_CODE_MODEL` (default `opus`). With the API on the host, nothing else is needed. With `docker compose`, start
+the host bridge first: `.venv/bin/python -m ripple.claude_code_bridge` (127.0.0.1:8765; the container reaches it at
+`host.docker.internal`; set `CLAUDE_CODE_BRIDGE_TOKEN` in `.env` to require a token). Claude has no embedding
+model, so keep `RIPPLE_EMBEDDINGS=hash` (local) for a setup with no API keys at all.
+
 **Embeddings via OpenRouter:** `RIPPLE_EMBEDDINGS=openrouter` embeds chunks, messages and episodes with
 `OPENROUTER_EMBED_MODEL` (default `openai/text-embedding-3-small`, 1536-d; the dimension is probed unless
 `RIPPLE_EMBED_DIM` is set). The vector indexes take that dimension, so rebuild after switching

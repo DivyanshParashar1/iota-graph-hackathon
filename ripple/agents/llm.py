@@ -1,6 +1,7 @@
 """LLM mode: a manual Claude tool-use loop over registry tools, with per-call logging, event emission, tenant
 scoping (tools run through the AgentRun's TenantScope) and an ID validator. FakeAnthropic replays scripted
-responses so the loop is tested without a key. The client is Anthropic's SDK or OpenRouterClient (same surface).
+responses so the loop is tested without a key. The client is Anthropic's SDK, OpenRouterClient or ClaudeCodeClient
+(same surface).
 
 Manual loop (not the SDK tool runner) because every call must go through AgentRun.call: ToolCall logging,
 SSE events and the seen-id set for the validator.
@@ -34,6 +35,11 @@ def get_client():
     if _CLIENT_OVERRIDE is not None:
         return _CLIENT_OVERRIDE
     s = get_settings()
+    if s.llm_provider == "claude_code":
+        from ripple.agents.claude_code import ClaudeCodeClient
+
+        return ClaudeCodeClient(s.claude_code_model, s.claude_code_bin, s.claude_code_bridge_url,
+                                s.claude_code_bridge_token, s.claude_code_timeout)
     if s.llm_provider == "openrouter":
         from ripple.agents.openrouter import OpenRouterClient
 

@@ -36,6 +36,12 @@ def slim(x: Any, depth: int = 0) -> Any:
     return str(x)
 
 
+def _terminal(ev: dict) -> bool:
+    """`done`, or an error marked fatal. Non-fatal errors (a failed tool call, a validator rejection) are part of
+    the run: the agent sees them and carries on."""
+    return ev["kind"] == "done" or (ev["kind"] == "error" and (ev["data"] or {}).get("fatal", True) is not False)
+
+
 class EventBus:
     def __init__(self):
         self._lock = threading.Lock()
@@ -50,7 +56,7 @@ class EventBus:
                   "node_ids": list(node_ids or [])[:200], "edges": [list(e) for e in (edges or [])][:300],
                   "data": slim(data) if data is not None else None}
             self._events[incident_id].append(ev)
-            if kind in ("done", "error"):
+            if _terminal(ev):
                 self._done.add(incident_id)
             return ev
 
@@ -75,7 +81,7 @@ class EventBus:
             for ev in new:
                 seen = ev["seq"]
                 yield ev
-                if ev["kind"] in ("done", "error"):
+                if _terminal(ev):
                     return
             if (self.is_done(incident_id) and not new) or time.time() - t0 > timeout:
                 return

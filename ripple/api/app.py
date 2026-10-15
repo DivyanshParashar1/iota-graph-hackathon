@@ -67,7 +67,8 @@ def create_app(settings: Settings | None = None, db: DB | None = None) -> FastAP
             f = UI_DIST / path
             if path and f.is_file() and UI_DIST in f.resolve().parents:
                 return FileResponse(f)
-            return FileResponse(UI_DIST / "index.html")
+            # index.html names the hashed bundle: never cache it, or a rebuilt UI keeps loading the old bundle
+            return FileResponse(UI_DIST / "index.html", headers={"Cache-Control": "no-cache"})
     return app
 
 

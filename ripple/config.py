@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from functools import lru_cache
 from pathlib import Path
 
@@ -24,8 +25,14 @@ class Settings(BaseSettings):
     falkordb_password: str | None = None
     falkordb_db: int = 0  # Redis logical database (remote mode); tests give each fixture its own
 
-    # LLM provider: "auto" picks OpenRouter when OPENROUTER_API_KEY is set, else Anthropic when its key is set
-    ripple_llm_provider: str = "auto"  # auto | openrouter | anthropic
+    # LLM provider: "auto" picks OpenRouter when OPENROUTER_API_KEY is set, else Anthropic when its key is set.
+    # "claude_code" uses the local Claude Code login (no API key): the `claude` CLI, or the host bridge from Docker.
+    ripple_llm_provider: str = "auto"  # auto | openrouter | anthropic | claude_code
+    claude_code_bin: str = "claude"
+    claude_code_model: str = "opus"  # a `claude --model` alias or full model id
+    claude_code_bridge_url: str | None = None  # e.g. http://host.docker.internal:8765; empty = run the CLI directly
+    claude_code_bridge_token: str | None = None
+    claude_code_timeout: float = 300
     openrouter_api_key: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_model: str = "anthropic/claude-opus-5.5"
@@ -61,6 +68,8 @@ class Settings(BaseSettings):
     def llm_provider(self) -> str | None:
         """The provider LLM mode will use, or None when its key is missing."""
         p = self.ripple_llm_provider
+        if p == "claude_code":
+            return "claude_code" if self.claude_code_bridge_url or shutil.which(self.claude_code_bin) else None
         if p in ("auto", "openrouter") and self.openrouter_api_key:
             return "openrouter"
         if p in ("auto", "anthropic") and self.anthropic_api_key:

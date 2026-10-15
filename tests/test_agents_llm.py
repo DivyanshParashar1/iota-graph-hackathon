@@ -83,3 +83,12 @@ def test_no_key_downgrades_to_scripted():
     set_client(None)
     assert effective_mode("llm") == ("scripted", "scripted (no API key)")
     assert effective_mode("scripted") == ("scripted", "scripted")
+
+
+def test_non_fatal_error_does_not_end_the_stream():
+    from ripple.agents.events import EventBus
+    bus = EventBus()
+    bus.emit("INC-X", "comms", "error", summary="who_owns failed", data={"fatal": False})
+    assert not bus.is_done("INC-X")
+    bus.emit("INC-X", "orchestrator", "error", summary="run failed", data={"fatal": True})
+    assert bus.is_done("INC-X")

@@ -11,7 +11,8 @@ import pytest
 
 # Tests stay offline and deterministic whatever .env holds: hash embeddings, no LLM provider keys
 # (environment variables win over .env). The LLM loop is tested through FakeAnthropic.
-os.environ.update(RIPPLE_EMBEDDINGS="hash", OPENROUTER_API_KEY="", ANTHROPIC_API_KEY="", OPENAI_API_KEY="")
+os.environ.update(RIPPLE_EMBEDDINGS="hash", RIPPLE_LLM_PROVIDER="auto", OPENROUTER_API_KEY="", ANTHROPIC_API_KEY="",
+                  OPENAI_API_KEY="")
 
 from ripple.db import TenantScope, close_db, get_db  # noqa: E402
 

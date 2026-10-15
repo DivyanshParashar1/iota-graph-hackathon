@@ -29,7 +29,8 @@ export default function Incident() {
       const ev = JSON.parse(m.data) as AgentEvent;
       setEvents((prev) => (prev.some((p) => p.seq === ev.seq) ? prev : [...prev, ev]));
       if (ev.kind === "tool_result" && (ev.tool === "blast_radius" || ev.tool === "propose_action")) refresh();
-      if (ev.kind === "done" || ev.kind === "error") {
+      // non-fatal errors (a failed tool call the agent recovers from) do not end the run
+      if (ev.kind === "done" || (ev.kind === "error" && ev.data?.fatal !== false)) {
         es.close();
         refresh();
       }
@@ -39,7 +40,10 @@ export default function Incident() {
     return () => es.close();
   }, [id, refresh]);
 
-  useEffect(() => bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), [events.length]);
+  useEffect(() => {
+    // braces matter: newer Chromium returns a Promise from scrollIntoView, and React would call it as the cleanup
+    bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [events.length]);
 
   const timeline = useMemo(() => events.filter((e) => e.kind !== "tool_call"), [events]);
   const inc = detail?.incident;
