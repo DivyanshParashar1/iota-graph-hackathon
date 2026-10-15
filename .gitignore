@@ -10,12 +10,12 @@ __pycache__/
 *.db.settings
 *.rdb
 var/
-# data: the gzipped DataCo CSV is committed, the raw 96MB CSV is not
-data/raw/*.csv
-!data/raw/DescriptionDataCoSupplyChain.csv
 # node
 ui/node_modules/
 ui/dist/
+# per-tenant file mirror (uploads, exported expert prompts): generated at runtime
+tenants/
+artifacts/
 # env
 .env
 .DS_Store

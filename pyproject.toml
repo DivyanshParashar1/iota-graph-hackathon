@@ -1,12 +1,11 @@
 [project]
 name = "ripple"
 version = "0.1.0"
-description = "Ripple: a graph-native supply chain control tower on FalkorDB"
+description = "Ripple: agentic onboarding and a per-tenant supply chain brain on FalkorDB"
 requires-python = ">=3.12,<3.14"
 dependencies = [
   "falkordb>=1.8.0",
   "falkordblite>=0.10.0",
-  "fastmcp>=4.1.0",
   "fastapi>=0.143.0",
   "uvicorn>=0.30",
   "sse-starlette>=3.5.0",
@@ -15,15 +14,12 @@ dependencies = [
   "python-dotenv>=1.0",
   "pandas>=2.2",
   "numpy>=2.0",
-  "faker>=30",
   "pyyaml>=6.0",
   "anthropic>=1.14.0",
-  "langgraph>=1.2.0",
   "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
-memory = ["graphiti-core[falkordb]>=0.30.2"]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
 
 [build-system]
@@ -36,5 +32,8 @@ packages = ["ripple"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-markers = ["slow: builds the full DataCo dataset (run with -m slow)"]
-addopts = "-m 'not slow' -p no:cacheprovider"
+markers = [
+  "llm: calls a real LLM provider (run with -m llm; needs the `claude` CLI login or a key)",
+  "slow: takes more than a few seconds (run with -m slow)",
+]
+addopts = "-m 'not slow and not llm' -p no:cacheprovider"

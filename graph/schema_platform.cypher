@@ -1,0 +1,31 @@
+// Ripple platform schema: indexes for the `_`-prefixed labels that hold onboarding state, artifacts and
+// agent memory. A tenant's *generated* ontology gets its own indexes from ripple/graph/apply.py.
+// One statement per line. `// graph: ops|mem` switches the target graph.
+// graph: ops
+CREATE INDEX FOR (n:_Tenant) ON (n.id)
+CREATE INDEX FOR (n:_Session) ON (n.id)
+CREATE INDEX FOR (n:_Message) ON (n.id)
+CREATE INDEX FOR (n:_Message) ON (n.seq)
+CREATE INDEX FOR (n:_ChecklistItem) ON (n.id)
+CREATE INDEX FOR (n:_ChecklistItem) ON (n.stage)
+CREATE INDEX FOR (n:_Attachment) ON (n.id)
+CREATE INDEX FOR (n:_Attachment) ON (n.sha256)
+CREATE INDEX FOR (n:_Brief) ON (n.id)
+CREATE INDEX FOR (n:_Brief) ON (n.version)
+CREATE INDEX FOR (n:_FormSpec) ON (n.id)
+CREATE INDEX FOR (n:_FormAnswer) ON (n.id)
+CREATE INDEX FOR (n:_FormAnswer) ON (n.form_id)
+CREATE INDEX FOR (n:_OntologySpec) ON (n.id)
+CREATE INDEX FOR (n:_OntologySpec) ON (n.version)
+CREATE INDEX FOR (n:_OntologyType) ON (n.id)
+CREATE INDEX FOR (n:_ExpertRole) ON (n.id)
+CREATE INDEX FOR (n:_ExpertRole) ON (n.name)
+CREATE INDEX FOR (n:_AgentStep) ON (n.id)
+CREATE INDEX FOR (n:_Provenance) ON (n.id)
+CREATE INDEX FOR (n:_ToolCall) ON (n.id)
+// graph: mem
+CREATE INDEX FOR (n:_Episode) ON (n.id)
+CREATE INDEX FOR (n:_Fact) ON (n.id)
+CREATE INDEX FOR (n:_Fact) ON (n.subject_id)
+CREATE INDEX FOR (n:_Conversation) ON (n.id)
+CREATE INDEX FOR (n:_ConvMessage) ON (n.id)

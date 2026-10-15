@@ -2,13 +2,18 @@
 
 Each file starts with a header of `// key: value` comment lines:
 
-    // name: blast_radius_port
-    // purpose: Q1. Open orders, revenue and customers hit by a port closure
+    // name: messages_list
+    // purpose: Every message of a session in order
     // graph: ops            (ops | mem)
-    // kind: read            (read | algo | write)
-    // params: {"did": "DIS-example"}
+    // kind: read            (read | write | algo | template)
+    // params: {"sid": "SES-example"}
 
 The README's query section is generated from these headers, so code and docs can't drift apart.
+
+**Templates.** A per-tenant ontology is generated at runtime, and Cypher cannot parameterise a label or a
+relationship type. Those queries are `kind: template` and carry `{placeholders}` which `Q(name, label=...)`
+fills in. Every placeholder value is checked against `IDENT_RE` first, so only identifiers the ontology
+validator already accepted can reach the query text.
 """
 
 from __future__ import annotations
@@ -23,6 +28,11 @@ from ripple import ROOT
 
 QUERY_DIR = ROOT / "graph" / "queries"
 _HEADER = re.compile(r"^//\s*(\w+):\s*(.*)$")
+IDENT_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
+
+
+class BadIdentifier(ValueError):
+    """A template placeholder was not a plain Cypher identifier."""
 
 
 @dataclass(frozen=True)
@@ -47,11 +57,10 @@ def _parse(path: Path) -> QueryDef:
             continue
         else:
             body.append(line)
-    text = "\n".join(body).strip()
     return QueryDef(
         name=meta.get("name", path.stem),
         purpose=meta.get("purpose", ""),
-        text=text,
+        text="\n".join(body).strip(),
         graph=meta.get("graph", "ops"),
         kind=meta.get("kind", "read"),
         params=json.loads(meta["params"]) if meta.get("params") else {},
@@ -64,11 +73,22 @@ def all_queries() -> dict[str, QueryDef]:
     return {p.stem: _parse(p) for p in sorted(QUERY_DIR.glob("*.cypher"))}
 
 
-def Q(name: str) -> str:  # noqa: N802 - short on purpose: Q("blast_radius_port")
+def ident(value: str) -> str:
+    """A label / relationship type / property name safe to interpolate into Cypher."""
+    if not IDENT_RE.match(str(value or "")):
+        raise BadIdentifier(f"{value!r} is not a plain identifier")
+    return str(value)
+
+
+def Q(name: str, **fmt) -> str:  # noqa: N802 - short on purpose: Q("messages_list")
+    """The text of a named query; keyword arguments fill a template's {placeholders} (as identifiers)."""
     try:
-        return all_queries()[name].text
+        text = all_queries()[name].text
     except KeyError:
         raise KeyError(f"no query graph/queries/{name}.cypher") from None
+    if not fmt:
+        return text
+    return text.format(**{k: ident(v) for k, v in fmt.items()})
 
 
 def query_def(name: str) -> QueryDef:

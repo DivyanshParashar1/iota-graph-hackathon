@@ -1,9 +1,0 @@
-id: port_closure_shanghai
-name: Port of Shanghai closure (10 days)
-description: A typhoon closes the Port of Shanghai for ten days. Every open order whose lane starts or ends there is at risk.
-event:
-  type: port_closure
-  target_name: Shanghai
-  severity: high
-  expected_days: 10
-  source: scenario

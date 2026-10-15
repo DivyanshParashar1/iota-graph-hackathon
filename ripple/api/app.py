@@ -2,6 +2,9 @@
 
     uvicorn ripple.api.app:app --reload            # dev (UI: cd ui && npm run dev)
 In production the app also serves ui/dist at / (single container).
+
+v2 boots to an empty database. There is no dataset to build and no tenant until a company starts onboarding -
+`POST /api/onboarding/start` creates the tenant, its two graphs and its platform indexes.
 """
 
 from __future__ import annotations
@@ -15,8 +18,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ripple import ROOT
-from ripple.config import TENANTS, Settings, get_settings
-from ripple.db import DB, TenantScope, get_db
+from ripple.config import Settings, get_settings
+from ripple.db import DB, get_db
 
 log = logging.getLogger("ripple.api")
 UI_DIST = ROOT / "ui" / "dist"
@@ -29,35 +32,20 @@ def create_app(settings: Settings | None = None, db: DB | None = None) -> FastAP
     async def lifespan(app: FastAPI):
         owned = db is None
         app.state.db = db or get_db(settings=settings)
-        from ripple.graph.schema import apply_schema
-        from ripple.ingest.build import build_tenant, is_built
-        from ripple.tools.algos import warm_caches
-
-        for t in TENANTS:
-            s = TenantScope(t, app.state.db)
-            if not is_built(app.state.db, t):
-                if settings.ripple_autobuild:
-                    log.warning("building tenant %s (sample=%s)", t, settings.ripple_sample_orders)
-                    build_tenant(s, settings.ripple_sample_orders if t == "dataco" else None)
-                else:
-                    apply_schema(s)
-            try:
-                warm_caches(s)
-            except Exception:  # noqa: BLE001 - an empty tenant has nothing to warm
-                pass
+        log.info("ripple up: db=%s tenants=%s provider=%s", app.state.db.mode,
+                 app.state.db.list_tenants(), settings.llm_provider)
         yield
         app.state.db.save()
         if owned:
             app.state.db.close()
 
-    app = FastAPI(title="Ripple", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Ripple", version="2.0.0", lifespan=lifespan)
     app.state.settings = settings
-    app.state.started = set()  # incident ids whose orchestrator run was started by this process
     app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in settings.api_cors_origins.split(",")],
-                       allow_methods=["*"], allow_headers=["*"])
-    from ripple.api import routes_actions, routes_brain, routes_incidents, routes_meta
+                       allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+    from ripple.api import routes_experts, routes_meta, routes_onboarding, routes_ontology
 
-    for r in (routes_meta.router, routes_incidents.router, routes_actions.router, routes_brain.router):
+    for r in (routes_meta.router, routes_onboarding.router, routes_ontology.router, routes_experts.router):
         app.include_router(r)
     if UI_DIST.exists():
         app.mount("/assets", StaticFiles(directory=UI_DIST / "assets"), name="assets")

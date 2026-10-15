@@ -1,8 +1,8 @@
 """ToolResult, call context and the `logged_tool` decorator shared by every tool.
 
-Tools are plain functions `fn(scope: TenantScope, **args) -> ToolResult`. MCP, agents, the API and tests all
-call the same functions. Every call is logged as a (:ToolCall) node in the tenant's ops graph, linked from the
-incident when one is in context.
+Tools are plain functions `fn(scope: TenantScope, **args) -> ToolResult`. Agents, the API and tests all call
+the same functions. Every call is logged as a `_ToolCall` node in the tenant's ops graph so an expert's answer
+can be traced back to the queries behind it.
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ _CTX: contextvars.ContextVar[dict] = contextvars.ContextVar("ripple_call_ctx", d
 
 @contextmanager
 def call_context(**kw):
-    """Set agent / incident_id for tool-call logging in this context (thread or task)."""
+    """Set agent / no_log for tool-call logging in this context (thread or task)."""
     tok = _CTX.set({**_CTX.get(), **kw})
     try:
         yield
@@ -71,15 +71,15 @@ def dedupe(xs) -> list:
 
 
 def _args_json(kwargs: dict, limit: int = 4000) -> str:
-    """Tool arguments as JSON for the ToolCall node: long lists are capped so the text stays valid JSON."""
-    from ripple.agents.events import slim
+    """Tool arguments as JSON for the _ToolCall node: long values are capped so the text stays valid JSON."""
+    from ripple.onboarding.events import slim
 
     s = json.dumps(slim(kwargs), default=str)
     return s if len(s) <= limit else json.dumps({"truncated": s[:limit]})
 
 
 def logged_tool(fn):
-    """Time the call, fill ToolResult.ms, and write a ToolCall node (best effort)."""
+    """Time the call, fill ToolResult.ms, and write a _ToolCall node (best effort)."""
 
     @functools.wraps(fn)
     def wrapper(scope: TenantScope, **kwargs) -> ToolResult:
@@ -89,12 +89,11 @@ def logged_tool(fn):
         res.node_ids = dedupe(res.node_ids)
         ctx = _CTX.get()
         if not ctx.get("no_log"):
-            iid = kwargs.get("incident_id") or ctx.get("incident_id") or ""
             try:
-                scope.ops.run("log_tool_call", {
-                    "id": f"TC-{uuid.uuid4().hex[:12].upper()}", "tool": fn.__name__, "agent": ctx.get("agent", "api"),
-                    "args": _args_json(kwargs), "ms": res.ms, "ts": now_ms(),
-                    "n": len(res.node_ids), "iid": iid})
+                scope.ops.run("tool_call_log", {"row": {
+                    "id": f"TC-{uuid.uuid4().hex[:12].upper()}", "tool": fn.__name__,
+                    "agent": ctx.get("agent", "api"), "args_json": _args_json(kwargs), "ms": res.ms,
+                    "ts": now_ms(), "n": len(res.node_ids), "summary": res.summary[:500]}})
             except Exception:  # noqa: BLE001 - logging must never break a tool
                 pass
         return res

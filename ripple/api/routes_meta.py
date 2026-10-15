@@ -1,54 +1,76 @@
-"""Health, tenants, ontology, map."""
+"""Health, config and the current tenant."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from ripple.agents.orchestrator import effective_mode
-from ripple.api.deps import scope_dep
-from ripple.config import TENANTS
+from ripple.api.deps import COOKIE, scope_dep, tenant_id
+from ripple.config import get_settings
 from ripple.db import TenantScope
-from ripple.ontology import INTERFACES, LABELS, RELS
+from ripple.onboarding import STAGES
+from ripple.onboarding.session import progress
+from ripple.onboarding.store import counts, get_tenant, instance_counts
 
 router = APIRouter(prefix="/api")
 
 
 @router.get("/health")
 def health(request: Request):
-    db = request.app.state.db
-    return {"ok": True, "db_mode": db.mode, "graphs": db.list_graphs(), "agent_mode": effective_mode("llm")[1],
-            "default_mode": request.app.state.settings.ripple_agent_mode}
+    s = request.app.state.settings
+    return {"ok": True, "db_mode": request.app.state.db.mode, "graphs": request.app.state.db.list_graphs(),
+            "llm_provider": s.llm_provider, "model": s.model_name, "has_llm": s.has_llm,
+            "stages": list(STAGES)}
+
+
+@router.get("/config")
+def config():
+    s = get_settings()
+    return {"llm_provider": s.llm_provider, "configured_provider": s.ripple_llm_provider, "model": s.model_name,
+            "effort": s.ripple_llm_effort, "has_llm": s.has_llm, "max_upload_mb": s.ripple_max_upload_mb,
+            "stages": list(STAGES)}
 
 
 @router.get("/tenants")
 def tenants(request: Request):
+    """Every tenant in this database (one user = one tenant; this is for the demo switcher and the CLI)."""
     out = []
-    for t in TENANTS:
-        s = TenantScope(t, request.app.state.db)
-        c = s.ops.run("tenant_counts", {})
-        m = s.mem.run("tenant_counts", {})
-        out.append({"id": t, "name": {"dataco": "DataCo Global", "nova": "Nova Retail"}[t],
-                    "nodes": c[0]["nodes"] if c else 0, "edges": c[0]["edges"] if c else 0,
-                    "memory_nodes": m[0]["nodes"] if m else 0})
-    return out
+    for tid in request.app.state.db.list_tenants():
+        scope = TenantScope(tid, request.app.state.db)
+        t = get_tenant(scope) or {"id": tid}
+        out.append({**t, **counts(scope)})
+    return sorted(out, key=lambda t: t.get("created_at") or 0, reverse=True)
 
 
-@router.get("/ontology")
-def ontology(scope: TenantScope = Depends(scope_dep)):
-    st = scope.ops.run("meta_stats", {})[0]
-    ms = scope.mem.run("meta_stats", {})[0]
-    counts = {**dict(ms["labels"]), **dict(st["labels"])}
-    rel_counts = {**dict(ms["relTypes"]), **dict(st["relTypes"])}
-    return {"labels": [{"label": k, "graph": v[0], "description": v[1], "properties": v[2], "count": counts.get(k, 0)}
-                       for k, v in LABELS.items()],
-            "relationships": [{"type": t, "from": a, "to": b, "properties": p, "description": d,
-                               "count": rel_counts.get(t, 0)} for t, a, b, p, d in RELS],
-            "interfaces": [{"label": k, "on": v[0], "description": v[1]} for k, v in INTERFACES.items()],
-            "totals": {"nodes": st["nodeCount"], "edges": st["relCount"], "memory_nodes": ms["nodeCount"]}}
+@router.get("/tenant")
+def tenant(request: Request):
+    """The current tenant and its stage, or 404 when this browser has not started one."""
+    tid = tenant_id(request.headers.get("x-ripple-tenant"), request.query_params.get("tenant"),
+                    request.cookies.get(COOKIE))
+    if not tid or f"tenant_{tid}" not in request.app.state.db.list_graphs():
+        raise HTTPException(404, "no tenant in this session")
+    scope = TenantScope(tid, request.app.state.db)
+    return {**(get_tenant(scope) or {"id": tid}), "counts": instance_counts(scope),
+            "progress": progress(scope)}
 
 
-@router.get("/map")
-def map_layers(scope: TenantScope = Depends(scope_dep)):
-    g = scope.ops
-    return {"ports": g.run("map_ports", {}), "plants": g.run("map_plants", {}), "suppliers": g.run("map_suppliers", {}),
-            "disruptions": g.run("disruptions_active", {})}
+@router.post("/tenant/select/{tid}")
+def select_tenant(tid: str, request: Request, response: Response):
+    """Point this browser at an existing tenant (the demo switcher; there is no auth - see api/deps.py)."""
+    scope = scope_dep(request, tid)
+    response.set_cookie(COOKIE, scope.tenant_id, max_age=60 * 60 * 24 * 365, samesite="lax")
+    return {**(get_tenant(scope) or {"id": tid})}
+
+
+@router.get("/graph")
+def graph_sample(limit: int = 300, scope: TenantScope = Depends(scope_dep)):
+    """A sample of the instance graph for the graph view: nodes with their titles, and the edges between them."""
+    nodes = scope.ops.query(
+        "MATCH (n) WHERE NOT any(l IN labels(n) WHERE l STARTS WITH '_') "
+        "RETURN n.id AS id, labels(n)[0] AS label, coalesce(n.name, n.title, n.id) AS title LIMIT $limit",
+        {"limit": max(1, min(limit, 2000))})
+    ids = {n["id"] for n in nodes}
+    edges = scope.ops.query(
+        "MATCH (a)-[r]->(b) WHERE a.id IN $ids AND b.id IN $ids "
+        "RETURN a.id AS source, type(r) AS type, b.id AS target LIMIT $limit",
+        {"ids": sorted(ids), "limit": max(1, min(limit * 4, 8000))})
+    return {"nodes": nodes, "edges": edges}

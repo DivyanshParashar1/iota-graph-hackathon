@@ -1,9 +1,0 @@
-id: port_congestion_ningbo
-name: Ningbo port congestion (5 days)
-description: Severe congestion closes berths at Ningbo-Zhoushan for five days. Handled as a port closure; the "similar incident" used by the cross-session recall demo.
-event:
-  type: port_closure
-  target_name: Ningbo
-  severity: medium
-  expected_days: 5
-  source: scenario

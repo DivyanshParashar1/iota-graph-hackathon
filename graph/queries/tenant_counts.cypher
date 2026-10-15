@@ -1,6 +1,9 @@
 // name: tenant_counts
-// purpose: Node and relationship totals for a tenant graph.
+// purpose: Node and edge totals of a graph
+// graph: ops
 // kind: read
 // params: {}
-CALL db.meta.stats() YIELD nodeCount, relCount
-RETURN nodeCount AS nodes, relCount AS edges
+MATCH (n)
+WITH count(n) AS nodes
+OPTIONAL MATCH ()-[r]->()
+RETURN nodes, count(r) AS edges

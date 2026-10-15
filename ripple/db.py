@@ -1,23 +1,44 @@
 """FalkorDB access: embedded (falkordblite) or remote, plus tenant scoping.
 
-Every product query goes through a `TenantScope`, which can only open the two graphs that belong to its
-tenant (`tenant_<id>` for operational data, `mem_<id>` for agent memory). Isolation is enforced here, in
-code, not in prompts.
+Every query goes through a `TenantScope`, which can only open the two graphs that belong to its tenant
+(`tenant_<id>` for the ontology + instance data + onboarding state, `mem_<id>` for agent memory). Isolation is
+enforced here, in code, not in prompts.
+
+v2 creates tenants at runtime, so a tenant id is validated by shape instead of being looked up in a constant
+list: lowercase letters, digits and underscores, 2-40 characters, starting with a letter.
 """
 
 from __future__ import annotations
 
+import re
 import threading
 import time
+import unicodedata
+import uuid
 from pathlib import Path
 from typing import Any
 
-from ripple.config import TENANTS, Settings, get_settings
+from ripple.config import Settings, get_settings
 from ripple.graph.queries import Q
+
+TENANT_RE = re.compile(r"^[a-z][a-z0-9_]{1,39}$")
 
 
 class TenantViolation(PermissionError):
     """Raised when code tries to open a graph that does not belong to its tenant."""
+
+
+def valid_tenant_id(tenant_id: str) -> bool:
+    return bool(TENANT_RE.match(tenant_id or ""))
+
+
+def slug_tenant_id(name: str) -> str:
+    """A readable, unique tenant id from a company name: `acme_shoes_3f9c21`."""
+    ascii_name = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode()
+    base = re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")[:28].strip("_")
+    if not base or not base[0].isalpha():
+        base = f"t_{base}" if base else "tenant"
+    return f"{base}_{uuid.uuid4().hex[:6]}"
 
 
 def _col_name(h: Any) -> str:
@@ -37,9 +58,9 @@ class GraphHandle:
         cols = [_col_name(h) for h in (res.header or [])]
         return [dict(zip(cols, row)) for row in res.result_set]
 
-    def run(self, qname: str, params: dict | None = None) -> list[dict]:
-        """Run a named query from graph/queries/<qname>.cypher."""
-        return self.query(Q(qname), params)
+    def run(self, qname: str, params: dict | None = None, **fmt) -> list[dict]:
+        """Run a named query from graph/queries/<qname>.cypher (optionally rendering {placeholders})."""
+        return self.query(Q(qname, **fmt), params)
 
     def raw(self, cypher: str, params: dict | None = None):
         return self._g.query(cypher, params or {})
@@ -87,12 +108,16 @@ class DB:
         except Exception:  # noqa: BLE001
             return []
 
+    def list_tenants(self) -> list[str]:
+        """Tenant ids with an ops graph in this database."""
+        return [g[len("tenant_"):] for g in self.list_graphs() if g.startswith("tenant_")]
+
     def flush(self) -> None:
         """Delete every graph in this database (tests / rebuilds only)."""
         self._db.connection.flushdb()
 
     def save(self) -> None:
-        """Force a snapshot so a hard kill can't lose memory (embedded mode)."""
+        """Force a snapshot so a hard kill can't lose state (embedded mode)."""
         with self._lock:
             try:
                 self._db.connection.execute_command("SAVE")
@@ -111,18 +136,17 @@ class DB:
             self.closed = True
             return
         self.save()
-        if self.mode == "embedded":
-            client = self._db.connection
-            try:
-                client.connection_pool.disconnect()
-            except Exception:  # noqa: BLE001
-                pass
-            self._db.close()
-            try:
-                if client.pid:
-                    client.shutdown(save=True, now=True, force=True)
-            except Exception:  # noqa: BLE001 - the server is already gone
-                pass
+        client = self._db.connection
+        try:
+            client.connection_pool.disconnect()
+        except Exception:  # noqa: BLE001
+            pass
+        self._db.close()
+        try:
+            if client.pid:
+                client.shutdown(save=True, now=True, force=True)
+        except Exception:  # noqa: BLE001 - the server is already gone
+            pass
         self.closed = True
 
 
@@ -136,7 +160,8 @@ def get_db(path: str | Path | None = None, mode: str | None = None, settings: Se
     s = settings or get_settings()
     mode = mode or s.ripple_db_mode
     idx = s.falkordb_db if db_index is None else db_index
-    key = f"remote:{s.falkordb_host}:{s.falkordb_port}/{idx}" if mode == "remote" else str(Path(path or s.db_path).resolve())
+    key = (f"remote:{s.falkordb_host}:{s.falkordb_port}/{idx}" if mode == "remote"
+           else str(Path(path or s.db_path).resolve()))
     with _DBS_LOCK:
         db = _DBS.get(key)
         if db is None or db.closed:
@@ -165,8 +190,8 @@ class TenantScope:
     """Everything a tool may touch for one tenant. Raises on any other graph name."""
 
     def __init__(self, tenant_id: str, db: DB | None = None):
-        if tenant_id not in TENANTS:
-            raise TenantViolation(f"unknown tenant {tenant_id!r}")
+        if not valid_tenant_id(tenant_id):
+            raise TenantViolation(f"bad tenant id {tenant_id!r}")
         self.tenant_id = tenant_id
         self.db = db or get_db()
         self._allowed = {ops_graph_name(tenant_id), mem_graph_name(tenant_id)}
@@ -184,12 +209,20 @@ class TenantScope:
     def mem(self) -> GraphHandle:
         return self.graph(mem_graph_name(self.tenant_id))
 
-    def flush(self) -> None:
-        """Delete every graph in this database (tests / rebuilds only)."""
-        self._db.connection.flushdb()
+    @property
+    def dir(self) -> Path:
+        """The tenant's file-side mirror (`tenants/<id>/`), created on first use."""
+        p = get_settings().tenants_dir / self.tenant_id
+        p.mkdir(parents=True, exist_ok=True)
+        return p
 
     def save(self) -> None:
         self.db.save()
+
+    def drop(self) -> None:
+        """Delete both of this tenant's graphs (tests, and `DELETE /api/tenant`)."""
+        self.ops.delete()
+        self.mem.delete()
 
     def __repr__(self) -> str:
         return f"TenantScope({self.tenant_id!r})"
@@ -197,3 +230,7 @@ class TenantScope:
 
 def now_ms() -> int:
     return int(time.time() * 1000)
+
+
+def new_id(prefix: str) -> str:
+    return f"{prefix}-{uuid.uuid4().hex[:12].upper()}"

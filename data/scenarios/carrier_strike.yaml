@@ -1,9 +1,0 @@
-id: carrier_strike
-name: Pacific Arc Shipping strike (7 days)
-description: Crews of the synthetic carrier Pacific Arc Shipping strike. Every lane it operates is affected.
-event:
-  type: carrier_strike
-  target_name: Pacific Arc Shipping
-  severity: high
-  expected_days: 7
-  source: scenario
