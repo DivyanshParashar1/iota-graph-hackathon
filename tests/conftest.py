@@ -9,7 +9,11 @@ import time
 
 import pytest
 
-from ripple.db import TenantScope, close_db, get_db
+# Tests stay offline and deterministic whatever .env holds: hash embeddings, no LLM provider keys
+# (environment variables win over .env). The LLM loop is tested through FakeAnthropic.
+os.environ.update(RIPPLE_EMBEDDINGS="hash", OPENROUTER_API_KEY="", ANTHROPIC_API_KEY="", OPENAI_API_KEY="")
+
+from ripple.db import TenantScope, close_db, get_db  # noqa: E402
 
 SAMPLE = 3000
 # RIPPLE_DB_MODE=remote runs the whole suite against a FalkorDB server (e.g. docker run -p 6379:6379

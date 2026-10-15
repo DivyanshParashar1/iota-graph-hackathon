@@ -146,15 +146,24 @@ cd ui && npm run build                          # or `npm run dev` on :5173 with
 The API builds missing tenants on startup (`RIPPLE_AUTOBUILD=1`; set `RIPPLE_SAMPLE_ORDERS=3000` for a fast
 sample). One process owns an embedded `.db` file: run tools, agents and the MCP server in-process or through the API.
 
-**Docker (FalkorDB server + Browser on :3000, API in remote mode):** `docker compose up --build`, then open
-http://localhost:8000 (Ripple) and http://localhost:3000 (FalkorDB Browser).
+**Docker (FalkorDB server + Browser on :3000, API in remote mode):** `cp .env.example .env`, set
+`FALKORDB_PASSWORD` (FalkorDB runs with `--requirepass`; compose refuses to start without it), then
+`docker compose up --build` and open http://localhost:8000 (Ripple) and http://localhost:3000 (FalkorDB Browser:
+host `localhost`, port `6379`, user `default`, that password).
 
 **FalkorDB Cloud:** set `RIPPLE_DB_MODE=remote`, `FALKORDB_HOST`, `FALKORDB_PORT`, `FALKORDB_USERNAME`,
 `FALKORDB_PASSWORD`, then `python -m ripple.ingest.build` and start the API. `render.yaml` deploys the single
 container.
 
-**Claude agents:** set `ANTHROPIC_API_KEY` (model `RIPPLE_MODEL`, default `claude-opus-5-5`) and pick "Claude
-agents" next to the scenarios. Without a key the UI reports `scripted (no API key)` and runs scripted agents.
+**Claude agents via OpenRouter:** set `OPENROUTER_API_KEY` (model `OPENROUTER_MODEL`, default
+`anthropic/claude-opus-5.5`) and pick "Claude agents" next to the scenarios. `ANTHROPIC_API_KEY` (model
+`RIPPLE_MODEL`, default `claude-opus-5-5`) also works; `RIPPLE_LLM_PROVIDER=auto` prefers OpenRouter. Without a
+key the UI reports `scripted (no API key)` and runs scripted agents.
+
+**Embeddings via OpenRouter:** `RIPPLE_EMBEDDINGS=openrouter` embeds chunks, messages and episodes with
+`OPENROUTER_EMBED_MODEL` (default `openai/text-embedding-3-small`, 1536-d; the dimension is probed unless
+`RIPPLE_EMBED_DIM` is set). The vector indexes take that dimension, so rebuild after switching
+(`python -m ripple.ingest.build`, or `docker compose down -v` first). The default `hash` embedder is offline.
 
 **MCP (Claude Desktop or any MCP client)**, against a FalkorDB server:
 

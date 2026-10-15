@@ -2,7 +2,7 @@
 
 HashEmbedder: lowercase word tokens (light stemming, stopwords dropped) plus bigrams, feature-hashed with
 blake2b into signed buckets, then L2-normalized. Good enough for keyword-ish semantic search over our
-templated documents, with zero dependencies. OpenAIEmbedder (text-embedding-3-small, 1536-d) is optional.
+templated documents, with zero dependencies. OpenAICompatEmbedder (OpenRouter or OpenAI /embeddings) is optional.
 """
 
 from __future__ import annotations
@@ -63,15 +63,22 @@ class HashEmbedder:
         return [self.embed(t) for t in texts]
 
 
-class OpenAIEmbedder:
-    """text-embedding-3-small over HTTPS. Needs OPENAI_API_KEY; the vector index must be 1536-d."""
+class OpenAICompatEmbedder:
+    """Embeddings over an OpenAI-compatible /embeddings endpoint (OpenRouter or OpenAI). The vector index takes
+    this embedder's `dim`: given, or probed from the model on first use."""
 
-    name = "openai"
-    dim = 1536
-
-    def __init__(self, api_key: str, model: str = "text-embedding-3-small"):
+    def __init__(self, api_key: str, model: str, base_url: str, name: str, dim: int | None = None):
         self.api_key = api_key
         self.model = model
+        self.base_url = base_url.rstrip("/")
+        self.name = name
+        self._dim = dim
+
+    @property
+    def dim(self) -> int:
+        if self._dim is None:
+            self._dim = len(self.embed("dimension probe"))
+        return self._dim
 
     def embed_many(self, texts: list[str]) -> list[list[float]]:
         import httpx
@@ -79,13 +86,14 @@ class OpenAIEmbedder:
         out: list[list[float]] = []
         for i in range(0, len(texts), 256):
             r = httpx.post(
-                "https://api.openai.com/v1/embeddings",
+                f"{self.base_url}/embeddings",
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 json={"model": self.model, "input": texts[i : i + 256]},
-                timeout=60,
+                timeout=120,
             )
             r.raise_for_status()
-            out += [d["embedding"] for d in r.json()["data"]]
+            data = sorted(r.json()["data"], key=lambda d: d.get("index", 0))
+            out += [d["embedding"] for d in data]
         return out
 
     def embed(self, text: str) -> list[float]:
@@ -104,6 +112,10 @@ def get_embedder():
     from ripple.config import get_settings
 
     s = get_settings()
+    if s.ripple_embeddings == "openrouter" and s.openrouter_api_key:
+        return OpenAICompatEmbedder(s.openrouter_api_key, s.openrouter_embed_model, s.openrouter_base_url,
+                                    "openrouter", s.ripple_embed_dim)
     if s.ripple_embeddings == "openai" and s.openai_api_key:
-        return OpenAIEmbedder(s.openai_api_key)
+        return OpenAICompatEmbedder(s.openai_api_key, "text-embedding-3-small", "https://api.openai.com/v1",
+                                    "openai", s.ripple_embed_dim or 1536)
     return HashEmbedder(384)

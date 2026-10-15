@@ -1,6 +1,6 @@
 """LLM mode: a manual Claude tool-use loop over registry tools, with per-call logging, event emission, tenant
 scoping (tools run through the AgentRun's TenantScope) and an ID validator. FakeAnthropic replays scripted
-responses so the loop is tested without a key.
+responses so the loop is tested without a key. The client is Anthropic's SDK or OpenRouterClient (same surface).
 
 Manual loop (not the SDK tool runner) because every call must go through AgentRun.call: ToolCall logging,
 SSE events and the seen-id set for the validator.
@@ -34,7 +34,11 @@ def get_client():
     if _CLIENT_OVERRIDE is not None:
         return _CLIENT_OVERRIDE
     s = get_settings()
-    if not s.anthropic_api_key:
+    if s.llm_provider == "openrouter":
+        from ripple.agents.openrouter import OpenRouterClient
+
+        return OpenRouterClient(s.openrouter_api_key, s.openrouter_model, s.openrouter_base_url)
+    if s.llm_provider != "anthropic":
         return None
     import anthropic
 
@@ -94,9 +98,12 @@ def run_llm_agent(run: AgentRun, agent: str, role: str, task: str, tool_names: l
     messages: list[dict] = [{"role": "user", "content": task}]
     fixes = 0
     for turn in range(max_turns):
-        resp = client.messages.create(model=s.ripple_model, max_tokens=16000, system=system, tools=tools,
-                                      tool_choice={"type": "auto"}, thinking={"type": "adaptive"},
-                                      output_config={"effort": "medium"}, messages=messages)
+        try:
+            resp = client.messages.create(model=s.ripple_model, max_tokens=16000, system=system, tools=tools,
+                                          tool_choice={"type": "auto"}, thinking={"type": "adaptive"},
+                                          output_config={"effort": "medium"}, messages=messages)
+        except Exception as e:  # noqa: BLE001 - provider/network errors fall back to scripted
+            return {"ok": False, "text": "", "reason": f"LLM error: {e}", "turns": turn}
         if resp.stop_reason == "pause_turn":
             messages.append({"role": "assistant", "content": resp.content})
             continue
@@ -142,9 +149,12 @@ def compose_answer(question: str, draft: str, tool_results: list[dict], allowed_
                                             "Write a clear answer (max 120 words) using only these facts; keep ids."}]
     allowed = set(allowed_ids) | extract_ids(draft)
     for _ in range(2):
-        resp = client.messages.create(model=s.ripple_model, max_tokens=16000, system=RULES,
-                                      thinking={"type": "adaptive"}, output_config={"effort": "medium"},
-                                      messages=messages)
+        try:
+            resp = client.messages.create(model=s.ripple_model, max_tokens=16000, system=RULES,
+                                          thinking={"type": "adaptive"}, output_config={"effort": "medium"},
+                                          messages=messages)
+        except Exception:  # noqa: BLE001 - keep the scripted draft
+            return None
         text = _text(resp.content)
         bad = sorted(extract_ids(text) - allowed)
         if text and not bad:

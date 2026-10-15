@@ -1,23 +1,38 @@
 # FalkorDB server (with the FalkorDB Browser on :3000) + the Ripple API/UI in remote mode.
-# Not run in the build session (no Docker there): see docs/KNOWN_ISSUES.md.
+# Secrets and keys come from .env (copy .env.example). FalkorDB requires a password: the server is started with
+# --requirepass $FALKORDB_PASSWORD and Ripple connects as the Redis "default" user. In the Browser, log in with
+# host falkordb (or localhost), port 6379, username default and that password.
 services:
   falkordb:
     image: falkordb/falkordb:v4.18.3   # pinned: latest (Rust server) panicked on a build query, see docs/KNOWN_ISSUES.md
+    environment:  # only the password: the DB container never sees the LLM keys
+      FALKORDB_PASSWORD: ${FALKORDB_PASSWORD:?set FALKORDB_PASSWORD in .env}
+      REDIS_ARGS: "--requirepass ${FALKORDB_PASSWORD}"
     ports:
       - "6379:6379"
       - "3000:3000"
     volumes:
       - falkordb-data:/var/lib/falkordb/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$FALKORDB_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
   api:
     build: .
     depends_on:
-      - falkordb
-    environment:
+      falkordb:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:  # wins over .env
       RIPPLE_DB_MODE: remote
       FALKORDB_HOST: falkordb
       FALKORDB_PORT: "6379"
+      FALKORDB_USERNAME: ${FALKORDB_USERNAME:-default}
+      FALKORDB_PASSWORD: ${FALKORDB_PASSWORD}
       RIPPLE_AUTOBUILD: "1"
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8000:8000"
 volumes:
