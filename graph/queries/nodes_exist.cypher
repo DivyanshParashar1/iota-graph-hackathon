@@ -19,6 +19,8 @@ OPTIONAL MATCH (n13:Employee {id: x})
 OPTIONAL MATCH (n14:Decision {id: x})
 OPTIONAL MATCH (n15:Plant {id: x})
 OPTIONAL MATCH (n16:ChatMessage {id: x})
-WITH x, coalesce(n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16) AS n
+OPTIONAL MATCH (n17:Action {id: x})
+OPTIONAL MATCH (n18:Team {id: x})
+WITH x, coalesce(n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18) AS n
 RETURN x AS id, n IS NOT NULL AS exists, CASE WHEN n IS NULL THEN NULL ELSE labels(n)[0] END AS label,
        CASE WHEN n IS NULL THEN NULL ELSE coalesce(n.name, n.title, n.id) END AS name

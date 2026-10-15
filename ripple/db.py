@@ -95,11 +95,25 @@ class DB:
                 pass
 
     def close(self) -> None:
+        """Save and, in embedded mode, stop the private redis-server.
+
+        redislite only shuts the server down when it holds the sole client connection; worker threads leave
+        extra pooled connections open, so drop them first and force a SHUTDOWN if the server is still up."""
         if self.closed:
             return
         self.save()
         if self.mode == "embedded":
+            client = self._db.connection
+            try:
+                client.connection_pool.disconnect()
+            except Exception:  # noqa: BLE001
+                pass
             self._db.close()
+            try:
+                if client.pid:
+                    client.shutdown(save=True, now=True, force=True)
+            except Exception:  # noqa: BLE001 - the server is already gone
+                pass
         self.closed = True
 
 

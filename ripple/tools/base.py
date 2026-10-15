@@ -70,6 +70,14 @@ def dedupe(xs) -> list:
     return out
 
 
+def _args_json(kwargs: dict, limit: int = 4000) -> str:
+    """Tool arguments as JSON for the ToolCall node: long lists are capped so the text stays valid JSON."""
+    from ripple.agents.events import slim
+
+    s = json.dumps(slim(kwargs), default=str)
+    return s if len(s) <= limit else json.dumps({"truncated": s[:limit]})
+
+
 def logged_tool(fn):
     """Time the call, fill ToolResult.ms, and write a ToolCall node (best effort)."""
 
@@ -85,7 +93,7 @@ def logged_tool(fn):
             try:
                 scope.ops.run("log_tool_call", {
                     "id": f"TC-{uuid.uuid4().hex[:12].upper()}", "tool": fn.__name__, "agent": ctx.get("agent", "api"),
-                    "args": json.dumps(kwargs, default=str)[:2000], "ms": res.ms, "ts": now_ms(),
+                    "args": _args_json(kwargs), "ms": res.ms, "ts": now_ms(),
                     "n": len(res.node_ids), "iid": iid})
             except Exception:  # noqa: BLE001 - logging must never break a tool
                 pass

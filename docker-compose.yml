@@ -1,0 +1,24 @@
+# FalkorDB server (with the FalkorDB Browser on :3000) + the Ripple API/UI in remote mode.
+# Not run in the build session (no Docker there): see docs/KNOWN_ISSUES.md.
+services:
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - "6379:6379"
+      - "3000:3000"
+    volumes:
+      - falkordb-data:/var/lib/falkordb/data
+  api:
+    build: .
+    depends_on:
+      - falkordb
+    environment:
+      RIPPLE_DB_MODE: remote
+      FALKORDB_HOST: falkordb
+      FALKORDB_PORT: "6379"
+      RIPPLE_AUTOBUILD: "1"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8000:8000"
+volumes:
+  falkordb-data:

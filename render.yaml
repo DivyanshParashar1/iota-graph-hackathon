@@ -1,0 +1,22 @@
+# Render blueprint: one web service (API + UI) with embedded FalkorDB on a persistent disk.
+# For FalkorDB Cloud instead: set RIPPLE_DB_MODE=remote and FALKORDB_HOST/PORT/USERNAME/PASSWORD.
+# Not run in the build session: see docs/KNOWN_ISSUES.md.
+services:
+  - type: web
+    name: ripple
+    runtime: docker
+    plan: standard
+    healthCheckPath: /api/health
+    envVars:
+      - key: RIPPLE_DB_MODE
+        value: embedded
+      - key: RIPPLE_DB_PATH
+        value: /app/var/ripple.db
+      - key: RIPPLE_AUTOBUILD
+        value: "1"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    disk:
+      name: ripple-data
+      mountPath: /app/var
+      sizeGB: 2

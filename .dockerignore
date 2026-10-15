@@ -1,0 +1,8 @@
+.venv
+ui/node_modules
+ui/dist
+vendor
+var
+**/__pycache__
+.git
+data/raw/*.csv
