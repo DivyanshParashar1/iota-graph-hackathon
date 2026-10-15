@@ -113,12 +113,18 @@ def strip_h1(md: str) -> str:
 
 
 def n_tests() -> int:
+    """What `pytest -q` reports, so the README's number is the one a reader will see. Falls back to counting
+    `def test_` when docs/numbers.json has not been generated (parametrised cases make that an undercount)."""
+    import json
     import re
 
-    total = 0
-    for p in (ROOT / "tests").glob("test_*.py"):
-        total += len(re.findall(r"^def test_", p.read_text(), re.M))
-    return total
+    numbers = ROOT / "docs" / "numbers.json"
+    if numbers.exists():
+        n = json.loads(numbers.read_text()).get("suite", {}).get("deterministic_tests") or 0
+        if n:
+            return n
+    return sum(len(re.findall(r"^def test_", p.read_text(), re.M))
+               for p in (ROOT / "tests").glob("test_*.py"))
 
 
 def main() -> None:

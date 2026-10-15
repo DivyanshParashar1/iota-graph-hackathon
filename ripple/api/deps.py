@@ -22,11 +22,16 @@ def tenant_id(x_ripple_tenant: str | None = Header(default=None), tenant: str | 
     return tenant or x_ripple_tenant or ripple_tenant
 
 
-def scope_dep(request: Request, tid: str | None = None) -> TenantScope:
-    """The current tenant's scope. 404 when there is no tenant yet, 400 on a malformed id."""
-    tid = tid or tenant_id(request.headers.get("x-ripple-tenant"),
-                           request.query_params.get("tenant"),
-                           request.cookies.get(COOKIE))
+def scope_dep(request: Request) -> TenantScope:
+    """The current tenant's scope, as a FastAPI dependency. 404 with no tenant, 400 on a malformed id."""
+    return scope_for(request, tenant_id(request.headers.get("x-ripple-tenant"),
+                                        request.query_params.get("tenant"),
+                                        request.cookies.get(COOKIE)))
+
+
+def scope_for(request: Request, tid: str | None) -> TenantScope:
+    """The scope for one named tenant. Separate from the dependency so that `tid` is never read as a query
+    parameter: only the header, the `?tenant=` EventSource fallback and the cookie may name a tenant."""
     if not tid:
         raise HTTPException(404, "no tenant in this session; POST /api/onboarding/start first")
     if not valid_tenant_id(tid):

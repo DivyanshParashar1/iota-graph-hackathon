@@ -357,3 +357,50 @@ Each ends with tests green and a commit.
 The post-onboarding application — what the control tower looks like on a generated ontology, how experts are
 orchestrated, how disruptions/incidents/actions/memory work now that nothing is DataCo-shaped, and which tools
 each expert gets. v1's code for these is archived, not reused. The plan picks up at M8 once you describe it.
+
+---
+
+## 11. Build status (filled in by the build session, 2026-10-15)
+
+M0-M7 are built, with the deterministic suite green and the live suite passing at the prompt level. One commit
+per milestone group; v1 is preserved at commit `04d4bd4` (local tag `v1-dataco`).
+
+| M | Title | Status | Where |
+|---|---|---|---|
+| M0 | Strip and scaffold | **done** | v1 removed; `ripple/llm/` with three real providers, no fakes; the app boots to an empty database (no tenant until onboarding starts) |
+| M1 | Onboarding spine | **done** | `onboarding/store.py`, `session.py`, `events.py`; `/api/onboarding/*`; the chat page with the stage rail; resume (including a turn that was in flight) |
+| M2 | Interviewer | **done** | `agents/interviewer.py` + `prompts/interviewer.md`; the dynamic checklist as `_ChecklistItem`; `Brief.core_gaps()` as the termination guard; upload intake and profiling |
+| M3 | Data agent + in-chat forms | **done** | `agents/data_agent.py`; every field type, repeating groups, `show_if`, per-field autosave, ballpark/confidence, the Synthesize demo pass |
+| M4 | Ontology agent | **done** | `agents/ontologist.py`, `onboarding/validate.py`, `graph/apply.py`; the review page (diagram, editable types, chat edits, version history); approve -> indexes -> instance data with provenance |
+| M5 | Expert generator + runtime | **done** | `agents/expert_generator.py`, `experts/store.py` (graph + markdown round trip), `experts/runtime.py`, `tools/graph_tools.py` (6 read-only tools) |
+| M6 | Non-linearity, versioning, re-onboarding | **done** | `session.goto` / `reonboard`, `DOWNSTREAM` staleness propagation, artifact version history in the UI |
+| M7 | Hardening and docs | **done** | the live suite + `eval/rubric.md` + `eval/run_rubric.py`; generated README and measured `docs/numbers.md`; `docs/KNOWN_ISSUES.md` current. **Not verified: Docker, remote mode, the bridge path, OpenRouter live** |
+| M8 | Main application | **not started** | gated on §10, as planned |
+
+### The open decisions in §9.1, as resolved
+
+1. **Queries against a generated ontology** — option (b), **templated queries**. The text stays in
+   `graph/queries/*.cypher` as `kind: template`; `Q(name, label=...)` fills the placeholders and validates each
+   one through `graph/queries.ident`, after `validate_spec` has already accepted the label. This settles M5's
+   tool set only: multi-hop *analytics* over generated types is still open, and is the one that has to be
+   answered with the main application (see §10 and `docs/FEATURES.md`).
+2. **Binary attachment parsing** — **neither**. No new dependency and nothing routed through the model:
+   `.docx` text comes out of its XML with `zipfile` + a regex, `.pdf` text out of its content streams, tables
+   through pandas (`.xlsx` degrades to a clear "export as CSV" message, since `openpyxl` is not vendored). The
+   agents only ever see a profile or a summary, so a best-effort extract is the right trade; a scanned PDF is
+   refused with a message that says what to upload instead.
+3. **Identity** — unchanged: one user, one tenant, the id in a cookie (`api/deps.py`), no auth. The API has a
+   `POST /api/tenant/select/{id}` so a demo can walk back into a tenant it built earlier, which is the one
+   place that assumption is visible.
+
+### What the build session changed in the plan
+
+Recorded in full in `docs/KNOWN_ISSUES.md`. The three that matter:
+
+* **The brief is patched in place within a version**, and a new version is cut when the current one is approved
+  or has been flagged stale. A version per turn would make the history unreadable.
+* **The ontology agent loads the instance data in a second call**, at approval time, rather than in the same
+  call that designs the model. One call cannot reliably do both, and splitting them means a re-approval can
+  reload without redesigning.
+* **A group's columns are a separate `FormColumn` type.** `FormField.fields: list[FormField]` made the
+  structured-output schema recursive, which every real provider rejects.

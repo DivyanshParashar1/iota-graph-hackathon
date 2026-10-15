@@ -97,7 +97,7 @@ flowchart TB
 * **Provenance is an edge, not a log line.** Every generated node has `HAS_PROVENANCE → _Provenance → FROM_SOURCE
   → _FormAnswer | _Attachment`, so *"where did this come from?"* is one Cypher query.
 * **No fakes.** There is no scripted mode and no `FakeLLM` to hide behind: the suite is split into
-  164 deterministic tests (no network) and a live half under `-m llm` whose transcripts are recorded.
+  178 deterministic tests (no network) and a live half under `-m llm` whose transcripts are recorded.
 
 ## Run it
 
@@ -112,7 +112,7 @@ with its own tools off. Set `RIPPLE_LLM_PROVIDER=openrouter` + `OPENROUTER_API_K
 `ANTHROPIC_API_KEY`, to use an API instead. See `.env.example`.
 
 ```bash
-.venv/bin/pytest -q                        # 164 deterministic tests, no network
+.venv/bin/pytest -q                        # 178 deterministic tests, no network
 .venv/bin/pytest -q -m llm                 # the live half: real agent calls, recorded
 cd ui && npm run build                     # typecheck + bundle
 docker compose up                          # FalkorDB + API + UI in one stack

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from ripple.api.deps import COOKIE, scope_dep, tenant_id
+from ripple.api.deps import COOKIE, scope_dep, scope_for, tenant_id
 from ripple.config import get_settings
 from ripple.db import TenantScope
 from ripple.onboarding import STAGES
@@ -56,7 +56,7 @@ def tenant(request: Request):
 @router.post("/tenant/select/{tid}")
 def select_tenant(tid: str, request: Request, response: Response):
     """Point this browser at an existing tenant (the demo switcher; there is no auth - see api/deps.py)."""
-    scope = scope_dep(request, tid)
+    scope = scope_for(request, tid)
     response.set_cookie(COOKIE, scope.tenant_id, max_age=60 * 60 * 24 * 365, samesite="lax")
     return {**(get_tenant(scope) or {"id": tid})}
 
@@ -64,13 +64,8 @@ def select_tenant(tid: str, request: Request, response: Response):
 @router.get("/graph")
 def graph_sample(limit: int = 300, scope: TenantScope = Depends(scope_dep)):
     """A sample of the instance graph for the graph view: nodes with their titles, and the edges between them."""
-    nodes = scope.ops.query(
-        "MATCH (n) WHERE NOT any(l IN labels(n) WHERE l STARTS WITH '_') "
-        "RETURN n.id AS id, labels(n)[0] AS label, coalesce(n.name, n.title, n.id) AS title LIMIT $limit",
-        {"limit": max(1, min(limit, 2000))})
-    ids = {n["id"] for n in nodes}
-    edges = scope.ops.query(
-        "MATCH (a)-[r]->(b) WHERE a.id IN $ids AND b.id IN $ids "
-        "RETURN a.id AS source, type(r) AS type, b.id AS target LIMIT $limit",
-        {"ids": sorted(ids), "limit": max(1, min(limit * 4, 8000))})
+    n = max(1, min(limit, 2000))
+    nodes = scope.ops.run("graph_nodes_sample", {"limit": n})
+    edges = scope.ops.run("graph_edges_between",
+                          {"ids": sorted({x["id"] for x in nodes}), "limit": min(n * 4, 8000)})
     return {"nodes": nodes, "edges": edges}

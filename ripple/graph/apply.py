@@ -1,9 +1,9 @@
 """Applies an approved OntologySpec to a tenant graph: indexes first, then the instance data with provenance.
 
 Labels and relationship types come from a model, so they are interpolated into Cypher - which is why nothing
-here runs before `ripple.onboarding.validate.require_valid` has passed, and why every interpolation goes
-through `ripple.graph.queries.ident`. The query text itself still lives in `graph/queries/*.cypher` as
-`kind: template`.
+here runs before `ripple.onboarding.validate.require_valid` has passed. Every query is still a file in
+`graph/queries/*.cypher` (`kind: template`), and `GraphHandle.run(..., label=...)` fills the placeholders
+through `ripple.graph.queries.ident`, which is the single point where a model-authored string can reach Cypher.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import Any
 
 from ripple.db import TenantScope, now_ms
-from ripple.graph.queries import ident
 from ripple.graph.schema import exists_error
 from ripple.onboarding.models import InstanceBatch, OntologySpec
 from ripple.onboarding.validate import require_valid, validate_instances
@@ -31,7 +30,7 @@ def apply_spec(scope: TenantScope, spec: OntologySpec) -> dict:
     created, skipped = 0, 0
     for label, prop in dict.fromkeys(wanted):
         try:
-            scope.ops.raw(f"CREATE INDEX FOR (n:{ident(label)}) ON (n.{ident(prop)})")
+            scope.ops.run("create_index", {}, label=label, prop=prop)
             created += 1
         except Exception as e:  # noqa: BLE001
             if exists_error(e):
