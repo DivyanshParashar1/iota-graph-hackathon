@@ -66,7 +66,8 @@ def doc_search(scope: TenantScope, query: str, entity_scope: list[str] | None = 
     """Vector search over document chunks, expanded through the graph to each chunk's document and the entities
     it MENTIONS. Optional entity_scope keeps only chunks that mention one of those entity ids."""
     qvec = get_embedder().embed(query)
-    kk = int(k) * (4 if entity_scope else 1)
+    # the vector index is approximate (HNSW): over-fetch, then keep the k closest
+    kk = max(40, int(k) * 5) * (4 if entity_scope else 1)
     rows = scope.ops.run("doc_search", {"qvec": qvec, "k": kk, "scope": list(entity_scope or [])})[: int(k)]
     sources = []
     seen = set()

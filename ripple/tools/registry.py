@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from ripple.agents import planning
+from ripple.ingest import delta
 from ripple.tools import actions, algos, brain, impact, memory, sourcing
 from ripple.tools.base import ToolResult, logged_tool
 
@@ -132,6 +133,10 @@ _DEFS = [
      S({"query": STR, "entity_scope": STRS, "k": INT}, ["query"])),
     (brain.changes_since, "read", "Revised documents and decisions since a date.",
      S({"question": STR, "since": STR}, ["question"])),
+    (delta.ingest_delta, "write", "Ingest a new chat message or document while the app runs (an owner handover "
+     "message updates OWNS_RELATIONSHIP).",
+     S({"kind": {"type": "string", "enum": ["chat", "doc"]}, "text": STR, "author_id": STR, "channel": STR,
+        "title": STR, "doc_id": STR}, ["text"])),
     (brain.ask, "read", "Answer a company question with sources and the graph path.",
      S({"question": STR, "incident_id": STR}, ["question"])),
 ]

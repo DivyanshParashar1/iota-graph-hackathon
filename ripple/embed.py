@@ -24,7 +24,10 @@ STOPWORDS = frozenset(
 def _stem(t: str) -> str:
     for suf in ("ing", "ies", "es", "s", "ed"):
         if len(t) > len(suf) + 3 and t.endswith(suf):
-            return t[: -len(suf)] + ("y" if suf == "ies" else "")
+            t = t[: -len(suf)] + ("y" if suf == "ies" else "")
+            break
+    if len(t) > 4 and t.endswith("e"):  # approve/approved, expedite/expediting
+        t = t[:-1]
     return t
 
 
