@@ -62,12 +62,14 @@ def test_conversation_log(scope):
 def test_restart_recall_reuses_playbook(db_copy_path):
     """Scenario A, close, restart (close the DB object, reopen the same file), scenario B recalls A."""
     from ripple.agents.orchestrator import Orchestrator
-    from ripple.db import close_db, get_db
+    from conftest import open_db
+
+    from ripple.db import close_db
     from ripple.tools.actions import approve_action, execute_action, list_actions
     from ripple.tools.impact import get_incident
     from ripple.tools.memory import close_incident
 
-    db = get_db(db_copy_path, mode="embedded")
+    db = open_db(db_copy_path)
     s = TenantScope("dataco", db)
     iid_a = Orchestrator(s, "scripted").run(scenario_event("port_closure_shanghai", "dataco"))
     for a in list_actions(s, status="proposed", incident_id=iid_a):
@@ -80,7 +82,7 @@ def test_restart_recall_reuses_playbook(db_copy_path):
     ep_a = closed["episode"]["episode_id"]
     close_db(db)  # simulated restart: the embedded server stops, state is only in the .db file
 
-    db2 = get_db(db_copy_path, mode="embedded")
+    db2 = open_db(db_copy_path)
     s2 = TenantScope("dataco", db2)
     assert get_incident(s2, iid_a)["incident"]["status"] == "closed"
     iid_b = Orchestrator(s2, "scripted").run(scenario_event("port_congestion_ningbo", "dataco"))

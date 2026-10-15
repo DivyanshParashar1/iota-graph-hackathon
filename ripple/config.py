@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     falkordb_port: int = 6379
     falkordb_username: str | None = None
     falkordb_password: str | None = None
+    falkordb_db: int = 0  # Redis logical database (remote mode); tests give each fixture its own
 
     anthropic_api_key: str | None = None
     ripple_model: str = "claude-opus-5-5"

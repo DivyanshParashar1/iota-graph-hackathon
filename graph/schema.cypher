@@ -32,7 +32,7 @@ CREATE INDEX FOR (n:ChatMessage) ON (n.id)
 CREATE INDEX FOR (n:Decision) ON (n.id)
 CREATE VECTOR INDEX FOR (n:Chunk) ON (n.embedding) OPTIONS {dimension: {dim}, similarityFunction: 'cosine'}
 CREATE VECTOR INDEX FOR (n:ChatMessage) ON (n.embedding) OPTIONS {dimension: {dim}, similarityFunction: 'cosine'}
-CALL db.idx.fulltext.createNodeIndex('Document', 'title')
+CREATE FULLTEXT INDEX FOR (n:Document) ON (n.title)
 // graph: mem
 CREATE INDEX FOR (n:Episode) ON (n.id)
 CREATE INDEX FOR (n:Playbook) ON (n.id)

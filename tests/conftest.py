@@ -12,12 +12,35 @@ import pytest
 from ripple.db import TenantScope, close_db, get_db
 
 SAMPLE = 3000
+# RIPPLE_DB_MODE=remote runs the whole suite against a FalkorDB server (e.g. docker run -p 6379:6379
+# falkordb/falkordb). Each fixture then gets its own Redis logical database, rebuilt from scratch.
+REMOTE = os.environ.get("RIPPLE_DB_MODE") == "remote"
+_next_index = iter(range(1, 10_000))
+
+
+def remote_db(index: int | None = None):
+    from ripple.ingest.build import build_all
+
+    idx = index if index is not None else 1 + (next(_next_index) % 13)
+    db = get_db(mode="remote", db_index=idx)
+    db.flush()
+    build_all(db, SAMPLE)
+    return db
+
+
+def open_db(ref):
+    """Open a DB reference: a .db path (embedded) or ('remote', index)."""
+    if isinstance(ref, tuple):
+        return get_db(mode="remote", db_index=ref[1])
+    return get_db(ref, mode="embedded")
 
 
 @pytest.fixture(scope="session")
 def golden_path(tmp_path_factory):
     from ripple.ingest.build import build_all
 
+    if REMOTE:
+        return None
     d = tmp_path_factory.mktemp("golden")
     path = d / "golden.db"
     db = get_db(path, mode="embedded")
@@ -29,6 +52,8 @@ def golden_path(tmp_path_factory):
 
 
 def open_copy(golden_path, tmp_path_factory, name: str):
+    if REMOTE:
+        return remote_db()
     d = tmp_path_factory.mktemp(name)
     p = d / "ripple.db"
     shutil.copy(golden_path, p)
@@ -73,7 +98,11 @@ def full_db(tmp_path_factory):
     from ripple.ingest.build import build_all
 
     d = tmp_path_factory.mktemp("full")
-    db = get_db(d / "full.db", mode="embedded")
+    if REMOTE:
+        db = get_db(mode="remote", db_index=14)
+        db.flush()
+    else:
+        db = get_db(d / "full.db", mode="embedded")
     t0 = time.time()
     out = build_all(db, None)
     os.environ["RIPPLE_FULL_BUILD_SECONDS"] = f"{time.time() - t0:.1f}"
@@ -84,7 +113,10 @@ def full_db(tmp_path_factory):
 
 @pytest.fixture
 def db_copy_path(golden_path, tmp_path):
-    """A private copy of the golden DB file (not opened), for restart tests."""
+    """A private copy of the golden DB (not opened), for restart tests: a .db path, or ('remote', index)."""
+    if REMOTE:
+        close_db(remote_db(15))
+        return ("remote", 15)
     p = tmp_path / "ripple.db"
     shutil.copy(golden_path, p)
     return p

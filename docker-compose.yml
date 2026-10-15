@@ -2,7 +2,7 @@
 # Not run in the build session (no Docker there): see docs/KNOWN_ISSUES.md.
 services:
   falkordb:
-    image: falkordb/falkordb:latest
+    image: falkordb/falkordb:v4.18.3   # pinned: latest (Rust server) panicked on a build query, see docs/KNOWN_ISSUES.md
     ports:
       - "6379:6379"
       - "3000:3000"

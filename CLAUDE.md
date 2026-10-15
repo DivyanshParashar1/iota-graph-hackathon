@@ -10,3 +10,6 @@ Spec: `idea.md`. Build plan and milestones: `plan.md` (wins over idea.md). Falko
 * Every product Cypher query lives in `graph/queries/*.cypher`; don't inline queries in Python.
 * Don't add dependencies; everything is pinned in `requirements.lock` / `ui/package-lock.json` and vendored.
 * Commit after each milestone with tests green.
+* Remote mode tests: `docker run -d -p 6379:6379 falkordb/falkordb:v4.18.3` then `RIPPLE_DB_MODE=remote .venv/bin/pytest -q` (`:latest` panics, see docs/KNOWN_ISSUES.md).
+* README is generated: edit `docs/README.template.md`, then `.venv/bin/python scripts/report_numbers.py && .venv/bin/python scripts/build_docs.py`.
+* Synthetic data is committed; after changing the generator run `.venv/bin/python -m ripple.ingest.synth` (test_synth checks they match).

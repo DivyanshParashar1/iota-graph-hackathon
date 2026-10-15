@@ -54,24 +54,25 @@ class GraphHandle:
 class DB:
     """One FalkorDB connection (embedded server or remote client)."""
 
-    def __init__(self, mode: str = "embedded", path: str | Path | None = None, settings: Settings | None = None):
+    def __init__(self, mode: str = "embedded", path: str | Path | None = None, settings: Settings | None = None,
+                 db_index: int | None = None):
         s = settings or get_settings()
         self.mode = mode
         self.path = Path(path) if path else s.db_path
+        self.db_index = s.falkordb_db if db_index is None else db_index
         if mode == "embedded":
             from redislite.falkordb_client import FalkorDB
 
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self._db = FalkorDB(str(self.path))
         elif mode == "remote":
+            import redis
             from falkordb import FalkorDB
 
-            self._db = FalkorDB(
-                host=s.falkordb_host,
-                port=s.falkordb_port,
-                username=s.falkordb_username or None,
-                password=s.falkordb_password or None,
-            )
+            pool = redis.ConnectionPool(host=s.falkordb_host, port=s.falkordb_port, db=self.db_index,
+                                        username=s.falkordb_username or None, password=s.falkordb_password or None,
+                                        decode_responses=True)
+            self._db = FalkorDB(connection_pool=pool)
         else:
             raise ValueError(f"unknown RIPPLE_DB_MODE {mode!r}")
         self._lock = threading.Lock()
@@ -85,6 +86,10 @@ class DB:
             return sorted(self._db.list_graphs() or [])
         except Exception:  # noqa: BLE001
             return []
+
+    def flush(self) -> None:
+        """Delete every graph in this database (tests / rebuilds only)."""
+        self._db.connection.flushdb()
 
     def save(self) -> None:
         """Force a snapshot so a hard kill can't lose memory (embedded mode)."""
@@ -100,6 +105,10 @@ class DB:
         redislite only shuts the server down when it holds the sole client connection; worker threads leave
         extra pooled connections open, so drop them first and force a SHUTDOWN if the server is still up."""
         if self.closed:
+            return
+        if self.mode == "remote":
+            self._db.connection.connection_pool.disconnect()
+            self.closed = True
             return
         self.save()
         if self.mode == "embedded":
@@ -121,15 +130,17 @@ _DBS: dict[str, DB] = {}
 _DBS_LOCK = threading.Lock()
 
 
-def get_db(path: str | Path | None = None, mode: str | None = None, settings: Settings | None = None) -> DB:
-    """Return the process-wide DB for a path (embedded) or the remote server. Cached."""
+def get_db(path: str | Path | None = None, mode: str | None = None, settings: Settings | None = None,
+           db_index: int | None = None) -> DB:
+    """Return the process-wide DB for a path (embedded) or the remote server (+ logical db). Cached."""
     s = settings or get_settings()
     mode = mode or s.ripple_db_mode
-    key = f"remote:{s.falkordb_host}:{s.falkordb_port}" if mode == "remote" else str(Path(path or s.db_path).resolve())
+    idx = s.falkordb_db if db_index is None else db_index
+    key = f"remote:{s.falkordb_host}:{s.falkordb_port}/{idx}" if mode == "remote" else str(Path(path or s.db_path).resolve())
     with _DBS_LOCK:
         db = _DBS.get(key)
         if db is None or db.closed:
-            db = DB(mode, path, s)
+            db = DB(mode, path, s, idx)
             _DBS[key] = db
         return db
 
@@ -172,6 +183,10 @@ class TenantScope:
     @property
     def mem(self) -> GraphHandle:
         return self.graph(mem_graph_name(self.tenant_id))
+
+    def flush(self) -> None:
+        """Delete every graph in this database (tests / rebuilds only)."""
+        self._db.connection.flushdb()
 
     def save(self) -> None:
         self.db.save()

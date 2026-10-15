@@ -6,7 +6,13 @@ from ripple.graph.schema import apply_schema, schema_statements
 
 
 def test_schema_applies_twice_and_indexes_exist():
-    db = get_db(Path(tempfile.mkdtemp()) / "s.db", mode="embedded")
+    from conftest import REMOTE
+
+    if REMOTE:
+        db = get_db(mode="remote", db_index=13)
+        db.flush()
+    else:
+        db = get_db(Path(tempfile.mkdtemp()) / "s.db", mode="embedded")
     try:
         s = TenantScope("dataco", db)
         n1 = apply_schema(s)

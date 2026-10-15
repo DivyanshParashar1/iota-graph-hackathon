@@ -18,6 +18,16 @@ def _params(p):
 
 @pytest.fixture(scope="module")
 def scratch(built_db):
+    from conftest import REMOTE, remote_db
+
+    if REMOTE:  # GRAPH.COPY is unreliable on the server image under load: use a throwaway database instead
+        from ripple.db import close_db
+
+        db = remote_db(12)
+        yield {"ops": db.graph("tenant_dataco")._g, "mem": db.graph("mem_dataco")._g}
+        db.flush()
+        close_db(db)
+        return
     ops = built_db.graph("tenant_dataco")._g.copy("scratch_ops")
     mem = built_db.graph("mem_dataco")._g.copy("scratch_mem")
     yield {"ops": ops, "mem": mem}

@@ -32,7 +32,9 @@ def _sse(client, url, headers=None, timeout=90):
 
 def test_meta_endpoints(client):
     h = client.get("/api/health").json()
-    assert h["ok"] and h["db_mode"] == "embedded" and "tenant_dataco" in h["graphs"]
+    from conftest import REMOTE
+
+    assert h["ok"] and h["db_mode"] == ("remote" if REMOTE else "embedded") and "tenant_dataco" in h["graphs"]
     ts = client.get("/api/tenants").json()
     assert {t["id"] for t in ts} == {"dataco", "nova"} and all(t["nodes"] > 0 for t in ts)
     o = client.get("/api/ontology").json()

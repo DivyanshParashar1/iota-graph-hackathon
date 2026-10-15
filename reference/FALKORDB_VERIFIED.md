@@ -46,6 +46,9 @@ CREATE VECTOR INDEX FOR (c:Chunk) ON (c.embedding) OPTIONS {dimension: 384, simi
 CALL db.idx.fulltext.createNodeIndex('Document', 'title')
 ```
 
+* Full-text index: use `CREATE FULLTEXT INDEX FOR (n:Document) ON (n.title)`. It works on the embedded 4.18 and on
+  the `falkordb/falkordb:latest` Docker image; the procedure form `db.idx.fulltext.createNodeIndex('Document',
+  'title')` is rejected by the newer server ("expected at most 1" argument). (Found during the build session.)
 * Re-running `CREATE INDEX` on an existing index raises an error: wrap in try/except so schema setup is idempotent.
 * Write vectors with `vecf32($list)`. The vector index dimension must match the embedder (384 for the local hash
   embedder, 1536 for `text-embedding-3-small`).
