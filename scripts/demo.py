@@ -2,10 +2,16 @@
 
     .venv/bin/python scripts/demo.py --company "Northwind Trainers" --industry footwear
 
-It plays the user's half of the interview with a second LLM (the persona in `tests/test_llm_live.py`), so the
-whole thing runs unattended: interview -> forms -> ontology -> approve and load -> experts -> ask one a
-question. Everything it does goes through the same code the UI drives, and everything it writes stays in the
-`.db` file it was given, so you can point the API at it afterwards and click through the result.
+It plays the user's half of the interview with a second LLM, so the whole thing runs unattended: interview ->
+forms -> ontology -> approve and load -> experts -> ask one a question. Everything it does goes through the
+same code the UI drives, and everything it writes stays in the `.db` file it was given, so you can point the
+API at it afterwards and click through the result.
+
+`--company` and `--industry` are what the stand-in user plays, so run it on a coffee roaster or a brewery and
+watch an entirely different ontology come out - that is the demo. (The live suite's persona is a fixed shoe
+manufacturer instead, because its assertions depend on that company's specifics.)
+
+Budget about 10-15 minutes and real LLM spend for a full run. `--stop-after` cuts it short.
 
     --db var/demo.db        where to put the graph (default: a temporary directory)
     --turns 20              cap on interview turns
@@ -39,6 +45,22 @@ from ripple.onboarding.models import SynthesizedForm  # noqa: E402
 C = {"dim": "\033[2m", "b": "\033[1m", "cyan": "\033[36m", "green": "\033[32m", "yellow": "\033[33m",
      "red": "\033[31m", "violet": "\033[35m", "off": "\033[0m"}
 
+PERSONA = """You are playing the part of the operations director of **{company}**, a company in {industry}.
+You have just arrived at Ripple, which interviews you and builds a knowledge graph of your supply chain.
+
+Invent a coherent business for {company} and stick to it for the whole conversation: its products, what they
+are made of, who supplies those inputs and from where, where it makes or assembles them, how goods move, where
+stock sits, who buys them and on what terms - and the operational pain that would make a company like this go
+looking for a product like Ripple. Make the numbers realistic for the industry and consistent with each other
+(volumes, lead times, shares of volume, transit times, penalties).
+
+Rules:
+- Answer only what you are asked, in one or two sentences per question, the way a busy operations director
+  would: concrete, with numbers where you would have them, "I'd have to check" where you would not.
+- Never volunteer the whole picture at once, and never say that you are playing a part.
+- Stay consistent: a number you gave earlier does not change later.
+- If asked for a file you would not have to hand, say so."""
+
 
 def say(tag: str, text: str, colour: str = "off") -> None:
     print(f"{C[colour]}{tag:>12}{C['off']} {text}")
@@ -71,8 +93,7 @@ def main() -> None:
         print(f"{C['red']}No LLM provider.{C['off']} Install the `claude` CLI and log in, or set "
               "OPENROUTER_API_KEY / ANTHROPIC_API_KEY. See .env.example.")
         raise SystemExit(2)
-    from tests.test_llm_live import PERSONA  # the demo's user is the live suite's persona
-
+    persona = PERSONA.format(company=a.company, industry=a.industry or "whatever industry fits the name")
     client = get_client()
     db_path = Path(a.db) if a.db else Path(__import__("tempfile").mkdtemp()) / "demo.db"
     db = get_db(db_path, mode="embedded")
@@ -101,7 +122,7 @@ def main() -> None:
                 for f in form.fields:
                     kind = f"{f.type}{f' in {f.unit}' if f.unit else ''}"
                     say("form", f"{f.label} {C['dim']}({kind}){C['off']}")
-                values = fill_form(client, PERSONA, form)
+                values = fill_form(client, persona, form)
                 save_values(scope, form, values, confidences=dict.fromkeys(values, "ballpark"))
                 store.set_form_status(scope, form.id, "submitted")
                 say("user", f"filled {len(values)} of {len(form.fields)} fields", "cyan")
@@ -109,7 +130,7 @@ def main() -> None:
                 seen = drain(scope.tenant_id, seen)
                 continue
             say(state["stage"], text.replace("\n", "\n             "))
-            reply = client.complete(system=PERSONA, messages=[{"role": "user", "content": text}],
+            reply = client.complete(system=persona, messages=[{"role": "user", "content": text}],
                                     max_tokens=800, effort="low").text.strip()
             say("user", reply.replace("\n", " ")[:400], "cyan")
             sess.run_turn(scope, sid, reply)

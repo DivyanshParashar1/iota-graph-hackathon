@@ -103,8 +103,13 @@ work on top of what exists and it would be genuinely used rather than demonstrat
 A live onboarding is the whole point, and it takes **about ten minutes and real money** (the verified run:
 25 Claude Opus calls, 10m33s, in `artifacts/llm_runs/20261015-204539`). For a judged demo that is a lot of dead air. I added
 `scripts/seed_from_run.py`, which replays a *recorded* real run into a database you keep, so you can click
-through finished output instantly — and `scripts/demo.py`, which runs it live in the terminal. Which one do
-you want to be the primary? If it is the recording, I would record one good run and commit its artifacts.
+through finished output instantly — and `scripts/demo.py`, which runs it live in the terminal on whatever
+company you name. Which one do you want to be the primary? If it is the recording, I would record one good run
+and commit its artifacts.
+
+A measured warning either way: a live run of the demo CLI on a fresh company took **more than 15 minutes** to
+reach the ontology stage (8 interview turns plus two form rounds), against 10m33s for the live suite's
+4-turn persona. If a judged demo is timed, run it live only with `--stop-after interview`, or show the replay.
 
 ### 2.5 Which model, and at what effort?
 
