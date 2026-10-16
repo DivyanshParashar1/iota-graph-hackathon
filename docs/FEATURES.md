@@ -115,7 +115,7 @@ compliance and cold-chain expert. Single-source components → a sourcing and re
   expert roles, the provenance trail, agent memory.
 * **Real LLM calls only.** Scripted agent modes and fake clients are gone. The default provider is the
   **Claude Code bridge** (runs on the local `claude` login, no API key); **OpenRouter** stays available.
-* **Testing without fakes:** 183 deterministic tests cover everything that is not a model call (the provider
+* **Testing without fakes:** 191 deterministic tests cover everything that is not a model call (the provider
   is replaced by a transport stub, not a fake agent); a live suite under `-m llm` checks every prompt's output
   against its schema three times over and drives a full onboarding with a second model playing a shoe
   manufacturer, keeping the transcripts in `artifacts/llm_runs/`.

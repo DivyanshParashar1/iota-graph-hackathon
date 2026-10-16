@@ -99,7 +99,7 @@ user is only ever asked to approve something that can actually be applied.
 ## 4. Two bugs we could only have found by calling a real model
 
 We decided early that v2 would have **no fakes**: no scripted agent mode, no `FakeLLM`, no recorded
-transcripts replayed as if they were a model. The suite is 183 deterministic tests that stop at the
+transcripts replayed as if they were a model. The suite is 191 deterministic tests that stop at the
 provider boundary, plus a live suite that calls a real one.
 
 That cost us time and it earned it back twice in one evening.
