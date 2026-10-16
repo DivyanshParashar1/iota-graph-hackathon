@@ -85,6 +85,7 @@ export default function Onboarding() {
             messages={state.messages}
             answers={state.answers}
             openForm={state.open_form}
+            attachments={state.attachments}
             busy={busy || state.busy}
             onSubmitted={() => void load()}
             onAnswers={(a: Answer[]) => setState((s) => (s ? { ...s, answers: a } : s))}

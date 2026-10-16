@@ -47,7 +47,18 @@ the git history of this file at tag/commit `v1-dataco`.
 | OpenRouter and Anthropic providers | Request translation and response parsing are unit-tested; no live call was made (no key in the sandbox) | Set the key, `RIPPLE_LLM_PROVIDER=openrouter .venv/bin/pytest -m llm -k provider_answers` |
 | The UI in an interactive browser | `tsc -b && vite build` passes; no screenshots were taken in this session and `docs/img/*` still shows v1 | `.venv/bin/uvicorn ripple.api.app:app` + http://localhost:8000 |
 | `.xlsx` upload | Code path written; `openpyxl` is not in the vendored set, so it raises the "export as CSV" message | `pip install openpyxl` and upload a sheet |
-| The full live onboarding (`-m llm -m slow`) | The prompt-level live tests pass; the end-to-end persona run is long and costly and was not completed inside the session's budget | `.venv/bin/pytest -m llm -k full_onboarding -s` (expect several minutes and real spend) |
+| The full live onboarding (`-m "llm and slow"`) | **Verified.** One run end to end: 4 interview turns, 2 form rounds, a 12-type / 25-relationship ontology, 22 instance nodes with 31 provenance links, 6 expert roles, 3 of them asked a playbook question. 25 provider calls, 10m33s. Recorded in `artifacts/llm_runs/20261015-204539` and summarised in `docs/numbers.md` | `.venv/bin/pytest -m llm -k full_onboarding -s` (expect ~10 minutes and real spend) |
+
+## What the verified live run exposed
+
+Not bugs - product findings from watching the whole thing run on one company (a mid-sized shoe
+manufacturer, played by a second model).
+
+| Finding | Why it matters |
+|---|---|
+| **The data pack collects structure, not transactions.** The data agent asked for suppliers, components, sites, lanes, customers and terms - and never for a single order or shipment, because the brief never said "and here are our open orders". So the graph has `Order` and `Shipment` *types* with zero instances | Three of the six generated roles were asked a playbook question and correctly answered *"the graph has no orders, and I am not going to make up numbers"*, citing the nodes that do exist. That is exactly the honesty the prompts ask for, and it is also the demo's ceiling: an expert cannot show operational analysis over data nobody collected. Either the data agent should ask for a sample of live transactions, or the expert generator should scope playbooks to the types that have instances. **Decide before M8** |
+| The ontology agent declared `Order`, `Shipment` and `RiskEvent` from the brief's *pains* rather than from the data pack | Right call for a model (the pains are the requirements), and it means `coverage.unmapped_answers` is not the only honesty signal: a type with no instances is one too. The UI shows instance counts per type on the ontology page, which is where that shows up |
+| Six roles, 361-460 words of system prompt each, all grounded | No role was rejected by `validate_roles` on the first attempt in this run, so the repair loop was not exercised live (it is covered deterministically) |
 
 ## Carried over from v1 and still true
 

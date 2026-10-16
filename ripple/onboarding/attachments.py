@@ -234,7 +234,39 @@ def ingest(scope, filename: str, data: bytes, *, client=None, max_mb: int = 25) 
         summary = summarise(client, parsed["text"])
     return put_attachment(scope, {
         "filename": Path(filename).name, "mime": _mime(filename), "bytes": len(data), "sha256": sha256(data),
-        "kind": parsed["kind"], "profile": parsed["profile"], "text_path": text_path, "summary": summary})
+        "kind": parsed["kind"], "profile": parsed["profile"], "text_path": text_path, "summary": summary,
+        "path": str(path.relative_to(scope.dir))})
+
+
+def load_stored_table(scope, attachment: dict):
+    """Re-read a stored upload as a DataFrame, for mapping a column onto a form field."""
+    rel = attachment.get("path") or ""
+    if not rel:
+        raise UnsupportedUpload(f"{attachment.get('filename')} was stored before paths were recorded; "
+                                "upload it again")
+    p = scope.dir / rel
+    if not p.is_file():
+        raise UnsupportedUpload(f"{attachment.get('filename')} is no longer on disk")
+    return read_table(attachment.get("filename") or p.name, p.read_bytes())
+
+
+def column_values(scope, attachment: dict, columns: list[str], limit: int = 500) -> list:
+    """The values of one column (a flat list) or several (a list of row dicts), as a form answer.
+
+    This is the other half of the data agent's `file_mappings`: it proposes "this field is answered by that
+    column", the user confirms it, and the values become `_FormAnswer`s with `source: "file"` - so an uploaded
+    supplier master can fill a repeating group without anyone retyping it."""
+    if attachment.get("kind") != "table":
+        raise UnsupportedUpload(f"{attachment.get('filename')} is a document, not a table")
+    df = load_stored_table(scope, attachment)
+    missing = [c for c in columns if c not in df.columns]
+    if missing:
+        raise UnsupportedUpload(f"{attachment.get('filename')} has no column(s) {missing}; it has "
+                                f"{list(df.columns)}")
+    head = df[columns].head(limit)
+    if len(columns) == 1:
+        return [_py(v) for v in head[columns[0]].where(head[columns[0]].notna(), None).tolist()]
+    return json.loads(head.to_json(orient="records", date_format="iso"))
 
 
 def _mime(filename: str) -> str:

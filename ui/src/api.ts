@@ -158,6 +158,15 @@ export interface Answer {
   ts: number;
 }
 
+/** The data agent's proposal that a field is answered by a column of an upload; the user confirms it. */
+export interface FileMapping {
+  field_id: string;
+  attachment_id: string;
+  column: string;
+  note: string;
+  confirmed: boolean;
+}
+
 export interface Attachment {
   id: string;
   filename: string;
@@ -389,6 +398,8 @@ export const api = {
     post<{ saved: Answer[]; answers: Answer[] }>(`/api/onboarding/forms/${formId}/answers`, { values, confidences }),
   submitForm: (formId: string, values: Record<string, unknown>) =>
     post<{ messages: ChatMessage[]; state: SessionState }>(`/api/onboarding/forms/${formId}/submit`, { values }),
+  mapColumn: (formId: string, m: { field_id: string; attachment_id: string; column?: string; columns?: Record<string, string> }) =>
+    post<{ saved: Answer[]; answers: Answer[] }>(`/api/onboarding/forms/${formId}/map`, m),
   synthesize: (formId: string) =>
     post<{ saved: Answer[]; answers: Answer[]; synthetic: boolean }>(`/api/onboarding/forms/${formId}/synthesize`),
   upload: (file: File) => {

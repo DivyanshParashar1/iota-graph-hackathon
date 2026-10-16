@@ -352,3 +352,75 @@ def test_reonboarding_over_http(app_client, stub, tenants_dir):
     assert r.status_code == 200
     assert r.json()["state"]["stage"] == "interview"
     assert app_client.get("/api/ontology").json()["row"]["stale"] is True
+
+
+# --------------------------------------------------------------------------- file -> field mapping
+
+SUPPLIERS_CSV = (b"supplier,iso,part,days,share\n"
+                 b"GZ Leather,CN,soles,30,60\n"
+                 b"Mekong Rubber,VN,soles,21,40\n"
+                 b"Anatolia Textiles,TR,uppers,35,100\n")
+
+
+def at_form(client, stub):
+    start(client, stub)
+    stub.load(interview_turn(done=True, brief_patch=f.brief().model_dump()), data_turn())
+    client.post("/api/onboarding/message", json={"text": "done"})
+    return client.get("/api/onboarding/session").json()["open_form"]
+
+
+def test_a_column_answers_a_single_field(app_client, stub, tenants_dir):
+    form = at_form(app_client, stub)
+    att = app_client.post("/api/onboarding/attachments",
+                          files={"file": ("suppliers.csv", SUPPLIERS_CSV, "text/csv")}).json()
+    r = app_client.post(f"/api/onboarding/forms/{form['id']}/map",
+                        json={"field_id": "supplier_count", "attachment_id": att["attachment"]["id"],
+                              "column": "days"})
+    assert r.status_code == 200, r.text
+    saved = r.json()["saved"][0]
+    assert saved["value"] == 30 and saved["source"] == "file"
+
+
+def test_columns_fill_a_repeating_group(app_client, stub, tenants_dir):
+    form = at_form(app_client, stub)
+    att = app_client.post("/api/onboarding/attachments",
+                          files={"file": ("suppliers.csv", SUPPLIERS_CSV, "text/csv")}).json()
+    r = app_client.post(f"/api/onboarding/forms/{form['id']}/map",
+                        json={"field_id": "tier1", "attachment_id": att["attachment"]["id"],
+                              "columns": {"name": "supplier", "country": "iso", "part": "part",
+                                          "lead_time_days": "days", "volume_share": "share"}})
+    assert r.status_code == 200, r.text
+    rows = r.json()["saved"][0]["value"]
+    assert len(rows) == 3
+    assert rows[0] == {"name": "GZ Leather", "country": "CN", "part": "soles", "lead_time_days": 30,
+                       "volume_share": 60}
+    assert {a["source"] for a in r.json()["saved"]} == {"file"}
+
+
+def test_mapping_errors_are_reported(app_client, stub, tenants_dir):
+    form = at_form(app_client, stub)
+    att = app_client.post("/api/onboarding/attachments",
+                          files={"file": ("suppliers.csv", SUPPLIERS_CSV, "text/csv")}).json()
+    aid = att["attachment"]["id"]
+    r = app_client.post(f"/api/onboarding/forms/{form['id']}/map",
+                        json={"field_id": "supplier_count", "attachment_id": aid, "column": "ghost"})
+    assert r.status_code == 400 and "no column" in r.json()["detail"]
+    r = app_client.post(f"/api/onboarding/forms/{form['id']}/map",
+                        json={"field_id": "ghost", "attachment_id": aid, "column": "days"})
+    assert r.status_code == 400 and "no field" in r.json()["detail"]
+    r = app_client.post(f"/api/onboarding/forms/{form['id']}/map",
+                        json={"field_id": "tier1", "attachment_id": aid, "column": "days"})
+    assert r.status_code == 400 and "needs `columns`" in r.json()["detail"]
+    r = app_client.post(f"/api/onboarding/forms/{form['id']}/map",
+                        json={"field_id": "supplier_count", "attachment_id": "ATT-nope", "column": "days"})
+    assert r.status_code == 404
+
+
+def test_a_document_cannot_be_mapped_as_a_table(app_client, stub, tenants_dir):
+    form = at_form(app_client, stub)
+    att = app_client.post("/api/onboarding/attachments",
+                          files={"file": ("sop.md", b"Reroutes need the COO above 50k.", "text/markdown")}).json()
+    r = app_client.post(f"/api/onboarding/forms/{form['id']}/map",
+                        json={"field_id": "supplier_count", "attachment_id": att["attachment"]["id"],
+                              "column": "days"})
+    assert r.status_code == 400 and "a document, not a table" in r.json()["detail"]

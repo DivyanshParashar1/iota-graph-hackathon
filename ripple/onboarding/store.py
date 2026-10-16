@@ -153,7 +153,8 @@ def reopen_item(scope: TenantScope, stage: str, question: str, why: str) -> Chec
 
 def put_attachment(scope: TenantScope, row: dict) -> dict:
     row = {**row, "id": row.get("id") or new_id("ATT"), "ts": row.get("ts") or now_ms()}
-    stored = {k: row.get(k, "") for k in ("id", "filename", "mime", "sha256", "kind", "text_path", "summary")}
+    stored = {k: row.get(k, "") for k in ("id", "filename", "mime", "sha256", "kind", "text_path",
+                                          "summary", "path")}
     stored["bytes"] = int(row.get("bytes") or 0)
     stored["ts"] = row["ts"]
     stored["profile_json"] = _j(row.get("profile") or {})

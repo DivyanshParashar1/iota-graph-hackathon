@@ -6,31 +6,31 @@
     "system": "Linux"
   },
   "counts": {
-    "query_files": 59,
+    "query_files": 62,
     "query_kinds": {
-      "read": 25,
-      "write": 26,
-      "template": 8
+      "read": 27,
+      "template": 9,
+      "write": 26
     },
     "tools": 6,
     "prompt_files": 5,
     "prompt_words": 2589,
     "test_files": 10,
     "python_files": 42,
-    "python_lines": 4795,
+    "python_lines": 4875,
     "ui_files": 16,
     "ui_lines": 2541
   },
   "graph": {
-    "tenant_create_ms": 15.0,
-    "apply_spec_ms": 8.6,
+    "tenant_create_ms": 20.2,
+    "apply_spec_ms": 12.4,
     "applied": {
       "indexes_created": 24,
       "indexes_existing": 0,
       "types": 12,
       "relationships": 11
     },
-    "load_instances_ms": 311.1,
+    "load_instances_ms": 346.2,
     "loaded": {
       "nodes": 6000,
       "edges": 5500,
@@ -38,35 +38,124 @@
     },
     "nodes": 6000,
     "edges": 5500,
-    "nodes_per_second": 19286.4,
-    "db_bytes": 395751,
+    "nodes_per_second": 17331.0,
+    "db_bytes": 393714,
     "tool_latency_ms": {
       "describe_ontology": {
-        "p50": 40.0,
-        "p95": 62.5
+        "p50": 38.85,
+        "p95": 43.0
       },
       "find_nodes": {
-        "p50": 3.8,
-        "p95": 5.5
+        "p50": 4.45,
+        "p95": 4.9
       },
       "get_node": {
-        "p50": 2.25,
-        "p95": 2.6
+        "p50": 1.85,
+        "p95": 2.3
       },
       "neighbours": {
-        "p50": 2.35,
-        "p95": 3.9
+        "p50": 1.9,
+        "p95": 2.6
       },
       "aggregate": {
-        "p50": 2.1,
-        "p95": 2.6
+        "p50": 1.85,
+        "p95": 2.3
       }
     }
   },
   "suite": {
-    "deterministic_tests": 178,
-    "seconds": 15.7,
+    "deterministic_tests": 182,
+    "seconds": 15.1,
     "exit_code": 0,
-    "summary": "178 passed, 15 deselected in 14.13s"
+    "summary": "182 passed, 15 deselected in 13.62s"
+  },
+  "llm_run": {
+    "run": "20261015-204539",
+    "llm_calls": 25,
+    "interview_turns": 4,
+    "form_rounds": 2,
+    "brief_products": 3,
+    "brief_suppliers": 4,
+    "ontology_types": 12,
+    "ontology_relationships": 25,
+    "nodes_loaded": {
+      "Customer": 5,
+      "Site": 5,
+      "Lane": 3,
+      "ProductLine": 3,
+      "Supplier": 3,
+      "Component": 2,
+      "Role": 1
+    },
+    "experts": [
+      {
+        "name": "key_account_commitments",
+        "focus": [
+          "Customer",
+          "Order",
+          "Site"
+        ],
+        "prompt_words": 381
+      },
+      {
+        "name": "production_inventory",
+        "focus": [
+          "ProductLine",
+          "Sku",
+          "Site",
+          "Component"
+        ],
+        "prompt_words": 361
+      },
+      {
+        "name": "freight_lanes",
+        "focus": [
+          "Lane",
+          "Shipment",
+          "Forwarder",
+          "Site",
+          "RiskEvent",
+          "Role"
+        ],
+        "prompt_words": 376
+      },
+      {
+        "name": "disruption_impact",
+        "focus": [
+          "RiskEvent",
+          "Order",
+          "Sku",
+          "ProductLine",
+          "Shipment",
+          "Customer",
+          "Supplier",
+          "Site",
+          "Lane",
+          "Component"
+        ],
+        "prompt_words": 428
+      },
+      {
+        "name": "alternative_sourcing",
+        "focus": [
+          "Supplier",
+          "Component",
+          "ProductLine",
+          "Sku",
+          "Site"
+        ],
+        "prompt_words": 366
+      },
+      {
+        "name": "supplier_risk_monitor",
+        "focus": [
+          "Supplier",
+          "Component",
+          "RiskEvent",
+          "Role"
+        ],
+        "prompt_words": 460
+      }
+    ]
   }
 }

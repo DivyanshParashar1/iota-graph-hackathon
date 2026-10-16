@@ -20,11 +20,12 @@ from ripple.db import TenantScope
 from ripple.llm.base import LLMError, get_client
 from ripple.onboarding import session as sess
 from ripple.onboarding.agents import data_agent
-from ripple.onboarding.attachments import UnsupportedUpload, ingest
+from ripple.onboarding.attachments import UnsupportedUpload, column_values, ingest
 from ripple.onboarding.events import BUS, StepEmitter
 from ripple.onboarding.models import Message
 from ripple.onboarding.store import (
     append_message,
+    get_attachment,
     get_form,
     get_session,
     list_answers,
@@ -162,6 +163,53 @@ def submit_form(form_id: str, body: AnswersBody | None = None, scope: TenantScop
                                         payload={"form_id": form_id, "answers": answers}))
     msgs = sess.run_turn(scope, sid, None)
     return {"messages": [m.model_dump() for m in msgs], "state": sess.state(scope)}
+
+
+class MappingBody(BaseModel):
+    """Confirming the data agent's proposal that a field is answered by a column (or columns) of an upload."""
+
+    field_id: str
+    attachment_id: str
+    column: str = ""
+    columns: dict[str, str] = {}  # a repeating group: {column id in the group: column name in the file}
+
+
+@router.post("/forms/{form_id}/map")
+def map_column(form_id: str, body: MappingBody, scope: TenantScope = Depends(scope_dep)):
+    """Answer a field from an uploaded table instead of typing it. Saved with `source: "file"`."""
+    form = get_form(scope, form_id)
+    if form is None:
+        raise HTTPException(404, f"no form {form_id}")
+    field = form.field_map().get(body.field_id)
+    if field is None:
+        raise HTTPException(400, f"form {form_id} has no field {body.field_id!r}")
+    att = get_attachment(scope, body.attachment_id)
+    if att is None:
+        raise HTTPException(404, f"no attachment {body.attachment_id}")
+    try:
+        if getattr(field, "type", "") == "group":
+            if not body.columns:
+                raise HTTPException(400, "a repeating group needs `columns`: {group column: file column}")
+            rows = column_values(scope, att, list(body.columns.values()))
+            inv = {v: k for k, v in body.columns.items()}
+            value = [{inv[k]: v for k, v in row.items() if k in inv} for row in rows]
+        else:
+            if not body.column:
+                raise HTTPException(400, "pass `column`: the column of the file that answers this field")
+            value = column_values(scope, att, [body.column])
+            if getattr(field, "type", "") != "multiselect":
+                value = next((v for v in value if v not in (None, "")), None)
+        saved = data_agent.save_values(scope, form, {body.field_id: value}, source="file")
+    except UnsupportedUpload as e:
+        raise HTTPException(400, str(e)) from None
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from None
+    StepEmitter(scope, "data", "data_agent")(
+        "write", f"{body.field_id} answered from {att['filename']}",
+        data={"field_id": body.field_id, "attachment_id": att["id"],
+              "columns": body.columns or {"": body.column}})
+    return {"saved": [a.model_dump() for a in saved],
+            "answers": [a.model_dump() for a in list_answers(scope, form_id)]}
 
 
 @router.post("/forms/{form_id}/synthesize")

@@ -145,7 +145,10 @@ def newest_llm_run() -> dict | None:
     if not runs:
         return None
     d = runs[-1]
-    read = lambda name: json.loads((d / name).read_text()) if (d / name).exists() else None  # noqa: E731
+    def read(name: str):
+        p = d / f"{name}.json"
+        return json.loads(p.read_text()) if p.exists() else None
+
     brief, onto, loaded, experts = read("brief"), read("ontology"), read("loaded"), read("experts")
     transcript = read("transcript") or {}
     calls = len(list(d.glob("*-claude_code-*.json"))) + len(list(d.glob("*-openrouter-*.json")))

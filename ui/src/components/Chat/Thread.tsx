@@ -1,14 +1,16 @@
 import { useEffect, useRef } from "react";
-import type { Answer, ChatMessage, FormSpec } from "../../api";
+import type { Answer, Attachment, ChatMessage, FileMapping, FormSpec } from "../../api";
 import { agentColor, STAGE_LABELS } from "../colors";
 import { Chip } from "../ui";
 import InlineForm from "./InlineForm";
+import MappingCard from "./MappingCard";
 
 /** The chat thread. A `form` message renders the form it carries; an `artifact` message its summary. */
 export default function Thread({
   messages,
   answers,
   openForm,
+  attachments,
   busy,
   onSubmitted,
   onAnswers,
@@ -16,6 +18,7 @@ export default function Thread({
   messages: ChatMessage[];
   answers: Answer[];
   openForm: FormSpec | null;
+  attachments: Attachment[];
   busy: boolean;
   onSubmitted: () => void;
   onAnswers: (a: Answer[]) => void;
@@ -39,6 +42,14 @@ export default function Thread({
             />
           ) : null}
           {m.kind === "artifact" ? <ArtifactNote m={m} /> : null}
+          {mappingsOf(m).length ? (
+            <MappingCard
+              mappings={mappingsOf(m)}
+              form={openForm}
+              attachments={attachments}
+              onAnswers={onAnswers}
+            />
+          ) : null}
         </Bubble>
       ))}
       {busy && (
@@ -53,6 +64,7 @@ export default function Thread({
 }
 
 const formOf = (m: ChatMessage): FormSpec | null => (m.payload?.form as FormSpec) ?? null;
+const mappingsOf = (m: ChatMessage): FileMapping[] => (m.payload?.file_mappings as FileMapping[]) ?? [];
 
 function Bubble({ m, children }: { m: ChatMessage; children?: React.ReactNode }) {
   if (m.role === "system") {
