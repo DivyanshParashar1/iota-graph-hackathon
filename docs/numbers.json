@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-15",
+  "generated_at": "2026-10-16",
   "platform": {
     "python": "3.12.3",
     "machine": "x86_64",
@@ -17,20 +17,20 @@
     "prompt_words": 2589,
     "test_files": 10,
     "python_files": 42,
-    "python_lines": 4875,
-    "ui_files": 16,
-    "ui_lines": 2541
+    "python_lines": 4881,
+    "ui_files": 17,
+    "ui_lines": 2740
   },
   "graph": {
-    "tenant_create_ms": 20.2,
-    "apply_spec_ms": 12.4,
+    "tenant_create_ms": 20.1,
+    "apply_spec_ms": 7.5,
     "applied": {
       "indexes_created": 24,
       "indexes_existing": 0,
       "types": 12,
       "relationships": 11
     },
-    "load_instances_ms": 346.2,
+    "load_instances_ms": 385.6,
     "loaded": {
       "nodes": 6000,
       "edges": 5500,
@@ -38,36 +38,36 @@
     },
     "nodes": 6000,
     "edges": 5500,
-    "nodes_per_second": 17331.0,
-    "db_bytes": 393714,
+    "nodes_per_second": 15560.2,
+    "db_bytes": 393151,
     "tool_latency_ms": {
       "describe_ontology": {
-        "p50": 38.85,
-        "p95": 43.0
+        "p50": 30.1,
+        "p95": 43.4
       },
       "find_nodes": {
-        "p50": 4.45,
-        "p95": 4.9
+        "p50": 3.4,
+        "p95": 3.8
       },
       "get_node": {
-        "p50": 1.85,
-        "p95": 2.3
+        "p50": 1.7,
+        "p95": 2.2
       },
       "neighbours": {
-        "p50": 1.9,
-        "p95": 2.6
+        "p50": 2.65,
+        "p95": 3.2
       },
       "aggregate": {
-        "p50": 1.85,
-        "p95": 2.3
+        "p50": 2.6,
+        "p95": 3.4
       }
     }
   },
   "suite": {
-    "deterministic_tests": 182,
-    "seconds": 15.1,
+    "deterministic_tests": 183,
+    "seconds": 14.8,
     "exit_code": 0,
-    "summary": "182 passed, 15 deselected in 13.62s"
+    "summary": "183 passed, 15 deselected in 13.20s"
   },
   "llm_run": {
     "run": "20261015-204539",

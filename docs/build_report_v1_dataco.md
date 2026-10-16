@@ -1,6 +1,10 @@
-# Build report (autonomous Claude Code session, plan.md M0-M12)
+# Build report: v1 (DataCo control tower)
 
-## Milestones
+> This is **v1's** report, kept for the record. v1 is preserved at commit `04d4bd4` (local tag `v1-dataco`)
+> and its plan is `plan_v1_dataco.md`. **v2's** build status is `plan.md` §11; what it measured is
+> `numbers.md`; what it did not verify is `KNOWN_ISSUES.md`.
+
+## Milestones (v1, plan_v1_dataco.md M0-M12)
 
 | Milestone | Status | Done-when evidence |
 |---|---|---|

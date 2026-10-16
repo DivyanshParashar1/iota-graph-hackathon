@@ -175,7 +175,7 @@ GitHub access (branch pushes work, tag pushes do not). v1 is safe either way —
 
 ```bash
 bash scripts/setup_env.sh
-.venv/bin/pytest -q                                   # 178 deterministic tests, no network, ~13s
+.venv/bin/pytest -q                                   # 183 deterministic tests, no network, ~14s
 .venv/bin/python scripts/verify_falkordb.py            # every FalkorDB behaviour v2 relies on
 .venv/bin/pytest -q -m llm -k prompt                   # 12 live calls: every prompt against its schema (~6 min, real spend)
 .venv/bin/uvicorn ripple.api.app:app                   # then http://localhost:8000 and type a company name
