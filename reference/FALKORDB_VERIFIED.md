@@ -142,6 +142,9 @@ Verified while building v2, where labels and relationship types come from a mode
 * **`labels(n)` can carry a naming convention.** Every platform label is `_`-prefixed and every generated label
   is rejected if it is, so `MATCH (n) WHERE NOT any(l IN labels(n) WHERE l STARTS WITH '_') DETACH DELETE n`
   reloads a tenant's instance data without touching its onboarding state.
+* **Cypher keywords are fine as names.** A type called `Order`, `Set`, `Match` or `End`, a relationship type
+  `ORDER`, and properties called `order`, `set`, `where` or `end` all work unquoted in the positions v2
+  interpolates them. So `validate_spec` needs no reserved-word list - the identifier shape is the whole rule.
 * **A duplicate `CREATE INDEX` raises**, so both the platform schema and `apply_spec` treat an
   "already exists" error as success; approving an ontology twice is a no-op rather than a failure.
 * `scripts/verify_falkordb.py` checks all four of these.

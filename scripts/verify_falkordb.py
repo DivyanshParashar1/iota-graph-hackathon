@@ -130,6 +130,16 @@ def main():
         assert q("MATCH (n:_Session) RETURN count(n)") == [[1]]
     check("labels(n) STARTS WITH '_' separates platform state from instance data", platform_prefix_split)
 
+    def keyword_names():
+        """A generated ontology can legitimately want a type called Order or a property called `end`. If
+        Cypher keywords were rejected in those positions, `validate_spec` would need a reserved-word list."""
+        for label in ("Match", "Set", "End", "Order", "Union", "Delete"):
+            q(f"MERGE (n:{label} {{id:'kw'}}) RETURN n.id")
+        q("MATCH (a:Order {id:'kw'}),(b:Set {id:'kw'}) MERGE (a)-[:ORDER]->(b)")
+        q("CREATE (n:Thing {id:'kw', order: 1, set: 2, where: 3, end: 4})")
+        assert q("MATCH (n:Thing {id:'kw'}) RETURN n.order, n.set, n.where, n.end") == [[1, 2, 3, 4]]
+    check("Cypher keywords work as labels, relationship types and property names", keyword_names)
+
     def duplicate_index_raises():
         try:
             q("CREATE INDEX FOR (n:Gen) ON (n.id)")
