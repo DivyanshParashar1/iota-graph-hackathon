@@ -374,7 +374,7 @@ def test_a_recursive_model_is_refused_at_build_time():
 
     class Node(BaseModel):
         name: str
-        children: list["Node"] = Field(default_factory=list)
+        children: list[Node] = Field(default_factory=list)
 
     Node.model_rebuild()
     with pytest.raises(RecursiveModel):

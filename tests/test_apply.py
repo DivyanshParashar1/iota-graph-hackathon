@@ -6,7 +6,7 @@ import pytest
 
 from ripple.graph.apply import apply_spec, load_instances
 from ripple.onboarding import store
-from ripple.onboarding.models import InstanceBatch, InstanceEdge, InstanceNode
+from ripple.onboarding.models import InstanceBatch, InstanceNode
 from ripple.onboarding.validate import SpecInvalid
 from ripple.tools.base import ToolError
 from ripple.tools.registry import TOOLS, call_tool

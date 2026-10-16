@@ -4,9 +4,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
-from ripple.onboarding import store
 from tests import factories as f
 from tests.test_session import data_turn, experts_turn, interview_turn, ontology_turn
 
@@ -195,7 +192,7 @@ def test_ontology_is_served_with_a_diagram(app_client, stub):
     out = at_ontology(app_client, stub)
     assert out["row"]["status"] == "draft" and out["errors"] == []
     assert {n["id"] for n in out["diagram"]["nodes"]} == {"Supplier", "Part", "Product"}
-    assert {l["type"] for l in out["diagram"]["links"]} == {"SUPPLIES", "PART_OF"}
+    assert {link["type"] for link in out["diagram"]["links"]} == {"SUPPLIES", "PART_OF"}
     assert out["has_approved"] is False
 
 

@@ -38,7 +38,7 @@ def apply_schema(scope: TenantScope) -> int:
             try:
                 g.raw(st)
                 created += 1
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 if exists_error(e):
                     continue
                 raise

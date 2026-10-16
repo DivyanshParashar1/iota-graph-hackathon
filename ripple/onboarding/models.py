@@ -96,7 +96,7 @@ class Brief(Model):
     unknowns: list[str] = Field(default_factory=list)
     scale: str = ""  # revenue band, headcount, order volume - whatever they gave
 
-    def merge(self, patch: dict | None) -> "Brief":
+    def merge(self, patch: dict | None) -> Brief:
         """A new Brief with `patch` applied: lists and dicts are merged, scalars overwritten when non-empty.
 
         `brief_patch` is free-form by design - the interviewer sends only the fields that changed, so there is
@@ -272,7 +272,7 @@ class DataTurn(Model):
     form: FormSpec | None = None
     checklist_ops: list[ChecklistOp] = Field(default_factory=list)
     ask_for_files: list[str] = Field(default_factory=list)
-    file_mappings: list["FileMapping"] = Field(default_factory=list)
+    file_mappings: list[FileMapping] = Field(default_factory=list)
     done: bool = False
     done_reason: str = ""
 

@@ -76,7 +76,7 @@ def main():
     def shortest_in_match_rejected():
         try:
             q("MATCH (a:Supplier {id:'S1'}),(b:Supplier {id:'S8'}) MATCH p=shortestPath((a)-[:SUPPLIES_TO*..10]->(b)) RETURN p")
-        except Exception:
+        except Exception:  # noqa: BLE001 - the point of the check is that *something* is raised
             return
         raise AssertionError("MATCH p=shortestPath(...) unexpectedly works; FALKORDB_VERIFIED.md can be relaxed")
     check("MATCH p=shortestPath(...) is rejected (known limitation)", shortest_in_match_rejected)
@@ -84,7 +84,7 @@ def main():
     def map_props_rejected():
         try:
             q("CREATE (:Action {params: $p})", {"p": {"x": 1}})
-        except Exception:
+        except Exception:  # noqa: BLE001 - the point of the check is that *something* is raised
             return
         raise AssertionError("map properties unexpectedly allowed")
     check("map-valued properties rejected (store JSON strings)", map_props_rejected)
@@ -133,7 +133,7 @@ def main():
     def duplicate_index_raises():
         try:
             q("CREATE INDEX FOR (n:Gen) ON (n.id)")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - the point of the check is that *something* is raised
             assert "already" in str(e).lower() or "exists" in str(e).lower(), e
             return
         raise AssertionError("a duplicate CREATE INDEX unexpectedly succeeded; schema setup can be simplified")

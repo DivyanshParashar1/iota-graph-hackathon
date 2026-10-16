@@ -84,9 +84,10 @@ def turn(scope: TenantScope, sid: str, client: LLMClient, emit) -> dict:
         emit("error", f"{AGENT}: spec invalid ({len(errors)} problems)", data={"errors": errors[:12]})
         if attempt == REPAIRS:
             break
-        messages = messages + [reply.assistant_message(),
-                               {"role": "user", "content": "The spec was rejected by validation:\n- "
-                                + "\n- ".join(errors[:20]) + "\nReturn the whole corrected spec."}]
+        messages = [*messages, reply.assistant_message(),
+                    {"role": "user", "content": "The spec was rejected by validation:\n- "
+                                                + "\n- ".join(errors[:20])
+                                                + "\nReturn the whole corrected spec."}]
     if out is None or errors:
         msgs = [append_message(scope, sid, Message(
             role="system", stage=STAGE, kind="system",

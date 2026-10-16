@@ -98,7 +98,7 @@ def profile_table(df) -> dict:
             col["examples"] = [str(i) for i in top.index]
         cols.append(col)
     sample = json.loads(df.head(SAMPLE_ROWS).to_json(orient="records", date_format="iso"))
-    return {"rows": int(len(df)), "columns": cols, "sample": sample}
+    return {"rows": len(df), "columns": cols, "sample": sample}
 
 
 def _py(v) -> Any:

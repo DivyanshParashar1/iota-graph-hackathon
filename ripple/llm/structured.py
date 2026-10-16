@@ -65,7 +65,7 @@ def _inline(node: Any, defs: dict, open_refs: tuple[str, ...]) -> Any:
             name = ref.split("/")[-1]
             if name in open_refs:
                 raise RecursiveModel(f"{name} refers to itself ({' -> '.join(open_refs)} -> {name})")
-            target = _inline(defs.get(name, {}), defs, open_refs + (name,))
+            target = _inline(defs.get(name, {}), defs, (*open_refs, name))
             return {**target, **{k: v for k, v in node.items() if k != "$ref"}}
         return {k: _inline(v, defs, open_refs) for k, v in node.items()}
     if isinstance(node, list):
@@ -77,14 +77,14 @@ def _errors(e: ValidationError) -> str:
     return "; ".join(f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()[:12])
 
 
-def parse_reply(reply: Reply, model_cls: type[T]) -> T:
+def parse_reply[T: BaseModel](reply: Reply, model_cls: type[T]) -> T:
     data = reply.data if reply.data is not None else extract_json(reply.text)
     if data is None:
         raise ValidationError.from_exception_data(model_cls.__name__, [])
     return model_cls.model_validate(data)
 
 
-def ask_model(client: LLMClient, model_cls: type[T], system: str, messages: list[dict], *,
+def ask_model[T: BaseModel](client: LLMClient, model_cls: type[T], system: str, messages: list[dict], *,
               effort: str | None = None, max_tokens: int | None = None, repairs: int = 1) -> tuple[T, Reply]:
     """One structured LLM call (plus up to `repairs` repair rounds). Returns (parsed, last reply)."""
     s = get_settings()
@@ -103,7 +103,7 @@ def ask_model(client: LLMClient, model_cls: type[T], system: str, messages: list
             last_err = str(e)
         if attempt == repairs:
             break
-        convo = convo + [reply.assistant_message(),
-                         {"role": "user", "content": f"That reply did not validate against the schema: {last_err}. "
-                                                     "Send the corrected JSON object only."}]
+        convo = [*convo, reply.assistant_message(),
+                 {"role": "user", "content": f"That reply did not validate against the schema: {last_err}. "
+                                             "Send the corrected JSON object only."}]
     raise LLMError(f"{model_cls.__name__} did not validate after {repairs + 1} attempts: {last_err}")

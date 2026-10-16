@@ -37,3 +37,23 @@ markers = [
   "slow: takes more than a few seconds (run with -m slow)",
 ]
 addopts = "-m 'not slow and not llm' -p no:cacheprovider"
+
+[tool.ruff]
+line-length = 118   # the width this codebase was written at
+target-version = "py312"
+
+[tool.ruff.lint]
+# A focused set rather than ruff's shifting defaults, so `ruff check` means the same thing next release.
+select = ["E", "F", "W", "I", "B", "UP", "C4", "SIM", "RUF", "BLE", "A", "T20"]
+ignore = [
+  "B008",     # FastAPI's `x = Depends(...)` / `File(...)` defaults are the framework's idiom
+  "RUF012",   # pydantic models carry mutable class attributes by design
+  "SIM105",   # `contextlib.suppress` is not clearer than try/except/pass where the comment says why
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["T20", "E501"]
+"scripts/*" = ["T20"]           # the CLIs print; that is their job
+"eval/*" = ["T20"]
+"scripts/verify_falkordb.py" = ["E501"]   # one Cypher statement per line, deliberately unwrapped
+"ripple/claude_code_bridge.py" = ["T20"]

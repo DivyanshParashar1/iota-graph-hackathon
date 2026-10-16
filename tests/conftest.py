@@ -21,9 +21,9 @@ import pytest
 os.environ.setdefault("RIPPLE_TEST", "1")
 os.environ.update(RIPPLE_LLM_PROVIDER="none", OPENROUTER_API_KEY="", ANTHROPIC_API_KEY="")
 
-from ripple.config import get_settings  # noqa: E402
-from ripple.db import TenantScope, close_db, get_db  # noqa: E402
-from ripple.llm.base import Reply, ToolCall, set_client  # noqa: E402
+from ripple.config import get_settings
+from ripple.db import TenantScope, close_db, get_db
+from ripple.llm.base import Reply, ToolCall, set_client
 
 REMOTE = os.environ.get("RIPPLE_DB_MODE") == "remote"
 _next_index = iter(range(1, 10_000))
@@ -45,7 +45,7 @@ class StubClient:
         self.calls: list[dict] = []
         self._n = 0
 
-    def load(self, *script: Any) -> "StubClient":
+    def load(self, *script: Any) -> StubClient:
         """Replace the script and forget the calls so far - the script is indexed by call number."""
         self.script = list(script) or [{}]
         self.calls.clear()

@@ -144,7 +144,7 @@ def test_forms_and_answers(scope):
 def test_spec_versions_and_approval(scope):
     row = store.save_spec(scope, f.spec(), status="draft")
     assert row["version"] == 1
-    spec, got = store.current_spec(scope)
+    spec, _got = store.current_spec(scope)
     assert [t.label for t in spec.types] == ["Supplier", "Part", "Product"]
     assert spec.relationships[0].from_ == "Supplier"  # the `from` alias round-trips
     assert store.approved_spec(scope) == (None, None)
@@ -157,8 +157,8 @@ def test_spec_versions_and_approval(scope):
     assert store.approved_spec(scope)[1]["version"] == 2
     statuses = {r["version"]: r["status"] for r in store.spec_versions(scope)}
     assert statuses == {1: "superseded", 2: "approved"}
-    assert [l["label"] for l in scope.ops.run("ontology_types_list", {"oid": v2["id"]})
-            if l["kind"] == "node"] == ["Part", "Product", "Supplier"]
+    types = scope.ops.run("ontology_types_list", {"oid": v2["id"]})
+    assert [x["label"] for x in types if x["kind"] == "node"] == ["Part", "Product", "Supplier"]
 
 
 def test_experts_crud(scope):

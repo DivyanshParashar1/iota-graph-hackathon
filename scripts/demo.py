@@ -87,7 +87,7 @@ def main() -> None:
         say("ripple", f"tenant {C['b']}{scope.tenant_id}{C['off']} · graphs: {db.list_graphs()}", "green")
         seen = drain(scope.tenant_id, seen)
 
-        for turn in range(a.turns):
+        for _turn in range(a.turns):
             state = sess.state(scope)
             if state["stage"] != "interview" and a.stop_after == "interview":
                 break
@@ -102,7 +102,7 @@ def main() -> None:
                     kind = f"{f.type}{f' in {f.unit}' if f.unit else ''}"
                     say("form", f"{f.label} {C['dim']}({kind}){C['off']}")
                 values = fill_form(client, PERSONA, form)
-                save_values(scope, form, values, confidences={k: "ballpark" for k in values})
+                save_values(scope, form, values, confidences=dict.fromkeys(values, "ballpark"))
                 store.set_form_status(scope, form.id, "submitted")
                 say("user", f"filled {len(values)} of {len(form.fields)} fields", "cyan")
                 sess.run_turn(scope, sid, None)

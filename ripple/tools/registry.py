@@ -3,8 +3,8 @@ this. Schemas never include a tenant: the tenant comes from the session/scope.""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from ripple.tools import graph_tools
 from ripple.tools.base import ToolError, ToolResult
@@ -25,7 +25,7 @@ class ToolSpec:
         return {"name": self.name, "description": self.description, "input_schema": self.schema}
 
 
-def S(props: dict, required: list[str] | None = None) -> dict:  # noqa: N802
+def S(props: dict, required: list[str] | None = None) -> dict:
     return {"type": "object", "properties": props, "required": required or [], "additionalProperties": False}
 
 

@@ -28,27 +28,27 @@ from ripple.onboarding.models import (
 
 
 def brief(**over) -> Brief:
-    data = dict(
-        company="Acme Shoes", industry="footwear", summary="Mid-size trainer manufacturer.",
-        products=[BriefProduct(name="Runner", components=["sole", "upper"], markets=["EU"])],
-        components=["sole", "upper", "laces"],
-        suppliers=[BriefSupplier(kind="tier-1 leather", name="GZ Leather", country="CN")],
-        sites=[BriefSite(kind="factory", name="Dongguan", location="CN")],
-        manufacturing="One owned factory plus two contract manufacturers.",
-        transport_modes=["sea", "road"], warehousing="One DC in Rotterdam.",
-        distribution="Wholesale plus own webshop.", customers=["retail chains"], markets=["EU", "UK"],
-        commercial="FOB, 60-day terms, 2% late penalty.", constraints=["no air freight"],
-        risks=["single-sourced soles"], pains=["port delays blow up delivery promises"],
-        vocabulary={"SKU-R": "the Runner line"}, scale="about 800k pairs a year",
-    )
+    data = {
+        "company": "Acme Shoes", "industry": "footwear", "summary": "Mid-size trainer manufacturer.",
+        "products": [BriefProduct(name="Runner", components=["sole", "upper"], markets=["EU"])],
+        "components": ["sole", "upper", "laces"],
+        "suppliers": [BriefSupplier(kind="tier-1 leather", name="GZ Leather", country="CN")],
+        "sites": [BriefSite(kind="factory", name="Dongguan", location="CN")],
+        "manufacturing": "One owned factory plus two contract manufacturers.",
+        "transport_modes": ["sea", "road"], "warehousing": "One DC in Rotterdam.",
+        "distribution": "Wholesale plus own webshop.", "customers": ["retail chains"], "markets": ["EU", "UK"],
+        "commercial": "FOB, 60-day terms, 2% late penalty.", "constraints": ["no air freight"],
+        "risks": ["single-sourced soles"], "pains": ["port delays blow up delivery promises"],
+        "vocabulary": {"SKU-R": "the Runner line"}, "scale": "about 800k pairs a year",
+    }
     data.update(over)
     return Brief(**data)
 
 
 def form(**over) -> FormSpec:
-    data = dict(
-        title="Supply chain backbone", intro="A few numbers to make the model concrete.",
-        fields=[
+    data = {
+        "title": "Supply chain backbone", "intro": "A few numbers to make the model concrete.",
+        "fields": [
             FormField(id="supplier_count", label="How many suppliers in total?", type="integer",
                       help="A ballpark is fine.", required=True),
             FormField(id="uses_air", label="Do you ever ship by air?", type="boolean"),
@@ -62,15 +62,15 @@ def form(**over) -> FormSpec:
                 FormColumn(id="volume_share", label="Share of volume", type="percent"),
             ]),
         ],
-    )
+    }
     data.update(over)
     return FormSpec(**data)
 
 
 def spec(**over) -> OntologySpec:
-    data = dict(
-        version=1,
-        types=[
+    data = {
+        "version": 1,
+        "types": [
             TypeSpec(label="Supplier", description="A company that supplies an input.", id_pattern="SUP-####",
                      properties=[PropertySpec(name="name", type="string", required=True),
                                  PropertySpec(name="country", type="string"),
@@ -84,7 +84,7 @@ def spec(**over) -> OntologySpec:
                      properties=[PropertySpec(name="name", type="string", required=True)],
                      display=TypeDisplay(title_property="name")),
         ],
-        relationships=[
+        "relationships": [
             RelationshipSpec(type="SUPPLIES", **{"from": "Supplier"}, to="Part", cardinality="many-to-many",
                              properties=[PropertySpec(name="lead_time_days", type="integer", unit="days"),
                                          PropertySpec(name="volume_share", type="percent")],
@@ -92,9 +92,9 @@ def spec(**over) -> OntologySpec:
             RelationshipSpec(type="PART_OF", **{"from": "Part"}, to="Product", cardinality="many-to-many",
                              description="This part goes into this product."),
         ],
-        indexes=[IndexSpec(label="Supplier", property="country")],
-        rationale="Lead time and volume share live on SUPPLIES because they are specific to the pairing.",
-    )
+        "indexes": [IndexSpec(label="Supplier", property="country")],
+        "rationale": "Lead time and volume share live on SUPPLIES because they are specific to the pairing.",
+    }
     data.update(over)
     return OntologySpec(**data)
 
@@ -121,16 +121,16 @@ def batch(source_ids: list[str] | None = None) -> InstanceBatch:
 
 
 def role(**over) -> ExpertRole:
-    data = dict(
-        name="sourcing_risk", title="Sourcing Risk Analyst",
-        mandate="Owns supplier concentration and lead-time exposure for every Part.",
-        justification="Reasons over Supplier and SUPPLIES to find single-sourced parts, which the brief names "
+    data = {
+        "name": "sourcing_risk", "title": "Sourcing Risk Analyst",
+        "mandate": "Owns supplier concentration and lead-time exposure for every Part.",
+        "justification": "Reasons over Supplier and SUPPLIES to find single-sourced parts, which the brief names "
                       "as the main pain.",
-        focus_types=["Supplier", "Part"], focus_relationships=["SUPPLIES"],
-        playbook=["Which parts are single-sourced? A good answer names the part and its suppliers."],
-        tools=["describe_ontology", "find_nodes", "neighbours"],
-        system_prompt="You are the Sourcing Risk Analyst for a shoe manufacturer. " + ("You own the "
+        "focus_types": ["Supplier", "Part"], "focus_relationships": ["SUPPLIES"],
+        "playbook": ["Which parts are single-sourced? A good answer names the part and its suppliers."],
+        "tools": ["describe_ontology", "find_nodes", "neighbours"],
+        "system_prompt": "You are the Sourcing Risk Analyst for a shoe manufacturer. " + ("You own the "
                       "question of where a single supplier failure would stop production. ") * 6,
-    )
+    }
     data.update(over)
     return ExpertRole(**data)

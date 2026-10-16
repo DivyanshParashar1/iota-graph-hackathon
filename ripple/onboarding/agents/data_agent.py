@@ -124,7 +124,7 @@ def coerce(field_type: str, value: Any) -> Any:
         v = float(str(value).replace(",", "").replace("%", "").strip())
         return v
     if field_type == "integer":
-        return int(round(float(str(value).replace(",", "").strip())))
+        return round(float(str(value).replace(",", "").strip()))
     if field_type == "boolean":
         if isinstance(value, bool):
             return value

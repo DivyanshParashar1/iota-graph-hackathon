@@ -33,10 +33,10 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
-    def do_GET(self):  # noqa: N802
+    def do_GET(self):
         self._send(200, {"ok": True}) if self.path == "/health" else self._send(404, {"error": "not found"})
 
-    def do_POST(self):  # noqa: N802
+    def do_POST(self):
         if self.path != "/run":
             return self._send(404, {"error": "not found"})
         if self.token and self.headers.get("Authorization") != f"Bearer {self.token}":

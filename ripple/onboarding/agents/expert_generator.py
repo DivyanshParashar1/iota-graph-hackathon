@@ -104,10 +104,9 @@ def turn(scope: TenantScope, sid: str, client: LLMClient, emit) -> dict:
         emit("error", f"{AGENT}: {len(errors)} roles rejected", data={"errors": errors[:12]})
         if attempt == REPAIRS:
             break
-        messages = messages + [reply.assistant_message(),
-                               {"role": "user", "content": "These roles were rejected:\n- "
-                                + "\n- ".join(errors[:20])
-                                + "\nReturn the full corrected set of roles."}]
+        messages = [*messages, reply.assistant_message(),
+                    {"role": "user", "content": "These roles were rejected:\n- " + "\n- ".join(errors[:20])
+                                                + "\nReturn the full corrected set of roles."}]
     if out is None or errors:
         msgs = [append_message(scope, sid, Message(
             role="system", stage=STAGE, kind="system",

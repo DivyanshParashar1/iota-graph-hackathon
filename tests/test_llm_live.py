@@ -18,13 +18,12 @@ import json
 import os
 import re
 import time
-from pathlib import Path
 
 import pytest
 
 from ripple import ROOT
 from ripple.config import get_settings
-from ripple.llm.base import LLMError, get_client, set_client
+from ripple.llm.base import get_client, set_client
 from ripple.llm.structured import ask_model
 from ripple.onboarding import session as sess
 from ripple.onboarding import store
@@ -32,7 +31,6 @@ from ripple.onboarding.agents.common import load_prompt, state_message
 from ripple.onboarding.models import (
     DataTurn,
     ExpertsTurn,
-    InstanceBatch,
     InterviewTurn,
     OntologyTurn,
 )
@@ -90,9 +88,8 @@ def live_env(tmp_path_factory):
 
 @pytest.fixture
 def live_scope(db, live_env, request):
-    from tests.conftest import tenant_id_for
-
     from ripple.db import TenantScope
+    from tests.conftest import tenant_id_for
 
     s = TenantScope(tenant_id_for(request.node.name), db)
     s.drop()
@@ -219,7 +216,7 @@ def test_full_onboarding_with_a_persona(db, live_env, request):
             answers = _fill_form(client, form)
             from ripple.onboarding.agents.data_agent import save_values
 
-            save_values(scope, form, answers, confidences={k: "ballpark" for k in answers})
+            save_values(scope, form, answers, confidences=dict.fromkeys(answers, "ballpark"))
             store.set_form_status(scope, form.id, "submitted")
             transcript.append({"turn": turn, "stage": stage, "form": form.id, "answers": answers})
             sess.run_turn(scope, sid, None)
@@ -229,7 +226,7 @@ def test_full_onboarding_with_a_persona(db, live_env, request):
         sess.run_turn(scope, sid, answer)
     record(live_env, "transcript", {"tenant": scope.tenant_id, "turns": transcript})
 
-    brief, brief_row = store.current_brief(scope)
+    brief, _brief_row = store.current_brief(scope)
     assert brief is not None and brief.core_gaps() == [], brief.core_gaps() if brief else "no brief"
     assert brief.company and brief.pains, "the brief must name the company and the pain"
     assert any("upper" in str(x).lower() or "anatolia" in str(x).lower()
@@ -240,7 +237,7 @@ def test_full_onboarding_with_a_persona(db, live_env, request):
     # --- stage 3: the ontology
     state = sess.state(scope)
     assert state["stage"] in ("ontology", "experts"), state["stage"]
-    spec, row = store.current_spec(scope)
+    spec, _row = store.current_spec(scope)
     assert spec is not None, "the ontology agent should have drafted a spec on entering its stage"
     assert validate_spec(spec) == []
     record(live_env, "ontology", spec.model_dump(by_alias=True))

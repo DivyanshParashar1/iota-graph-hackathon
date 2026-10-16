@@ -56,7 +56,7 @@ class GraphHandle:
         fn = self._g.ro_query if read_only else self._g.query
         res = fn(cypher, params or {})
         cols = [_col_name(h) for h in (res.header or [])]
-        return [dict(zip(cols, row)) for row in res.result_set]
+        return [dict(zip(cols, row, strict=True)) for row in res.result_set]
 
     def run(self, qname: str, params: dict | None = None, **fmt) -> list[dict]:
         """Run a named query from graph/queries/<qname>.cypher (optionally rendering {placeholders})."""

@@ -80,7 +80,7 @@ def ident(value: str) -> str:
     return str(value)
 
 
-def Q(name: str, **fmt) -> str:  # noqa: N802 - short on purpose: Q("messages_list")
+def Q(name: str, **fmt) -> str:
     """The text of a named query; keyword arguments fill a template's {placeholders} (as identifiers)."""
     try:
         text = all_queries()[name].text

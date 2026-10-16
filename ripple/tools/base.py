@@ -39,13 +39,14 @@ class ToolError(ValueError):
     """Bad arguments or a missing entity; returned to agents as an error tool_result."""
 
 
-_CTX: contextvars.ContextVar[dict] = contextvars.ContextVar("ripple_call_ctx", default={})
+# default=None, not {}: a mutable ContextVar default is one object shared by every context.
+_CTX: contextvars.ContextVar[dict | None] = contextvars.ContextVar("ripple_call_ctx", default=None)
 
 
 @contextmanager
 def call_context(**kw):
     """Set agent / no_log for tool-call logging in this context (thread or task)."""
-    tok = _CTX.set({**_CTX.get(), **kw})
+    tok = _CTX.set({**(_CTX.get() or {}), **kw})
     try:
         yield
     finally:
@@ -53,7 +54,7 @@ def call_context(**kw):
 
 
 def current_context() -> dict:
-    return dict(_CTX.get())
+    return dict(_CTX.get() or {})
 
 
 def stable_id(prefix: str, *parts: Any) -> str:
@@ -87,7 +88,7 @@ def logged_tool(fn):
         res = fn(scope, **kwargs)
         res.ms = round((time.perf_counter() - t0) * 1000, 2)
         res.node_ids = dedupe(res.node_ids)
-        ctx = _CTX.get()
+        ctx = _CTX.get() or {}
         if not ctx.get("no_log"):
             try:
                 scope.ops.run("tool_call_log", {"row": {

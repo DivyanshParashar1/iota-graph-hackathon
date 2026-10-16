@@ -32,7 +32,7 @@ def apply_spec(scope: TenantScope, spec: OntologySpec) -> dict:
         try:
             scope.ops.run("create_index", {}, label=label, prop=prop)
             created += 1
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             if exists_error(e):
                 skipped += 1
                 continue

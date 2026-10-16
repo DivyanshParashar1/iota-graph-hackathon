@@ -19,7 +19,7 @@ every downstream artifact is flagged stale, so the user can see exactly what wil
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from ripple.config import get_settings
 from ripple.db import DB, TenantScope, slug_tenant_id
@@ -29,6 +29,7 @@ from ripple.onboarding.events import BUS, StepEmitter
 from ripple.onboarding.models import Message
 from ripple.onboarding.store import (
     append_message,
+    brief_versions,
     create_session,
     create_tenant,
     current_brief,
@@ -36,6 +37,7 @@ from ripple.onboarding.store import (
     get_pending,
     get_session,
     get_tenant,
+    instance_counts,
     list_answers,
     list_attachments,
     list_checklist,
@@ -48,8 +50,6 @@ from ripple.onboarding.store import (
     set_pending,
     set_session,
     set_tenant,
-    brief_versions,
-    instance_counts,
     spec_versions,
 )
 
