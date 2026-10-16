@@ -107,9 +107,16 @@ through finished output instantly — and `scripts/demo.py`, which runs it live 
 company you name. Which one do you want to be the primary? If it is the recording, I would record one good run
 and commit its artifacts.
 
-A measured warning either way: a live run of the demo CLI on a fresh company took **more than 15 minutes** to
-reach the ontology stage (8 interview turns plus two form rounds), against 10m33s for the live suite's
-4-turn persona. If a judged demo is timed, run it live only with `--stop-after interview`, or show the replay.
+A measured warning either way: a live interview of a fresh company (a specialty coffee roaster) took
+**6 turns and 5 minutes** to produce a complete brief — 11 products, 22 suppliers, 9 sites, no core gaps —
+and an earlier 8-turn run had not reached the ontology after 15 minutes. The whole four-stage run is
+10–20 minutes of real time and real spend. If a judged demo is timed, run the interview live
+(`--stop-after interview`, about 5 minutes and genuinely impressive) and show the replay for the rest.
+
+That coffee run is also the evidence that none of this is shoe-shaped: the same four agents, given a coffee
+roaster, asked about green coffee coverage by origin, importers versus direct co-op lots, decaffeinators,
+bonded warehousing at Felixstowe and C-price volatility — and the pain it surfaced was a container held 19
+days at Felixstowe costing about £18k in fill-rate penalties. Nothing in the repo knows what coffee is.
 
 ### 2.5 Which model, and at what effort?
 

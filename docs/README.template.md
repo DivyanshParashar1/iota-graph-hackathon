@@ -22,6 +22,11 @@ Everything below is one real run — a mid-sized shoe manufacturer, interviewed 
 (`artifacts/llm_runs/`, replayed into a clickable tenant by `scripts/seed_from_run.py`). Nobody wrote these
 types, these roles or these prompts.
 
+Point the same four agents at a specialty coffee roaster and they ask about green coffee coverage by origin,
+importers versus direct co-op lots, decaffeinators, bonded warehousing and C-price volatility instead — and
+the pain they surface is a container held 19 days at Felixstowe, about £18k in fill-rate penalties. Nothing in
+this repository knows what coffee is.
+
 ![The expert roles Ripple wrote for this company](docs/img/experts.png)
 
 | | |

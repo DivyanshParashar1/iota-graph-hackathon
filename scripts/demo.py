@@ -83,7 +83,9 @@ def main() -> None:
     ap.add_argument("--company", default="Northwind Trainers")
     ap.add_argument("--industry", default="footwear")
     ap.add_argument("--db", default="")
-    ap.add_argument("--turns", type=int, default=24)
+    ap.add_argument("--turns", type=int, default=24,
+                    help="cap on stage-1 and stage-2 turns together (an interview reply or a filled form). "
+                         "A real interview runs 6-12; the cap is a budget stop, not a target.")
     ap.add_argument("--stop-after", choices=["interview", "data", "ontology", "experts"], default="experts")
     ap.add_argument("--question", default="")
     a = ap.parse_args()
@@ -149,7 +151,9 @@ def main() -> None:
         rule("Act 2 · the ontology")
         spec, srow = store.current_spec(scope)
         if spec is None:
-            say("ripple", "no spec yet (the data stage is still open)", "red")
+            stage = sess.state(scope)["stage"]
+            say("ripple", f"no spec yet: still in the {stage} stage after {a.turns} turns. "
+                          f"Raise --turns, or stop at --stop-after {stage}.", "red")
             return summary(scope, t0, db_path)
         say("spec", f"v{srow['version']} · {len(spec.types)} types, {len(spec.relationships)} relationships",
             "violet")
