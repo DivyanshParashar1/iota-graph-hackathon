@@ -5,7 +5,9 @@ import { colorFor } from "./colors";
 
 export interface ViewNode {
   id: string;
+  /** The type. Decides the colour, and is what the ontology diagram draws. */
   label: string;
+  /** The node's own name, drawn on the instance graph where every node of a type shares its label. */
   title: string;
   color?: string;
   size?: number;
@@ -27,10 +29,13 @@ interface Props {
   height?: number;
   onSelect?: (n: ViewNode) => void;
   showLabels?: boolean;
+  /** Which text to draw under a node: its type (the ontology diagram) or its name (the instance graph). */
+  labelWith?: "label" | "title";
 }
 
 /** The force graph, used for both the ontology diagram (types as nodes) and the instance graph. */
-export default function GraphView({ nodes, links, highlight, height = 520, onSelect, showLabels = false }: Props) {
+export default function GraphView({ nodes, links, highlight, height = 520, onSelect, showLabels = false,
+                                   labelWith = "label" }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
   const fg = useRef<ForceGraphMethods<NodeObject<N>, LinkObject<N, L>> | undefined>(undefined);
   const [width, setWidth] = useState(800);
@@ -83,16 +88,19 @@ export default function GraphView({ nodes, links, highlight, height = 520, onSel
         linkLabel={(l) => l.type}
         linkCurvature={0.08}
         onNodeClick={(n) => onSelect?.({ id: String(n.id), label: n.label, title: n.title })}
-        nodeRelSize={showLabels ? 5 : 3.5}
+        nodeRelSize={5}
         nodeCanvasObjectMode={() => (showLabels ? "after" : undefined)}
         nodeCanvasObject={(n, ctx, scale) => {
           if (!showLabels || n.x === undefined || n.y === undefined) return;
-          const text = n.label;
-          ctx.font = `${Math.max(10 / scale, 2.5)}px ui-sans-serif, system-ui`;
+          // nodeVal is an area, so the drawn radius is nodeRelSize * sqrt(val): put the label below it
+          // rather than at a fixed offset, or a big type's label lands inside its own circle.
+          const r = 5 * Math.sqrt(n.size ?? 3);
+          const text = labelWith === "title" ? n.title || n.label : n.label;
+          ctx.font = `${Math.max(11 / scale, 3)}px ui-sans-serif, system-ui`;
           ctx.fillStyle = isHot(n.id) ? "#e2e8f0" : "#475569";
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
-          ctx.fillText(text, n.x, n.y + 7);
+          ctx.fillText(text.length > 28 ? `${text.slice(0, 27)}…` : text, n.x, n.y + r + 2);
         }}
       />
     </div>

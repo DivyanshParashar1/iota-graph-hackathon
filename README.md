@@ -18,6 +18,16 @@ company's instance data, the expert roles and all agent memory live in it.
                      a brief          a data pack     a graph + data      agents that answer
 ```
 
+Everything below is one real run — a mid-sized shoe manufacturer, interviewed end to end
+(`artifacts/llm_runs/`, replayed into a clickable tenant by `scripts/seed_from_run.py`). Nobody wrote these
+types, these roles or these prompts.
+
+![The expert roles Ripple wrote for this company](docs/img/experts.png)
+
+| | |
+|---|---|
+| ![The generated ontology](docs/img/ontology.png) | ![The company's graph](docs/img/graph.png) |
+
 ## The four agents
 
 | # | Agent | Role | Produces | Approved by |
@@ -53,7 +63,15 @@ loses nothing — including a turn that was in flight when the process died.
    *and* at `tenants/<id>/experts/<name>.md`, so you can review it in git, edit it in a text editor, and import
    it back.
 
+![Onboarding](docs/img/onboarding.png)
+
 Terminal walk-through of the same three acts: `.venv/bin/python scripts/demo.py --company "Northwind Trainers"`.
+Or replay a recorded run into a database you can click through, with no LLM calls at all:
+
+```bash
+.venv/bin/python scripts/seed_from_run.py --db var/demo.db
+RIPPLE_DB_PATH=var/demo.db .venv/bin/uvicorn ripple.api.app:app
+```
 
 ## Architecture
 

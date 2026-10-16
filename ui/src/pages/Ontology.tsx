@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api";
 import type { OntologySpec, OntologyView, PropertySpec, TypeSpec } from "../api";
 import GraphView from "../components/GraphView";
+import { paletteFor } from "../components/colors";
 import { PROPERTY_TYPES } from "../constants";
 import { Btn, Card, Chip, ErrorLine, Stat } from "../components/ui";
 
@@ -80,11 +81,12 @@ export default function Ontology() {
     );
   }
 
+  const palette = paletteFor(draft.types.map((t) => t.label));
   const nodes = draft.types.map((t) => ({
     id: t.label,
     label: t.label,
     title: `${t.properties.length} properties · ${view.counts.nodes[t.label] ?? 0} nodes`,
-    color: t.display?.color || "",
+    color: t.display?.color || palette[t.label],
     size: 4 + Math.min(6, t.properties.length / 2),
   }));
   const links = draft.relationships.map((r) => ({ source: r.from, target: r.to, type: r.type }));

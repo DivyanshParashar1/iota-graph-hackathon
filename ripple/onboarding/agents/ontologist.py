@@ -141,4 +141,5 @@ def approve(scope: TenantScope, sid: str, emit, *, client: LLMClient | None = No
              f"{applied['relationships']} relationships. Loaded {loaded['nodes']} nodes and "
              f"{loaded['edges']} edges from the data pack.",
         payload={"spec_id": row["id"], "applied": applied, "loaded": loaded, "notes": batch.notes}))
-    return {"spec_id": row["id"], "version": row["version"], **applied, **loaded}
+    return {"spec_id": row["id"], "version": row["version"], **applied, **loaded,
+            "batch": batch.model_dump(by_alias=True)}

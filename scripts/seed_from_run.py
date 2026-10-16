@@ -10,9 +10,9 @@ you keep, so the UI can be clicked through (and screenshotted) against real agen
 another run.
 
 It is a **replay, not a simulation**: every artifact came out of a real model, and the tenant it builds is
-marked `seeded_from` with the run id so nobody mistakes it for a live session. The instance data is the one
-thing it cannot replay (the loader's output is not recorded), so it re-derives nodes from the run's form
-answers only where they are unambiguous - see `--help`.
+marked `seeded_from` with the run id so nobody mistakes it for a live session. A run recorded by the current
+live suite carries the exact instance batch the ontology agent produced, and that is replayed as it was; an
+older run does not, and the nodes are re-derived from its form answers where that is unambiguous.
 """
 
 from __future__ import annotations
@@ -32,6 +32,10 @@ from ripple.onboarding import store  # noqa: E402
 from ripple.onboarding.models import (  # noqa: E402
     Brief,
     ExpertRole,
+    FormAnswer,
+    FormColumn,
+    FormField,
+    FormSpec,
     InstanceBatch,
     InstanceNode,
     Message,
@@ -89,6 +93,33 @@ def instances_from_answers(spec: OntologySpec, run: Path) -> InstanceBatch:
     return InstanceBatch(nodes=nodes, notes=f"replayed from {run.name} form answers")
 
 
+def replay_form(scope, turn: dict) -> FormSpec:
+    """The data pack as real `_FormSpec` / `_FormAnswer` nodes.
+
+    The transcript records each round's answers but not its field specification, so the fields are inferred
+    from the answers: enough for provenance to resolve and for a re-approval in the UI to have a data pack to
+    read. The values themselves are the model's, unchanged."""
+    answers = turn.get("answers") or {}
+    fields = []
+    for fid, value in answers.items():
+        if isinstance(value, list) and value and isinstance(value[0], dict):
+            cols = {k for row in value if isinstance(row, dict) for k in row}
+            fields.append(FormField(id=fid, label=fid.replace("_", " ").capitalize(), type="group",
+                                    fields=[FormColumn(id=c, label=c.replace("_", " ")) for c in sorted(cols)]))
+        else:
+            kind = ("integer" if isinstance(value, int) and not isinstance(value, bool)
+                    else "number" if isinstance(value, float)
+                    else "boolean" if isinstance(value, bool)
+                    else "multiselect" if isinstance(value, list) else "text")
+            fields.append(FormField(id=fid, label=fid.replace("_", " ").capitalize(), type=kind))
+    form = store.save_form(scope, FormSpec(title=f"Round {turn.get('form', '')}", fields=fields,
+                                           status="submitted"))
+    for fid, value in answers.items():
+        store.save_answer(scope, FormAnswer(form_id=form.id, field_id=fid, value=value, source="user",
+                                            confidence="ballpark"))
+    return form
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--run", default="", help="a directory under artifacts/llm_runs (default: the newest)")
@@ -122,9 +153,10 @@ def main() -> None:
                                                          text=turn.get("agent", "")))
                 store.append_message(scope, sid, Message(role="user", stage="interview", text=turn["user"]))
             elif turn.get("form"):
+                form = replay_form(scope, turn)
                 store.append_message(scope, sid, Message(
-                    role="user", stage="data", kind="form", text=f"Submitted {turn['form']}.",
-                    payload={"form_id": turn["form"], "answers": turn.get("answers") or {}}))
+                    role="user", stage="data", kind="form", text=f"Submitted {form.title}.",
+                    payload={"form_id": form.id, "answers": turn.get("answers") or {}}))
         store.put_brief(scope, brief, approved=True)
         print(f"  brief: {len(brief.products)} products, {len(brief.suppliers)} suppliers")
 
@@ -135,7 +167,14 @@ def main() -> None:
             applied = apply_spec(scope, spec)
             print(f"  ontology v{row['version']}: {applied['types']} types, "
                   f"{applied['relationships']} relationships")
-            batch = instances_from_answers(spec, run)
+            recorded = read(run, "instances")
+            if recorded and recorded.get("nodes"):
+                batch = InstanceBatch.model_validate(recorded)
+                print(f"  instances: replaying {len(batch.nodes)} recorded nodes, "
+                      f"{len(batch.edges)} edges")
+            else:
+                print("  instances: this run predates instance recording, re-deriving from form answers")
+                batch = instances_from_answers(spec, run)
             if batch.nodes:
                 loaded = load_instances(scope, spec, batch, wipe=True)
                 print(f"  instances: {loaded['nodes']} nodes")

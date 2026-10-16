@@ -26,6 +26,16 @@ function hash(s: string): number {
 export const colorFor = (label: string, override = ""): string =>
   override || PALETTE[hash(label) % PALETTE.length];
 
+/** Colours for a known set of labels, assigned by position so two types never collide.
+ *  `colorFor` alone hashes, which is stable but can give two of a tenant's types the same colour. */
+export function paletteFor(labels: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  [...new Set(labels)].sort().forEach((label, i) => {
+    out[label] = PALETTE[i % PALETTE.length];
+  });
+  return out;
+}
+
 export const AGENT_COLORS: Record<string, string> = {
   interviewer: "bg-sky-600",
   data_agent: "bg-amber-600",

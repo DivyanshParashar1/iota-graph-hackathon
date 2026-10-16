@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { GraphSample, Provenance } from "../api";
 import GraphView from "../components/GraphView";
+import { paletteFor } from "../components/colors";
 import { Btn, Card, Chip, ErrorLine } from "../components/ui";
 
 /** The loaded instance graph, and "where did this come from?" for any node in it. */
@@ -14,6 +15,7 @@ export default function Graph() {
   const [selected, setSelected] = useState<{ id: string; label: string } | null>(null);
   const [prov, setProv] = useState<Provenance | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const palette = useMemo(() => paletteFor(sample.nodes.map((n) => n.label)), [sample.nodes]);
 
   useEffect(() => {
     api.graph(500).then(setSample).catch((e) => setError(String(e)));
@@ -40,11 +42,21 @@ export default function Graph() {
       >
         <ErrorLine error={error} />
         <GraphView
-          nodes={sample.nodes.map((n) => ({ id: n.id, label: n.label, title: n.title }))}
+          nodes={sample.nodes.map((n) => ({ id: n.id, label: n.label, title: n.title, color: palette[n.label] }))}
           links={sample.edges.map((e) => ({ source: e.source, target: e.target, type: e.type }))}
           height={560}
+          showLabels
+          labelWith="title"
           onSelect={(n) => setSelected({ id: n.id, label: n.label })}
         />
+        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
+          {Object.keys(counts.nodes).map((label) => (
+            <span key={label} className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full" style={{ background: palette[label] }} />
+              {label}
+            </span>
+          ))}
+        </div>
       </Card>
       <div className="flex flex-col gap-4">
         <Card title="Counts">

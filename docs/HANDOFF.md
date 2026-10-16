@@ -128,9 +128,10 @@ would cut the cost of a demo run by most of it. Worth an hour if cost matters.
   container boundary. This is how Docker gets an LLM, so it matters for the demo.
 * **OpenRouter and the Anthropic API** live. Request translation and response parsing are tested; no real call
   was made (no key here).
-* **The UI in a browser.** It typechecks and bundles; I did not click it. `docs/img/*` are still v1's
-  screenshots and the README links them — **those images are now wrong** and I did not have a tenant with real
-  content to replace them from until the live run finished.
+* **The UI clicked by a person.** All four pages now render in headless Chromium against a real tenant and
+  `docs/img/*` are those screenshots, so the README is honest. But no *interaction* was automated: filling a
+  form, approving the ontology, editing a prompt and asking an expert are covered through the API and the
+  tests, not through the browser. That is the gap most likely to hold a surprise.
 
 ### 3.2 The tag could not be pushed
 

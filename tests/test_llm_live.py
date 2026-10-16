@@ -250,6 +250,8 @@ def test_full_onboarding_with_a_persona(db, live_env, request):
     assert out["nodes"] > 0, "approval must load instance data from the data pack"
     counts = store.instance_counts(scope)
     assert counts["nodes"], counts
+    # the batch is recorded separately so scripts/seed_from_run.py can replay the load exactly
+    record(live_env, "instances", out.pop("batch", {}))
     record(live_env, "loaded", {"applied": out, "counts": counts})
 
     msgs = sess.advance(scope, sid, "ontology", reason="approved by the test")
