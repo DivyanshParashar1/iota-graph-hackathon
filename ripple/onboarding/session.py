@@ -82,7 +82,11 @@ def _agent_module(stage: str):
 # --------------------------------------------------------------------------- start / resume
 
 def start(db: DB, company: str, industry: str = "", tenant_id: str | None = None) -> TenantScope:
-    """Create the tenant, its graphs and its session, and run the interviewer's opening turn."""
+    """Create the tenant, its graphs and its session, and run the interviewer's opening turn.
+
+    Raises LLMError before creating anything when no provider is configured: a turn that fails mid-session is
+    reported in the thread and can be resumed, but a tenant that could never take its first turn is litter."""
+    get_client()
     scope = TenantScope(tenant_id or slug_tenant_id(company), db)
     create_tenant(scope, company, industry)
     s = get_settings()

@@ -421,3 +421,17 @@ def test_a_document_cannot_be_mapped_as_a_table(app_client, stub, tenants_dir):
                         json={"field_id": "supplier_count", "attachment_id": att["attachment"]["id"],
                               "column": "days"})
     assert r.status_code == 400 and "a document, not a table" in r.json()["detail"]
+
+
+def test_start_refuses_when_no_provider_is_configured(app_client, stub):
+    """A turn that fails mid-session is reported in the thread; a tenant that could never take its first turn
+    should not be created at all."""
+    from ripple.llm.base import set_client
+
+    set_client(None)  # the stub fixture installed one; this is what a real deployment with no key looks like
+    try:
+        r = app_client.post("/api/onboarding/start", json={"company": "No Key Co"})
+    finally:
+        set_client(stub)
+    assert r.status_code == 503 and "no LLM provider" in r.json()["detail"]
+    assert app_client.get("/api/tenants").json() == []
