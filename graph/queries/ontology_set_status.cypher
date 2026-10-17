@@ -4,5 +4,5 @@
 // kind: write
 // params: {"id": "ONT-1", "status": "approved"}
 MATCH (o:_OntologySpec {id: $id})
-SET o.status = $status
+SET o.status = $status, o.stale = CASE WHEN $status = 'approved' THEN false ELSE o.stale END
 RETURN o.id AS id, o.status AS status

@@ -44,13 +44,13 @@ from ripple.onboarding.store import (
     list_experts,
     list_forms,
     list_messages,
-    list_steps,
     mark_stale,
     open_form,
     set_pending,
     set_session,
     set_tenant,
     spec_versions,
+    step_count,
 )
 
 # What each stage produces, and what has to be re-derived when it changes.
@@ -159,7 +159,7 @@ def progress(scope: TenantScope) -> dict:
         out.append({"stage": st, "index": i, "reached": i <= reached, "current": st == stage,
                     "open_items": sum(1 for c in items if c.status == "open"),
                     "resolved_items": sum(1 for c in items if c.status == "resolved"), "artifact": artifact})
-    return {"stages": out, "stage": stage, "steps": len(list_steps(scope, limit=2000))}
+    return {"stages": out, "stage": stage, "steps": step_count(scope)}
 
 
 # --------------------------------------------------------------------------- turns
@@ -174,14 +174,19 @@ def run_turn(scope: TenantScope, sid: str, user_text: str | None, *,
     stage = session.get("stage") or "interview"
     agent = AGENT_OF.get(stage, "ripple")
     emit = StepEmitter(scope, stage, agent)
-    if user_text:
-        append_message(scope, sid, Message(role="user", stage=stage, kind="text", text=user_text))
     module = _agent_module(stage)
+    if module is not None and not BUS.try_enter(scope.tenant_id):
+        # Checked before the user text is stored: a second tab or a double submit must not run a second turn
+        # over the same state, nor leave a message behind that no turn answers.
+        raise StageError(f"the {agent} is still working on the previous turn; wait for it to reply")
     if module is None:  # "ready": onboarding is over, nothing to run
+        if user_text:
+            append_message(scope, sid, Message(role="user", stage=stage, kind="text", text=user_text))
         return []
-    set_pending(scope, sid, {"stage": stage, "user_text": user_text or "", "agent": agent})
-    BUS.enter(scope.tenant_id)
     try:
+        if user_text:
+            append_message(scope, sid, Message(role="user", stage=stage, kind="text", text=user_text))
+        set_pending(scope, sid, {"stage": stage, "user_text": user_text or "", "agent": agent})
         client = get_client()
         out = module.turn(scope, sid, client, emit)
     except Exception as e:  # noqa: BLE001
@@ -213,6 +218,8 @@ def resume_pending(scope: TenantScope) -> list[Message]:
     pending = get_pending(scope)
     if not session or not pending:
         return []
+    if BUS.busy(scope.tenant_id):  # still running in this process, not interrupted: leave the marker alone
+        raise StageError("that turn is still running; wait for it to reply")
     set_pending(scope, session["id"], None)
     return run_turn(scope, session["id"], None)  # the user text is already persisted as a _Message
 
@@ -246,6 +253,8 @@ def goto(scope: TenantScope, stage: str, *, note: str = "") -> dict:
         raise StageError("no session")
     sid = session["id"]
     cur = session.get("stage") or "interview"
+    if BUS.busy(scope.tenant_id):
+        raise StageError("an agent is still working; wait for its reply before changing stage")
     if STAGES.index(stage) > STAGES.index(cur):
         raise StageError(f"stage {stage!r} has not been reached yet (currently {cur!r})")
     flagged = mark_stale(scope, DOWNSTREAM.get(stage, []))

@@ -222,7 +222,12 @@ def ingest(scope, filename: str, data: bytes, *, client=None, max_mb: int = 25) 
 
     if len(data) > max_mb * 1024 * 1024:
         raise UnsupportedUpload(f"{filename} is larger than {max_mb} MB")
-    parsed = parse(filename, data)
+    try:
+        parsed = parse(filename, data)
+    except UnsupportedUpload:
+        raise
+    except Exception as e:  # noqa: BLE001 - a malformed CSV, bad encoding or broken JSON is the user's to fix
+        raise UnsupportedUpload(f"could not read {Path(filename).name}: {e}") from None
     path = store_file(scope, filename, data)
     text_path = ""
     if parsed["text"]:

@@ -74,6 +74,14 @@ class EventBus:
         with self._lock:
             self._busy[tenant] += 1
 
+    def try_enter(self, tenant: str) -> bool:
+        """Enter only when no turn is running for this tenant: one agent turn at a time."""
+        with self._lock:
+            if self._busy[tenant] > 0:
+                return False
+            self._busy[tenant] += 1
+            return True
+
     def leave(self, tenant: str) -> None:
         with self._lock:
             self._busy[tenant] = max(0, self._busy[tenant] - 1)

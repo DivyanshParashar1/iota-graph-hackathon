@@ -77,13 +77,15 @@ def turn(scope: TenantScope, sid: str, client: LLMClient, emit) -> dict:
     blocks = {
         "brief": brief.model_dump() if brief else {},
         "rounds_so_far": [{"id": f.id, "round": f.round, "title": f.title, "status": f.status,
-                           "fields": [x.model_dump() for x in f.fields]} for f in forms],
+                           "stale": f.stale, "fields": [x.model_dump() for x in f.fields]} for f in forms],
         "answers": _answers_by_form(scope),
         "open_form_id": pending.id if pending else "",
         "checklist": checklist_block(items),
         "uploads": uploads_block(scope),
     }
-    messages = conversation(history) if not first else []
+    # The interview thread stays out (the brief carries it), but what was said in this stage goes in, even
+    # before the first form: the user may have typed after a failed opening.
+    messages = conversation(history if not first else [m for m in history if m.stage == STAGE])
     messages.append(state_message("Your working state", blocks, instruction=OPENING if first else CONTINUE))
     emit("llm", f"{AGENT}: thinking (round {len(forms) + 1})")
     out, reply = ask_model(client, DataTurn, load_prompt(AGENT), messages, effort=s.ripple_llm_effort)
@@ -102,11 +104,11 @@ def turn(scope: TenantScope, sid: str, client: LLMClient, emit) -> dict:
     text = out.reply.strip()
     if out.ask_for_files:
         text += "\n\nUseful uploads if you have them: " + ", ".join(out.ask_for_files)
+    payload = {"file_mappings": [m.model_dump() for m in out.file_mappings], "ask_for_files": out.ask_for_files}
+    if form:
+        payload.update(id=form.id, form=form.model_dump())
     msgs.append(append_message(scope, sid, Message(
-        role="agent", agent=AGENT, stage=STAGE, kind="form" if form else "text", text=text,
-        payload={"id": form.id, "form": form.model_dump()} if form else
-                {"file_mappings": [m.model_dump() for m in out.file_mappings],
-                 "ask_for_files": out.ask_for_files})))
+        role="agent", agent=AGENT, stage=STAGE, kind="form" if form else "text", text=text, payload=payload)))
 
     if out.done and not form:
         emit("stage", f"{AGENT} finished: {out.done_reason}")
@@ -155,7 +157,10 @@ def save_values(scope: TenantScope, form: FormSpec, values: dict[str, Any], *, s
         f = fields.get(fid)
         if f is None:
             raise ValueError(f"form {form.id} has no field {fid!r}")
-        value = coerce(f.type, raw)
+        try:
+            value = coerce(f.type, raw)
+        except (ValueError, TypeError, KeyError) as e:
+            raise ValueError(f"{fid}: {raw!r} is not a valid {f.type} ({e})") from None
         conf = (confidences or {}).get(fid) or confidence
         saved.append(save_answer(scope, FormAnswer(form_id=form.id, field_id=fid, value=value, source=source,
                                                    confidence=conf)))
@@ -188,9 +193,15 @@ def synthesize(scope: TenantScope, form: FormSpec, client: LLMClient, emit) -> l
                            [state_message("Form to fill", blocks,
                                           instruction="Return one value per field id.")])
     fields = form.field_map()
-    values = {k: v for k, v in (out.values or {}).items() if k in fields}
-    saved = save_values(scope, form, values, source="synthetic", confidence="synthetic")
+    saved, skipped = [], []
+    for k, v in (out.values or {}).items():
+        if k not in fields:
+            continue
+        try:  # one value the model got the wrong shape for (prose in a number field) must not sink the rest
+            saved += save_values(scope, form, {k: v}, source="synthetic", confidence="synthetic")
+        except ValueError:
+            skipped.append(k)
     set_tenant(scope, has_synthetic=True)
     emit("write", f"synthesized {len(saved)} values (all flagged synthetic)", ms=reply.ms,
-         data={"note": out.note})
+         data={"note": out.note, "skipped": skipped})
     return saved

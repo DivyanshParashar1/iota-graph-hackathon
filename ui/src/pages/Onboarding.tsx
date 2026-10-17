@@ -17,6 +17,7 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const nav = useNavigate();
   const lastSeq = useRef(0);
+  const seenSteps = useRef(new Set<string>());
 
   const load = useCallback(async () => {
     try {
@@ -35,10 +36,14 @@ export default function Onboarding() {
     void load();
   }, [load]);
 
-  // the live step stream: it replays history on connect, so a reload rebuilds the trail
+  // the live step stream: it replays history on connect, so a reload rebuilds the trail. EventSource reconnects
+  // on its own with the URL it was opened with, which replays that history again: skip what is already shown.
   useEffect(() => {
     if (!state?.tenant?.id) return;
     const stop = streamSteps(lastSeq.current, (s) => {
+      const key = `${s.seq}:${s.ts}`;
+      if (seenSteps.current.has(key)) return;
+      seenSteps.current.add(key);
       lastSeq.current = Math.max(lastSeq.current, s.seq);
       setSteps((prev) => [...prev.slice(-400), s]);
     });

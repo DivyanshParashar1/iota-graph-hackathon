@@ -14,13 +14,14 @@ from ripple.db import TenantScope
 from ripple.llm.base import LLMError, get_client
 from ripple.onboarding import session as sess
 from ripple.onboarding.agents import ontologist
-from ripple.onboarding.events import StepEmitter
+from ripple.onboarding.events import BUS, StepEmitter
 from ripple.onboarding.models import OntologySpec
 from ripple.onboarding.store import (
     approved_spec,
     current_spec,
     get_session,
     instance_counts,
+    mark_stale,
     provenance_of,
     save_spec,
     spec_versions,
@@ -75,10 +76,18 @@ def patch_draft(body: DraftBody, scope: TenantScope = Depends(scope_dep)):
 
 @router.post("/approve")
 def approve(scope: TenantScope = Depends(scope_dep)):
-    """Validate, apply the indexes, load the instance data, advance to the experts stage."""
+    """Validate, apply the indexes, load the instance data, advance to the experts stage.
+
+    From the ontology stage this is the hand-off to the experts. Later (a draft edited on a live tenant) it reloads
+    the graph without moving the stage, and flags the roles written against the old spec stale."""
     s = get_session(scope)
     if not s:
         raise HTTPException(409, "no onboarding session")
+    stage = s.get("stage") or "interview"
+    if stage in ("interview", "data"):
+        raise HTTPException(409, f"onboarding is at the {stage} stage; finish it before approving an ontology")
+    if not BUS.try_enter(scope.tenant_id):
+        raise HTTPException(409, "an agent is still working; wait for its reply")
     emit = StepEmitter(scope, "ontology", "ontologist")
     try:
         out = ontologist.approve(scope, s["id"], emit, client=get_client())
@@ -86,7 +95,13 @@ def approve(scope: TenantScope = Depends(scope_dep)):
         raise HTTPException(400, {"message": "the spec is not valid", "errors": e.errors}) from None
     except LLMError as e:
         raise HTTPException(503, str(e)) from None
-    msgs = sess.advance(scope, s["id"], "ontology", reason="ontology approved")
+    finally:
+        BUS.leave(scope.tenant_id)
+    if stage == "ontology":
+        msgs = sess.advance(scope, s["id"], "ontology", reason="ontology approved")
+    else:
+        mark_stale(scope, sess.DOWNSTREAM["ontology"])
+        msgs = []
     return {**out, "messages": [m.model_dump() for m in msgs], "state": sess.state(scope)}
 
 

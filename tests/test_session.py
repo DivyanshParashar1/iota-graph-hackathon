@@ -324,3 +324,16 @@ def test_an_unexpected_agent_bug_is_reported_in_the_thread(started, stub, monkey
     assert msgs[-1].payload["bug"] is True and msgs[-1].payload["error"] == "KeyError"
     assert len(store.list_messages(scope, sid)) == before + 2  # the user turn survived
     assert store.get_pending(scope) is None
+
+
+def test_a_submitted_form_is_the_users_turn_in_the_transcript():
+    from ripple.onboarding.agents.common import conversation, user_spoke_last
+    from ripple.onboarding.models import Message
+
+    thread = [Message(role="agent", kind="form", text="Round 1", payload={"id": "FRM-001"}),
+              Message(role="user", kind="form", text="Submitted Round 1.", payload={"form_id": "FRM-001"})]
+    turns = conversation([Message(role="user", text="hi"), *thread])
+    assert [t["role"] for t in turns] == ["user", "assistant", "user"]
+    assert "FRM-001" in turns[-1]["content"]
+    assert user_spoke_last(thread)
+    assert not user_spoke_last([*thread, Message(role="agent", text="ok"), Message(role="system", text="->")])

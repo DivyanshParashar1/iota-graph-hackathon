@@ -199,3 +199,12 @@ def test_steps_are_recorded(scope):
     assert len(store.list_steps(scope)) == 2
     one = store.list_steps(scope, "interview")
     assert len(one) == 1 and one[0]["payload"] == {"turns": 3} and one[0]["ms"] == 12.5
+
+
+def test_list_steps_returns_the_newest_window_in_order(scope):
+    from ripple.onboarding.models import AgentStep
+
+    for i in range(5):
+        store.record_step(scope, AgentStep(stage="interview", agent="a", kind="llm", summary=f"s{i}", ts=1000 + i))
+    assert [s["summary"] for s in store.list_steps(scope, limit=2)] == ["s3", "s4"]
+    assert store.step_count(scope) == 5

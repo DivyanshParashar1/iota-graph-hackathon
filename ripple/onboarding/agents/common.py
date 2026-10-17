@@ -33,7 +33,9 @@ def conversation(messages: list[Message], limit: int = MAX_TURNS_IN_CONTEXT) -> 
     """The chat as LLM turns. System notes become user-visible context, not assistant turns."""
     out: list[dict] = []
     for m in messages[-limit:]:
-        if m.kind == "form":
+        if m.kind == "form" and m.role == "user":  # a submitted round; its answers are in the state block
+            out.append({"role": "user", "content": f"[submitted form {m.payload.get('form_id', '')}] {m.text}"})
+        elif m.kind == "form":
             out.append({"role": "assistant", "content": [{"type": "text", "text":
                         f"{m.text}\n[form {m.payload.get('id', '')} shown to the user]"}]})
         elif m.kind == "attachment":
@@ -66,6 +68,13 @@ def _as_text(turn: dict) -> str:
     if isinstance(c, str):
         return c
     return "\n".join(b.get("text", "") for b in c if isinstance(b, dict))
+
+
+def user_spoke_last(messages: list[Message]) -> bool:
+    """Whether the latest non-system message is the user's: a turn asked for, rather than a stage re-entered
+    after a jump back or an approval."""
+    last = next((m for m in reversed(messages) if m.role != "system"), None)
+    return bool(last and last.role == "user")
 
 
 def checklist_block(items: list[ChecklistItem]) -> list[dict]:

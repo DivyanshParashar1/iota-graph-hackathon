@@ -237,12 +237,14 @@ def list_forms(scope: TenantScope) -> list[FormSpec]:
 
 
 def open_form(scope: TenantScope) -> FormSpec | None:
-    return next((f for f in reversed(list_forms(scope)) if f.status == "open"), None)
+    """The round the user is filling in. A stale one (the brief changed under it) no longer counts."""
+    return next((f for f in reversed(list_forms(scope)) if f.status == "open" and not f.stale), None)
 
 
 def _row_to_form(r: dict) -> FormSpec:
     return FormSpec(id=r["id"], round=r["round"], title=r["title"], intro=r["intro"] or "",
-                    fields=_unj(r["fields_json"], []) or [], status=r["status"], ts=r["ts"])
+                    fields=_unj(r["fields_json"], []) or [], status=r["status"], stale=bool(r.get("stale")),
+                    ts=r["ts"])
 
 
 def set_form_status(scope: TenantScope, form_id: str, status: str) -> None:
@@ -367,9 +369,15 @@ def record_step(scope: TenantScope, step: AgentStep) -> AgentStep:
     return s
 
 
+def step_count(scope: TenantScope, stage: str = "") -> int:
+    return scope.ops.run("steps_count", {"stage": stage})[0]["n"]
+
+
 def list_steps(scope: TenantScope, stage: str = "", limit: int = 200) -> list[dict]:
+    """The newest `limit` steps, oldest first."""
+    total = step_count(scope, stage)
     out = []
-    for r in scope.ops.run("steps_list", {"stage": stage, "limit": limit}):
+    for r in scope.ops.run("steps_list", {"stage": stage, "skip": max(0, total - limit), "limit": limit}):
         out.append({**r, "payload": _unj(r.pop("payload_json"), {})})
     return out
 

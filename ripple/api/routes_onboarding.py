@@ -99,7 +99,10 @@ def post_message(body: MessageBody, scope: TenantScope = Depends(scope_dep)):
 @router.post("/resume")
 def resume(scope: TenantScope = Depends(scope_dep)):
     """Re-issue a turn that was in flight when the browser or the process went away."""
-    msgs = sess.resume_pending(scope)
+    try:
+        msgs = sess.resume_pending(scope)
+    except sess.StageError as e:
+        raise HTTPException(409, str(e)) from None
     return {"messages": [m.model_dump() for m in msgs], "state": sess.state(scope)}
 
 
@@ -146,6 +149,10 @@ def submit_form(form_id: str, body: AnswersBody | None = None, scope: TenantScop
     form = get_form(scope, form_id)
     if form is None:
         raise HTTPException(404, f"no form {form_id}")
+    if form.status == "submitted":
+        raise HTTPException(409, f"{form.title} was already submitted")
+    if BUS.busy(scope.tenant_id):
+        raise HTTPException(409, "the agent is still working on the previous turn; wait for it to reply")
     if body and body.values:
         try:
             data_agent.save_values(scope, form, body.values, source=body.source,
@@ -161,7 +168,10 @@ def submit_form(form_id: str, body: AnswersBody | None = None, scope: TenantScop
     append_message(scope, sid, Message(role="user", stage="data", kind="form",
                                         text=f"Submitted {form.title}.",
                                         payload={"form_id": form_id, "answers": answers}))
-    msgs = sess.run_turn(scope, sid, None)
+    try:
+        msgs = sess.run_turn(scope, sid, None)
+    except sess.StageError as e:
+        raise HTTPException(409, str(e)) from None
     return {"messages": [m.model_dump() for m in msgs], "state": sess.state(scope)}
 
 

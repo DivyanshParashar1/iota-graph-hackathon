@@ -54,7 +54,8 @@ def turn(scope: TenantScope, sid: str, client: LLMClient, emit) -> dict:
         "brief_so_far": brief.model_dump(), "checklist": checklist_block(items),
         "core_topics_still_empty": brief.core_gaps(), "uploads": uploads_block(scope),
     }
-    messages = conversation(history) if not first else []
+    # Always the whole thread: before the first reply it holds only what the user typed after a failed opening.
+    messages = conversation(history)
     messages.append(state_message("Your working state", blocks,
                                   instruction=OPENING if first else CONTINUE))
     emit("llm", f"{AGENT}: thinking ({len(items)} checklist items, {len(messages)} turns)")

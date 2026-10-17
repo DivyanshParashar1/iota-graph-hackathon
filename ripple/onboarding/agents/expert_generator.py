@@ -14,12 +14,13 @@ from ripple.db import TenantScope
 from ripple.experts.store import export_role
 from ripple.llm.base import LLMClient
 from ripple.llm.structured import ask_model
-from ripple.onboarding.agents.common import conversation, load_prompt, state_message
+from ripple.onboarding.agents.common import conversation, load_prompt, state_message, user_spoke_last
 from ripple.onboarding.models import ExpertRole, ExpertsTurn, Message
 from ripple.onboarding.store import (
     append_message,
     approved_spec,
     current_brief,
+    delete_expert,
     list_experts,
     list_messages,
     save_expert,
@@ -33,6 +34,8 @@ OPENING = ("Decide which expert roles this company needs and write them. Justify
            "ontology.")
 CONTINUE = ("The user has asked for a change to the roles. Return the full set of roles you want to stand "
             "behind now - including the unchanged ones - and say what you changed.")
+REENTER = ("The approved ontology changed since these roles were written, so they are stale. Return the full set of "
+           "roles that fits the ontology now - including the unchanged ones - and say what you changed.")
 NAME_RE = re.compile(r"^[a-z][a-z0-9_]{1,39}$")
 
 
@@ -89,7 +92,8 @@ def turn(scope: TenantScope, sid: str, client: LLMClient, emit) -> dict:
                                   "mandate": e.mandate} for e in existing]}
     messages = conversation(history) if not first else []
     messages.append(state_message("Brief and approved ontology", blocks,
-                                  instruction=OPENING if first else CONTINUE))
+                                  instruction=OPENING if first else
+                                  CONTINUE if user_spoke_last(history) else REENTER))
 
     out = None
     errors: list[str] = []
@@ -123,7 +127,14 @@ def turn(scope: TenantScope, sid: str, client: LLMClient, emit) -> dict:
         saved = save_expert(scope, role)
         export_role(scope, saved)
         kept.append(saved)
-    emit("write", f"{len(kept)} roles saved as drafts", data={"roles": [r.name for r in kept]})
+    # The set returned is the whole set: a generated draft it left out is withdrawn. A role the user approved or
+    # wrote stays until the user removes it.
+    names = {r.name for r in out.roles}
+    withdrawn = [e for e in existing if e.name not in names and e.origin == "generated" and e.status == "draft"]
+    for e in withdrawn:
+        delete_expert(scope, e.id)
+    emit("write", f"{len(kept)} roles saved as drafts", data={"roles": [r.name for r in kept],
+                                                               "withdrawn": [e.name for e in withdrawn]})
 
     text = out.reply.strip()
     if out.dropped:

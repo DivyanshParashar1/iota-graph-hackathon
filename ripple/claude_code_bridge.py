@@ -14,8 +14,8 @@ import json
 import logging
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from ripple.agents.claude_code import run_claude
 from ripple.config import get_settings
+from ripple.llm.claude_code import run_claude
 
 log = logging.getLogger("claude_code_bridge")
 

@@ -435,3 +435,112 @@ def test_start_refuses_when_no_provider_is_configured(app_client, stub):
         set_client(stub)
     assert r.status_code == 503 and "no LLM provider" in r.json()["detail"]
     assert app_client.get("/api/tenants").json() == []
+
+
+# --------------------------------------------------------------------------- onboarding review fixes
+
+def at_data(client, stub):
+    start(client, stub)
+    stub.load(interview_turn(done=True, brief_patch=f.brief().model_dump()), data_turn())
+    client.post("/api/onboarding/message", json={"text": "done"})
+
+
+def test_a_submitted_form_cannot_be_submitted_again(app_client, stub):
+    at_data(app_client, stub)
+    stub.load(data_turn(form=f.form(title="Round 2").model_dump()))
+    values = {"supplier_count": 40, "tier1": [{"name": "GZ Leather"}]}
+    assert app_client.post("/api/onboarding/forms/FRM-001/submit", json={"values": values}).status_code == 200
+    r = app_client.post("/api/onboarding/forms/FRM-001/submit", json={"values": values})
+    assert r.status_code == 409 and "already submitted" in r.json()["detail"]
+    assert len(stub.calls) == 1, "a second submit must not run a second data-agent turn"
+
+
+def test_synthesize_keeps_the_values_it_can_use(app_client, stub):
+    at_data(app_client, stub)
+    stub.load({"values": {"supplier_count": "about forty", "uses_air": True}, "note": ""})
+    r = app_client.post("/api/onboarding/forms/FRM-001/synthesize")
+    assert r.status_code == 200, r.text
+    assert [a["field_id"] for a in r.json()["saved"]] == ["uses_air"]
+
+
+def test_a_bad_value_names_its_field(app_client, stub):
+    at_data(app_client, stub)
+    r = app_client.post("/api/onboarding/forms/FRM-001/answers", json={"values": {"supplier_count": [1, 2]}})
+    assert r.status_code == 400 and "supplier_count" in r.json()["detail"]
+
+
+def test_upload_reports_a_file_it_cannot_parse(app_client, stub, tenants_dir):
+    start(app_client, stub)
+    r = app_client.post("/api/onboarding/attachments", files={"file": ("suppliers.json", b"{not json", "text/json")})
+    assert r.status_code == 400 and "could not read suppliers.json" in r.json()["detail"]
+
+
+def test_a_second_turn_waits_for_the_first(app_client, stub):
+    from ripple.onboarding.events import BUS
+
+    start(app_client, stub)
+    before = len(app_client.get("/api/onboarding/session").json()["messages"])
+    BUS.enter(app_client.tenant_id)
+    try:
+        r = app_client.post("/api/onboarding/message", json={"text": "hello again"})
+        assert r.status_code == 409
+        assert app_client.post("/api/onboarding/goto", json={"stage": "interview"}).status_code == 400
+    finally:
+        BUS.leave(app_client.tenant_id)
+    assert len(app_client.get("/api/onboarding/session").json()["messages"]) == before, \
+        "a refused turn must not leave an unanswered message behind"
+
+
+def test_approve_and_finish_check_the_stage(app_client, stub, tenants_dir):
+    at_data(app_client, stub)
+    r = app_client.post("/api/ontology/approve")
+    assert r.status_code == 409 and "data stage" in r.json()["detail"]
+
+
+def test_finish_needs_the_experts_stage(app_client, stub, tenants_dir):
+    roles = at_experts(app_client, stub)
+    app_client.post(f"/api/experts/{roles['experts'][0]['id']}/approve")
+    app_client.post("/api/onboarding/goto", json={"stage": "ontology"})
+    r = app_client.post("/api/experts/finish")
+    assert r.status_code == 409 and "ontology stage" in r.json()["detail"]
+
+
+def test_file_mappings_survive_a_new_form_round(app_client, stub):
+    start(app_client, stub)
+    mapping = {"field_id": "supplier_count", "attachment_id": "ATT-1", "column": "n"}
+    stub.load(interview_turn(done=True, brief_patch=f.brief().model_dump()), data_turn(file_mappings=[mapping]))
+    app_client.post("/api/onboarding/message", json={"text": "done"})
+    msg = app_client.get("/api/onboarding/session").json()["messages"][-1]
+    assert msg["kind"] == "form" and msg["payload"]["file_mappings"][0]["column"] == "n"
+
+
+def test_going_back_to_the_interview_retires_the_open_form(app_client, stub):
+    at_data(app_client, stub)
+    assert app_client.get("/api/onboarding/session").json()["open_form"]["id"] == "FRM-001"
+    app_client.post("/api/onboarding/goto", json={"stage": "interview"})
+    assert app_client.get("/api/onboarding/session").json()["open_form"] is None
+    # back in the data stage the agent can ask a fresh round against the new brief
+    stub.load(interview_turn(done=True, brief_patch=f.brief().model_dump()),
+              data_turn(form=f.form(title="Round 1, again").model_dump()))
+    app_client.post("/api/onboarding/message", json={"text": "rail too; that is all"})
+    assert app_client.get("/api/onboarding/session").json()["open_form"]["title"] == "Round 1, again"
+
+
+def test_a_regenerated_role_set_withdraws_the_drafts_it_left_out(app_client, stub, tenants_dir):
+    at_experts(app_client, stub)
+    other = f.role(name="lane_planner", title="Lane Planner").model_dump()
+    stub.load(experts_turn(roles=[other]))
+    app_client.post("/api/onboarding/message", json={"text": "replace sourcing with a lane planner"})
+    assert [r["name"] for r in app_client.get("/api/experts").json()["experts"]] == ["lane_planner"]
+
+
+def test_reapproving_clears_the_stale_flag_and_keeps_a_live_stage(app_client, stub, tenants_dir):
+    roles = at_experts(app_client, stub)
+    app_client.post(f"/api/experts/{roles['experts'][0]['id']}/approve")
+    app_client.post("/api/experts/finish")
+    stub.load(f.batch().model_dump(by_alias=True))
+    r = app_client.post("/api/ontology/approve")
+    assert r.status_code == 200, r.text
+    assert r.json()["state"]["stage"] == "ready", "re-approving on a live tenant must not reopen onboarding"
+    assert app_client.get("/api/ontology").json()["row"]["stale"] is False
+    assert all(e["stale"] for e in app_client.get("/api/experts").json()["experts"])

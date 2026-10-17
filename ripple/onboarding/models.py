@@ -253,6 +253,7 @@ class FormSpec(Model):
     intro: str = ""
     fields: list[FormField]
     status: Literal["open", "submitted"] = "open"
+    stale: bool = False  # set by a jump back to the interview: the brief this round was built from changed
     ts: int = 0
 
     def field_map(self) -> dict[str, FormField | FormColumn]:

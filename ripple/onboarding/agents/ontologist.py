@@ -15,7 +15,13 @@ from ripple.db import TenantScope
 from ripple.graph.apply import apply_spec, load_instances
 from ripple.llm.base import LLMClient, get_client
 from ripple.llm.structured import ask_model
-from ripple.onboarding.agents.common import conversation, load_prompt, state_message, uploads_block
+from ripple.onboarding.agents.common import (
+    conversation,
+    load_prompt,
+    state_message,
+    uploads_block,
+    user_spoke_last,
+)
 from ripple.onboarding.models import InstanceBatch, Message, OntologySpec, OntologyTurn
 from ripple.onboarding.store import (
     append_message,
@@ -36,6 +42,8 @@ OPENING = ("Design the ontology for this company from the brief and the data pac
            "explain it in your reply.")
 CONTINUE = ("The user has asked for a change. Return the whole revised spec with the change applied and say "
             "what you changed.")
+REENTER = ("The brief or the data pack changed since this spec was drafted, so it is stale. Return the whole spec "
+           "revised to fit them and say what you changed; keep what still fits.")
 EXTRACT = ("Turn the data pack into instance data for the approved spec: one node per real thing the user told "
            "us about, with the properties they gave, and the edges between them. Use the spec's id_patterns to "
            "mint ids. Put the ids of the form answers (ANS-...) or uploads (ATT-...) a node came from in its "
@@ -69,7 +77,8 @@ def turn(scope: TenantScope, sid: str, client: LLMClient, emit) -> dict:
               "current_status": (spec_row or {}).get("status", "")}
     messages = conversation(history) if not first else []
     messages.append(state_message("Brief, data pack and current spec", blocks,
-                                  instruction=OPENING if first else CONTINUE))
+                                  instruction=OPENING if first else
+                                  CONTINUE if user_spoke_last(history) else REENTER))
 
     out = None
     errors: list[str] = []
