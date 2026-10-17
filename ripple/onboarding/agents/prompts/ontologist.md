@@ -42,6 +42,8 @@ One `spec`:
 * Every property `type` is from the list above; `enum` properties list their `options`.
 * Every type has an `id`-bearing identity: an `id_pattern` and a `display.title_property` that exists among
   its properties.
+* No two types share an `id_pattern`. Check prefixes that abbreviate alike (`Part` and `Port` are not both
+  `PRT-####`: use `PART-####` and `PORT-####`).
 
 ## Changes
 

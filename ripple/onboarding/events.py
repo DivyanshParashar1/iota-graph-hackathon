@@ -62,6 +62,19 @@ class EventBus:
                 del buf[:-MAX_HISTORY]
             return ev
 
+    def seed(self, tenant: str, steps: list[dict]) -> None:
+        """Rebuild a tenant's history from its persisted steps (`store.list_steps`) after a restart emptied the
+        ring. A no-op once the tenant has any event, so a live turn is never replayed twice."""
+        with self._lock:
+            if self._events.get(tenant):
+                return
+            buf = self._events[tenant]
+            for s in steps[-MAX_HISTORY:]:
+                self._seq[tenant] += 1
+                buf.append({"seq": self._seq[tenant], "ts": s.get("ts") or 0, "tenant": tenant,
+                            "stage": s.get("stage") or "", "agent": s.get("agent") or "", "kind": s.get("kind"),
+                            "summary": s.get("summary") or "", "node_ids": [], "data": s.get("payload") or None})
+
     def history(self, tenant: str, after: int = 0) -> list[dict]:
         with self._lock:
             return [e for e in self._events.get(tenant, []) if e["seq"] > after]

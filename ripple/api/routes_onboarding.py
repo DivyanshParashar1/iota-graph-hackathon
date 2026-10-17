@@ -271,6 +271,10 @@ async def upload(request: Request, file: UploadFile = File(...), note: str = For
 @router.get("/stream")
 async def stream(request: Request, after: int = 0, scope: TenantScope = Depends(scope_dep)):
     """SSE of agent steps: history after `after`, then live."""
+    from ripple.onboarding.store import list_steps
+
+    if not BUS.history(scope.tenant_id):  # the ring is in memory: after a restart, rebuild it from the graph
+        BUS.seed(scope.tenant_id, await asyncio.to_thread(list_steps, scope, "", 2000))
 
     async def gen():
         async for ev in BUS.stream(scope.tenant_id, after):

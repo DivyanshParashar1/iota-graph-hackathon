@@ -119,3 +119,14 @@ def test_the_stream_needs_a_known_tenant(app_client):
     """The dependency runs before the generator, so this is an ordinary request, not a stream."""
     assert app_client.get("/api/onboarding/stream?tenant=nope").status_code == 404
     assert app_client.get("/api/onboarding/stream?tenant=Bad%20Id").status_code == 400
+
+
+def test_a_restarted_server_rebuilds_the_trail_from_the_graph(scope):
+    BUS.reset(scope.tenant_id)
+    StepEmitter(scope, "interview", "interviewer")("llm", "thinking")
+    BUS.reset(scope.tenant_id)  # what a process restart does to the in-memory ring
+    BUS.seed(scope.tenant_id, list_steps(scope))
+    assert [e["summary"] for e in BUS.history(scope.tenant_id)] == ["thinking"]
+    BUS.seed(scope.tenant_id, list_steps(scope))  # a second seed is a no-op: nothing is replayed twice
+    assert len(BUS.history(scope.tenant_id)) == 1
+    BUS.reset(scope.tenant_id)
