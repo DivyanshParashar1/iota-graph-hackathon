@@ -1,0 +1,131 @@
+{
+  "_about": "Worked M8 scenario (docs/m8_decision_pipeline.md §8). Tenant: Harbour Coffee Roasters. Entity names and numbers are illustrative, shaped like the recorded brief; at run time every id comes from the tenant graph. 'expected' blocks are the author's hypothesis for the eval, NOT Jev output - Jev has not been called (openrouter.ai unreachable from the build container).",
+
+  "webhook": {
+    "POST": "/api/events/harbour-coffee",
+    "body": {
+      "source": "site-alerts",
+      "kind": "site_incident",
+      "received_at": "2026-10-17T06:42:00Z",
+      "summary": "Fire reported at the Felixstowe bonded warehouse (unit 4). Fire service on site. Operator says green coffee stock in bays C-F may be affected; no access until further notice.",
+      "raw": {"site_ref": "FXT-BONDED-4", "reported_by": "warehouse operator duty manager"}
+    }
+  },
+
+  "orchestrator": {
+    "expert_relevance": {
+      "_jev": "one noul per approved expert role; the orchestrator does not pick",
+      "roles": ["Green Coffee Sourcing", "Bonded Warehousing & Customs", "Inbound Logistics", "Roastery Production Planning", "Wholesale Accounts", "Quality & Food Safety"],
+      "expected_true": ["Bonded Warehousing & Customs", "Green Coffee Sourcing", "Inbound Logistics", "Roastery Production Planning", "Wholesale Accounts"]
+    },
+    "rounds": [
+      {"round": 1, "asks": [
+        {"to": "Bonded Warehousing & Customs", "q": "What stock is held at FXT-BONDED-4, by lot and origin, and is any of it held elsewhere?"},
+        {"to": "Roastery Production Planning", "q": "How many days of roasting does on-site green stock cover, by blend?"},
+        {"to": "Inbound Logistics", "q": "Which inbound containers are routed to FXT-BONDED-4 in the next 21 days?"}
+      ]},
+      {"round": 2, "asks": [
+        {"to": "Green Coffee Sourcing", "q": "Bays C-F held the Brazil and Colombia lots behind House Espresso. Which importers hold UK spot stock of comparable lots, and at what lead time?"},
+        {"to": "Wholesale Accounts", "q": "Which wholesale customers take House Espresso, with fill-rate penalty terms?"}
+      ]}
+    ],
+    "evidence_sufficient": {"_jev": "noul after each round; plus a hard cap of 4 rounds", "expected_after_round": 2}
+  },
+
+  "decision_packet": {
+    "event": {"id": "EVT-2026-10-17-001", "kind": "site_incident", "source": "site-alerts", "received_at": "2026-10-17T06:42:00Z",
+              "summary": "Fire at Felixstowe bonded warehouse unit 4; bays C-F (green coffee) possibly affected; no access."},
+    "evidence": [
+      {"id": "E1", "from_agent": "Bonded Warehousing & Customs", "claim": "Bays C-F hold 38 t of green coffee: Brazil Cerrado lot BR-114 (19 t) and Colombia Huila lot CO-207 (19 t). No other site holds these lots.", "node_ids": ["Site:FXT-BONDED-4", "Lot:BR-114", "Lot:CO-207"], "confidence": "fact"},
+      {"id": "E2", "from_agent": "Bonded Warehousing & Customs", "claim": "A second bonded store at Tilbury (TIL-BONDED-1) is an existing contracted site with roughly 60 pallet spaces free.", "node_ids": ["Site:TIL-BONDED-1"], "confidence": "ballpark"},
+      {"id": "E3", "from_agent": "Roastery Production Planning", "claim": "On-site green stock covers House Espresso for 6 roasting days at current demand.", "node_ids": ["Site:ROASTERY-IPSWICH", "Product:HOUSE-ESPRESSO"], "confidence": "fact"},
+      {"id": "E4", "from_agent": "Inbound Logistics", "claim": "Container MSKU-ILLUSTRATIVE (Ethiopia Guji, 19 t) is due to discharge at Felixstowe on 2026-10-19 for delivery to FXT-BONDED-4.", "node_ids": ["Shipment:SHP-5512"], "confidence": "fact"},
+      {"id": "E5", "from_agent": "Green Coffee Sourcing", "claim": "Importer IMP-03 holds UK spot stock of a comparable Brazil lot, 2-3 day delivery, about 18% over contract price.", "node_ids": ["Supplier:IMP-03"], "confidence": "ballpark"},
+      {"id": "E6", "from_agent": "Wholesale Accounts", "claim": "Three wholesale accounts take House Espresso; two have fill-rate penalties (the last such event cost about £18k).", "node_ids": ["Customer:WH-01", "Customer:WH-02", "Customer:WH-03"], "confidence": "fact"}
+    ],
+    "analysis": {
+      "impact_summary": "If bays C-F are lost, House Espresso stops after 6 roasting days; 38 t of green coffee at risk; the inbound Guji container has nowhere to go on 10-19.",
+      "metrics": [
+        {"name": "green_coffee_at_risk", "value": 38, "unit": "t", "basis_evidence_ids": ["E1"]},
+        {"name": "days_of_cover_house_espresso", "value": 6, "unit": "roasting days", "basis_evidence_ids": ["E3"]},
+        {"name": "accounts_with_penalties_exposed", "value": 2, "unit": "accounts", "basis_evidence_ids": ["E6"]}
+      ],
+      "time_to_impact_hours": 48
+    },
+    "comms": [
+      {"id": "C1", "recipient_role": "warehouse operator", "recipient_node_id": "Site:FXT-BONDED-4", "channel": "email", "subject": "Unit 4 fire - stock status and access", "body": "Please confirm as soon as you can which of bays C-F are affected (lots BR-114, CO-207), and whether customs control of the bonded stock is maintained. We are diverting inbound container SHP-5512 away from unit 4.", "required_by_option_ids": ["A_divert_inbound"]},
+      {"id": "C2", "recipient_role": "freight forwarder", "recipient_node_id": "Shipment:SHP-5512", "channel": "email", "subject": "Divert SHP-5512 to Tilbury bonded store", "body": "Please re-book delivery of SHP-5512 from FXT-BONDED-4 to TIL-BONDED-1 under bond on discharge (ETA 19 Oct).", "required_by_option_ids": ["A_divert_inbound"]},
+      {"id": "C3", "recipient_role": "importer", "recipient_node_id": "Supplier:IMP-03", "channel": "phone+email", "subject": "Spot purchase: Brazil, 19 t", "body": "Requesting a firm offer and allocation hold on 19 t comparable Brazil spot, delivery to Ipswich within 3 days.", "required_by_option_ids": ["G1_b_spot_buy"]},
+      {"id": "C4", "recipient_role": "wholesale customer", "recipient_node_id": "Customer:WH-01", "channel": "email", "subject": "House Espresso supply - early notice", "body": "A fire at our bonded warehouse may affect House Espresso. Your orders for the next 6 days are covered; we will confirm the plan for the following weeks by Monday.", "required_by_option_ids": ["A_notify_customers"]},
+      {"id": "C5", "recipient_role": "insurer", "recipient_node_id": null, "channel": "email", "subject": "Notification of potential loss - Felixstowe", "body": "Notifying a potential stock loss of up to 38 t green coffee at FXT-BONDED-4, cause fire, 17 Oct 2026.", "required_by_option_ids": ["A_notify_insurer"]}
+    ],
+    "decision_groups": [
+      {
+        "id": "G1",
+        "question": "How do we keep House Espresso supplied beyond the 6 days of on-site cover?",
+        "mode": "exclusive",
+        "options": [
+          {"id": "G1_a_reblend", "title": "Reblend House Espresso from on-site and Tilbury stock", "action_kind": "recipe substitution", "steps": ["QA cupping of substitute blend", "update production plan"], "reversible": true, "time_to_effect_hours": 24, "cost_estimate": "low", "risk": "taste change noticed by wholesale accounts", "evidence_ids": ["E2", "E3"], "alternative_to": null, "comms_ids": []},
+          {"id": "G1_b_spot_buy", "title": "Buy 19 t comparable Brazil spot from IMP-03 now", "action_kind": "spot purchase", "steps": ["request firm offer", "place PO", "deliver to roastery"], "reversible": false, "time_to_effect_hours": 72, "cost_estimate": "about 18% over contract on 19 t", "risk": "paying a premium for stock that may turn out undamaged", "evidence_ids": ["E5", "E1"], "alternative_to": null, "comms_ids": ["C3"]},
+          {"id": "G1_c_allocate", "title": "Allocate remaining House Espresso to penalty-bearing accounts first", "action_kind": "customer allocation", "steps": ["set allocation rule", "short-ship WH-03"], "reversible": true, "time_to_effect_hours": 2, "cost_estimate": "lost sales on WH-03", "risk": "relationship damage with WH-03", "evidence_ids": ["E6", "E3"], "alternative_to": "G1_b_spot_buy", "comms_ids": ["C4"]},
+          {"id": "G1_d_wait", "title": "Wait for the operator's damage assessment before acting", "action_kind": "hold", "steps": ["re-run on next update"], "reversible": true, "time_to_effect_hours": 0, "cost_estimate": "none now", "risk": "spot stock may be taken by others; cover runs down", "evidence_ids": ["E1", "E3"], "alternative_to": null, "comms_ids": []}
+        ]
+      },
+      {
+        "id": "G2",
+        "question": "Which immediate containment actions should be taken?",
+        "mode": "independent",
+        "options": [
+          {"id": "A_divert_inbound", "title": "Divert inbound container SHP-5512 to TIL-BONDED-1", "action_kind": "reroute", "steps": ["send C2", "confirm with C1"], "reversible": true, "time_to_effect_hours": 4, "cost_estimate": "extra haulage, small", "risk": "Tilbury capacity is ballpark", "evidence_ids": ["E2", "E4"], "alternative_to": null, "comms_ids": ["C1", "C2"]},
+          {"id": "A_notify_insurer", "title": "Notify insurer of potential loss", "action_kind": "notification", "steps": ["send C5"], "reversible": true, "time_to_effect_hours": 1, "cost_estimate": "none", "risk": "none", "evidence_ids": ["E1"], "alternative_to": null, "comms_ids": ["C5"]},
+          {"id": "A_notify_customers", "title": "Send early notice to House Espresso wholesale accounts", "action_kind": "notification", "steps": ["send C4 to WH-01..03"], "reversible": false, "time_to_effect_hours": 1, "cost_estimate": "none", "risk": "alarming customers if stock turns out undamaged", "evidence_ids": ["E6", "E3"], "alternative_to": null, "comms_ids": ["C4"]}
+        ]
+      }
+    ]
+  },
+
+  "jev_request": {
+    "_endpoint": "POST https://openrouter.ai/api/v1/systemone (TypeSafe-compatible); response field names to be pinned in reference/JEV_VERIFIED.md",
+    "model": "typesafe/jev-1.13-20260917",
+    "state": "<rendered: event, evidence E1-E6 with confidence, analysis, comms summaries, then the 2-3 nearest precedents from precedents.jsonl: ocado-andover-2019, philips-albuquerque-2000-nokia, philips-albuquerque-2000-ericsson>",
+    "questions": {
+      "G1": {
+        "type": "choice",
+        "instructions": "How do we keep House Espresso supplied beyond the 6 days of on-site cover? Choose what an experienced supply chain operator would do now. Escalate on weak signals rather than anchoring on a first estimate; secure scarce capacity before others take it; prefer reversible actions while uncertainty is high; prefer pre-qualified alternatives over new ones.",
+        "criteria": {
+          "G1_a_reblend": "Reblend House Espresso from on-site and Tilbury stock. Reversible, effective in 24h, low cost; risk: taste change.",
+          "G1_b_spot_buy": "Buy 19 t comparable Brazil spot from IMP-03 now. Irreversible, effective in 72h, about 18% premium; risk: stock may be undamaged.",
+          "G1_c_allocate": "Allocate remaining House Espresso to penalty-bearing accounts first. Reversible, effective in 2h; cost: lost sales on WH-03.",
+          "G1_d_wait": "Wait for the operator's damage assessment before acting. No cost now; risk: spot stock taken by others, cover runs down."
+        }
+      },
+      "A_divert_inbound": {"type": "noul", "instructions": "Should we divert inbound container SHP-5512 (due 19 Oct at Felixstowe, booked to the burning unit) to the Tilbury bonded store now?", "criteria": {"true": "Doing this now is clearly warranted by the state.", "false": "This is unnecessary, premature or harmful given the state."}},
+      "A_notify_insurer": {"type": "noul", "instructions": "Should we notify the insurer of a potential loss now?", "criteria": {"true": "Doing this now is clearly warranted by the state.", "false": "This is unnecessary, premature or harmful given the state."}},
+      "A_notify_customers": {"type": "noul", "instructions": "Should we send early notice to the House Espresso wholesale accounts now?", "criteria": {"true": "Doing this now is clearly warranted by the state.", "false": "This is unnecessary, premature or harmful given the state."}},
+      "priority": {
+        "type": "score",
+        "instructions": "How long can this event's decisions wait for a human? Urgency, not stakes.",
+        "criteria": [
+          "low: impact is more than a week away or small; nothing gets worse by waiting a day",
+          "medium: impact within days; waiting a few hours for a person costs little",
+          "high: impact within 24-48h; a person should decide today; hours of delay narrow the options",
+          "critical: options are disappearing within hours - physical loss in progress, capacity others will take, perishable stock; waiting for approval makes the decision moot"
+        ]
+      }
+    }
+  },
+
+  "policy": {
+    "auto_approve_if": "argmax(priority) == critical AND P(critical) >= 0.5",
+    "then_approve": "top option of each choice group; each noul with P(yes) >= 0.6",
+    "else": "all options to the human queue with Jev probabilities shown"
+  },
+
+  "expected": {
+    "_note": "author's hypothesis for the eval; replace with the first real Jev answer",
+    "priority": "critical (fire in progress, inbound container due in 48h, spot stock is contested)",
+    "G1_favoured": "G1_b_spot_buy or G1_a_reblend over G1_d_wait (Nokia over Ericsson)",
+    "noul_true": ["A_divert_inbound", "A_notify_insurer"],
+    "noul_uncertain": ["A_notify_customers"]
+  }
+}
