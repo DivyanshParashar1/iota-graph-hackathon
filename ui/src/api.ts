@@ -346,6 +346,8 @@ export interface Health {
   llm_provider: string | null;
   model: string;
   has_llm: boolean;
+  has_jev?: boolean;
+  jev_model?: string;
   stages: Stage[];
 }
 
@@ -375,6 +377,136 @@ export interface Provenance {
     source: string;
     confidence: string;
   }[];
+}
+
+// ------------------------------------------------------------------ incidents (M8)
+export interface IncidentRow {
+  id: string;
+  kind: string;
+  summary: string;
+  source: string;
+  status: string;
+  priority?: string;
+  auto?: boolean;
+  received_at: string;
+  error?: string;
+  ts: number;
+  updated_at: number;
+}
+
+export interface Evidence {
+  id: string;
+  from_agent: string;
+  claim: string;
+  node_ids: string[];
+  confidence: string;
+}
+
+export interface Metric {
+  name: string;
+  value: number | string;
+  unit: string;
+  basis_evidence_ids: string[];
+}
+
+export interface CommsDraft {
+  id: string;
+  recipient_role: string;
+  recipient_node_id: string | null;
+  channel: string;
+  subject: string;
+  body: string;
+  purpose: string;
+  required_by_option_ids: string[];
+}
+
+export interface Exchange {
+  round: number;
+  expert: string;
+  question: string;
+  why: string;
+  answer: string;
+  ok: boolean;
+  node_ids: string[];
+}
+
+export interface IncidentOption {
+  id: string;
+  title: string;
+  action_kind: string;
+  steps: string[];
+  reversible: boolean;
+  time_to_effect_hours: number | null;
+  cost_estimate: string;
+  risk: string;
+  evidence_ids: string[];
+  alternative_to: string | null;
+  comms_ids: string[];
+  is_wait: boolean;
+  probability: number | null;
+  rank: number | null;
+  status: string | null;
+  reason: string | null;
+}
+
+export interface IncidentGroup {
+  id: string;
+  question: string;
+  mode: "exclusive" | "independent";
+  options: IncidentOption[];
+}
+
+export interface Incident extends IncidentRow {
+  raw: Record<string, unknown>;
+  relevant: { name: string; title: string; p: number; consulted: boolean }[] | null;
+  exchanges: Exchange[] | null;
+  report: { situation: string; evidence: Evidence[]; open_questions: string[] } | null;
+  analysis: {
+    impact_summary: string;
+    metrics: Metric[];
+    time_to_impact_hours: number | null;
+    affected_node_ids: string[];
+    assumptions: string[];
+  } | null;
+  comms: { drafts: CommsDraft[]; notes: string } | null;
+  outcome: {
+    priority: string;
+    priority_probabilities: Record<string, number>;
+    auto: boolean;
+    reason: string;
+    precedents: string[];
+  } | null;
+}
+
+export interface JevCall {
+  id: string;
+  purpose: string;
+  model: string;
+  ms: number;
+  ts: number;
+  answers: Record<string, { type: string; probabilities: Record<string, number>; top: string; confidence: number | null }>;
+  questions: Record<string, { type: string; instructions: string }>;
+  state_chars: number;
+}
+
+export interface Impact {
+  option_id: string;
+  title: string;
+  status: string;
+  nodes: { label: string; id: string; title: string }[];
+  metrics: Metric[];
+  messages: CommsDraft[];
+  takes_effect_in_hours: number | null;
+  effective_at: string | null;
+  reversible: boolean;
+}
+
+export interface IncidentDetail {
+  incident: Incident;
+  groups: IncidentGroup[];
+  jev: JevCall[];
+  approvals: { id: string; option_id: string; actor: string; action: string; note: string; ts: number }[];
+  impact: Impact[];
 }
 
 // ------------------------------------------------------------------ calls
@@ -423,6 +555,16 @@ export const api = {
   importExperts: () => post<{ imported: ExpertRole[] }>("/api/experts/import"),
   askExpert: (id: string, question: string) => post<AskResult>(`/api/experts/${id}/ask`, { question }),
   finishOnboarding: () => post<{ state: SessionState }>("/api/experts/finish"),
+
+  incidents: () => get<{ incidents: IncidentRow[] }>("/api/incidents"),
+  incident: (id: string) => get<IncidentDetail>(`/api/incidents/${encodeURIComponent(id)}`),
+  reportEvent: (event: { summary: string; kind?: string; source?: string }) =>
+    post<{ incident_id: string; status: string }>("/api/incidents", event),
+  approveOption: (id: string, optionId: string, note = "") =>
+    post<IncidentDetail>(`/api/incidents/${encodeURIComponent(id)}/options/${encodeURIComponent(optionId)}/approve`, { note }),
+  rejectOption: (id: string, optionId: string, note = "") =>
+    post<IncidentDetail>(`/api/incidents/${encodeURIComponent(id)}/options/${encodeURIComponent(optionId)}/reject`, { note }),
+  rerunIncident: (id: string) => post<{ incident_id: string; status: string }>(`/api/incidents/${encodeURIComponent(id)}/rerun`),
 };
 
 /** Subscribe to the agent step stream. EventSource cannot send headers, so the tenant goes in the query. */

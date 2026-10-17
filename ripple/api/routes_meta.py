@@ -19,7 +19,7 @@ def health(request: Request):
     s = request.app.state.settings
     return {"ok": True, "db_mode": request.app.state.db.mode, "graphs": request.app.state.db.list_graphs(),
             "llm_provider": s.llm_provider, "model": s.model_name, "has_llm": s.has_llm,
-            "stages": list(STAGES)}
+            "has_jev": s.has_jev, "jev_model": s.jev_model, "stages": list(STAGES)}
 
 
 @router.get("/config")

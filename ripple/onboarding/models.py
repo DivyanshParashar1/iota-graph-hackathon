@@ -450,7 +450,7 @@ class Message(Model):
 
 class AgentStep(Model):
     id: str = ""
-    stage: Stage = "interview"
+    stage: Stage | Literal["incident"] = "interview"  # "incident": the post-onboarding incident pipeline
     agent: str = ""
     kind: str = "llm"  # llm | tool | write | error | stage
     summary: str = ""

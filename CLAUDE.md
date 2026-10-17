@@ -7,7 +7,14 @@ both). v1 (a DataCo control tower) is at commit `04d4bd4` / local tag `v1-dataco
 
 * Setup: `bash scripts/setup_env.sh` (offline from `vendor/`). Use `.venv/bin/python` and `.venv/bin/pytest`.
 * Tests: `.venv/bin/pytest -q` (deterministic, no network) and `.venv/bin/pytest -q -m llm` (real LLM calls,
-  costs money). `-m "llm and slow"` is the full end-to-end onboarding. UI: `cd ui && npm run build`.
+  costs money). `-m "llm and slow"` is the full end-to-end onboarding. `-m jev` calls the real Jev decision
+  model. UI: `cd ui && npm run build`.
+* **Only Jev decides** (M8, `docs/m8_decision_pipeline.md`). Jev is TypeSafe's decision model, not an LLM: it
+  lives in `ripple/decide/`, never in `ripple/llm/`. The incident agents (`ripple/incident/agents/`) generate
+  evidence, drafts and options; any choice - whom to ask, when to stop, which option, how urgent - is a Jev
+  question, and autonomy is policy thresholds on its probabilities. Response shape truth:
+  `reference/JEV_VERIFIED.md`. Tests reach Jev only through `tests/conftest.JevTransport` (the real client
+  over a mock HTTP transport).
 * **No fakes.** There is no scripted agent mode and no fake LLM client. `tests/conftest.StubClient` is a
   transport stub at the provider boundary for route tests - never add logic or prompts to it.
 * Every agent step is a real LLM call through `ripple/llm/`. Default provider: the local `claude` CLI login

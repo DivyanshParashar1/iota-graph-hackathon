@@ -35,8 +35,9 @@ asyncio_mode = "auto"
 markers = [
   "llm: calls a real LLM provider (run with -m llm; needs the `claude` CLI login or a key)",
   "slow: takes more than a few seconds (run with -m slow)",
+  "jev: calls the real Jev decision model (run with -m jev; needs JEV_API_KEY or OPENROUTER_API_KEY)",
 ]
-addopts = "-m 'not slow and not llm' -p no:cacheprovider"
+addopts = "-m 'not slow and not llm and not jev' -p no:cacheprovider"
 
 [tool.ruff]
 line-length = 118   # the width this codebase was written at

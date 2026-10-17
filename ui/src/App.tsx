@@ -4,6 +4,7 @@ import { api, getTenant, setTenant } from "./api";
 import type { Health, TenantRow } from "./api";
 import Experts from "./pages/Experts";
 import Graph from "./pages/Graph";
+import Incidents from "./pages/Incidents";
 import Onboarding from "./pages/Onboarding";
 import Ontology from "./pages/Ontology";
 
@@ -11,6 +12,7 @@ const NAV = [
   ["/", "Onboarding"],
   ["/ontology", "Ontology"],
   ["/experts", "Experts"],
+  ["/incidents", "Incidents"],
   ["/graph", "Graph"],
 ];
 
@@ -83,6 +85,7 @@ export default function App() {
           <Route path="/" element={<Onboarding />} />
           <Route path="/ontology" element={<Ontology />} />
           <Route path="/experts" element={<Experts />} />
+          <Route path="/incidents" element={<Incidents />} />
           <Route path="/graph" element={<Graph />} />
         </Routes>
       </main>

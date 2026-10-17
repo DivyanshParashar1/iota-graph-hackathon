@@ -11,18 +11,22 @@ knowledge of onboarding. Everything that exercises an agent's judgement is a liv
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
+import httpx
 import pytest
 
 # Tests are offline and deterministic whatever .env holds. `claude_code` would otherwise be picked up from the
 # `claude` binary on PATH; live tests re-enable it explicitly.
 os.environ.setdefault("RIPPLE_TEST", "1")
-os.environ.update(RIPPLE_LLM_PROVIDER="none", OPENROUTER_API_KEY="", ANTHROPIC_API_KEY="")
+os.environ.update(RIPPLE_LLM_PROVIDER="none", OPENROUTER_API_KEY="", ANTHROPIC_API_KEY="", JEV_API_KEY="",
+                  RIPPLE_WEBHOOK_SECRET="")
 
 from ripple.config import get_settings
 from ripple.db import TenantScope, close_db, get_db
+from ripple.decide.jev import JevClient, set_jev_client
 from ripple.llm.base import Reply, ToolCall, set_client
 
 REMOTE = os.environ.get("RIPPLE_DB_MODE") == "remote"
@@ -71,6 +75,47 @@ class StubClient:
         else:
             reply.text = str(item)
         return reply
+
+
+class JevTransport:
+    """The Jev counterpart of StubClient: the *real* `JevClient` over an `httpx.MockTransport` that answers
+    with response bodies the test wrote. The client's request building, budget checks and response parsing all
+    run for real; only the network is replaced.
+
+    `script` items are response bodies (dicts), `(status, body)` tuples, or callables that receive the request
+    JSON and return either. The last entry repeats when the script runs out."""
+
+    URL = "https://jev.test/api/v1"
+
+    def __init__(self, script: list[Any] | None = None):
+        self.script = list(script or [{}])
+        self.calls: list[dict] = []
+
+    def load(self, *script: Any) -> JevTransport:
+        self.script = list(script) or [{}]
+        self.calls.clear()
+        return self
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        self.calls.append({"url": str(request.url), "headers": dict(request.headers), "body": body})
+        item = self.script[min(len(self.calls) - 1, len(self.script) - 1)]
+        if callable(item):
+            item = item(body)
+        status, payload = item if isinstance(item, tuple) else (200, item)
+        return httpx.Response(status, json=payload)
+
+    def client(self, model: str = "typesafe/jev-1.13") -> JevClient:
+        return JevClient("test-key", model, self.URL, http=httpx.Client(transport=httpx.MockTransport(self.handler)))
+
+
+@pytest.fixture
+def jev():
+    """A JevTransport whose client is installed as the process-wide Jev for the duration of a test."""
+    t = JevTransport()
+    set_jev_client(t.client())
+    yield t
+    set_jev_client(None)
 
 
 @pytest.fixture

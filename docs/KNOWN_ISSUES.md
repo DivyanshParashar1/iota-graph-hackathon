@@ -39,6 +39,11 @@ the git history of this file at tag/commit `v1-dataco`.
 
 ## Not verified in this session
 
+**M8 (the incident pipeline and Jev) was written without being run**, at the owner's request: the deterministic
+suite, `-m llm -k incident`, `-m jev`, the UI build and the Jev response shape are all unverified. The run list
+is `docs/m8_decision_pipeline.md` §11; the Jev shape gets pinned in `reference/JEV_VERIFIED.md`.
+
+
 | Item | Status | How to verify locally |
 |---|---|---|
 | `Dockerfile` / `docker compose up --build` / `render.yaml` | Updated for v2 (no dataset to copy, no autobuild), **not built or run** — the image build needs PyPI and npm inside Docker, which the build sandbox does not have | `docker compose up --build`, then http://localhost:8000. Claude Code runs on the host, so start the bridge first: `.venv/bin/python -m ripple.claude_code_bridge` |

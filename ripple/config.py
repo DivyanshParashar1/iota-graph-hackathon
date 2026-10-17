@@ -47,6 +47,24 @@ class Settings(BaseSettings):
     ripple_max_upload_mb: int = 25
     ripple_llm_log_dir: str | None = None  # set to capture every LLM request/response as JSON
 
+    # Jev (TypeSafe's decision model, docs/m8_decision_pipeline.md). Not an LLM: it never goes through
+    # ripple/llm. The key defaults to OPENROUTER_API_KEY; point the base URL at https://api.typesafe.ai/v1 with
+    # a TypeSafe key to call it directly.
+    jev_api_key: str | None = None
+    jev_base_url: str = "https://openrouter.ai/api/v1"
+    jev_model: str = "typesafe/jev-1.13"
+    jev_timeout: float = 30
+
+    # Incident pipeline. Every threshold below is policy applied to Jev's probabilities, not a model choice.
+    ripple_webhook_secret: str | None = None  # when set, POST /api/events/* needs X-Ripple-Webhook-Secret
+    ripple_incident_max_rounds: int = 4  # hard cap on orchestrator <-> expert rounds
+    ripple_incident_max_asks: int = 6  # expert questions per round
+    ripple_expert_relevance_min: float = 0.5  # P(relevant) for an expert to be consulted
+    ripple_evidence_sufficient_min: float = 0.6  # P(sufficient) for the Q&A loop to stop early
+    ripple_auto_priority_min: float = 0.5  # P(critical) needed, with critical the top level, to skip a human
+    ripple_auto_noul_min: float = 0.6  # P(yes) for an independent action to be approved in a critical event
+    ripple_auto_approve_wait: bool = True  # in a critical event, a winning "wait" option is approved as a hold
+
     api_cors_origins: str = "http://localhost:5173"
 
     @property
@@ -78,6 +96,15 @@ class Settings(BaseSettings):
             if self.anthropic_api_key:
                 return "anthropic"
         return None
+
+    @property
+    def jev_key(self) -> str | None:
+        """The key Jev is called with: its own, else the OpenRouter key."""
+        return self.jev_api_key or self.openrouter_api_key or None
+
+    @property
+    def has_jev(self) -> bool:
+        return bool(self.jev_key)
 
     @property
     def has_llm(self) -> bool:

@@ -336,7 +336,7 @@ Each ends with tests green and a commit.
 | **M5** | **Expert generator + runtime** | Roles generated with ontology-grounded justification; per-role approve/edit/reject; CRUD page; graph + markdown dual persistence with round-trip; `ExpertAgent` answers a real question from the tenant graph with the minimal read-only tool set |
 | **M6** | **Non-linearity, versioning, re-onboarding** | Jump back from any stage; staleness propagation and re-approval flow; artifact version history visible; re-run onboarding on an existing tenant |
 | **M7** | **Hardening and docs** | Live-LLM suite + rubric run and recorded; generated README/ontology docs; Docker + bridge path verified end to end; `docs/KNOWN_ISSUES.md` current |
-| **M8** | **Main application** | Gated on §10 — not started until the workflow is specified |
+| **M8** | **Incident pipeline + Jev** | Specified in `docs/m8_decision_pipeline.md`: webhook -> orchestrator <-> experts -> analyst ‖ comms -> planner -> Jev -> priority policy -> approvals and live impact. Only Jev decides |
 
 ### 9.1 Open decisions
 
@@ -352,11 +352,14 @@ Each ends with tests green and a commit.
 
 ---
 
-## 10. Out of scope until specified
+## 10. The main application (M8)
 
-The post-onboarding application — what the control tower looks like on a generated ontology, how experts are
-orchestrated, how disruptions/incidents/actions/memory work now that nothing is DataCo-shaped, and which tools
-each expert gets. v1's code for these is archived, not reused. The plan picks up at M8 once you describe it.
+Specified by the owner on 2026-10-17 and recorded in **`docs/m8_decision_pipeline.md`**, which wins over this
+section. In one paragraph: an event arrives by webhook; the orchestrator questions the relevant experts (Jev
+chooses which, and judges when the evidence is enough); the analyst and the comms agent work from the
+orchestrator's report in parallel; the planner proposes decision groups and options without ranking them; Jev,
+TypeSafe's decision model (not an LLM), assigns a probability to every option and a priority to the event;
+`critical` skips human approval, everything else waits in a queue. Every LLM agent only generates.
 
 ---
 
@@ -375,7 +378,7 @@ per milestone group; v1 is preserved at commit `04d4bd4` (local tag `v1-dataco`)
 | M5 | Expert generator + runtime | **done** | `agents/expert_generator.py`, `experts/store.py` (graph + markdown round trip), `experts/runtime.py`, `tools/graph_tools.py` (6 read-only tools) |
 | M6 | Non-linearity, versioning, re-onboarding | **done** | `session.goto` / `reonboard`, `DOWNSTREAM` staleness propagation, artifact version history in the UI |
 | M7 | Hardening and docs | **done** | the live suite + `eval/rubric.md` + `eval/run_rubric.py`; generated README and measured `docs/numbers.md`; `docs/KNOWN_ISSUES.md` current. **Not verified: Docker, remote mode, the bridge path, OpenRouter live** |
-| M8 | Main application | **not started** | gated on §10, as planned |
+| M8 | Incident pipeline + Jev | **built, not yet executed** | `ripple/decide/` (Jev client, compile, policy, precedents, calibrate), `ripple/incident/` (models, agents + prompts, validate, store, pipeline), `api/routes_incidents.py`, `ui/src/pages/Incidents.tsx`, `tests/test_{jev,decide,incident,incident_live}.py`. Written without running anything, at the owner's request: the deterministic suite, the live suites and the UI build are for the owner to run (`docs/m8_decision_pipeline.md` §11) |
 
 ### The open decisions in §9.1, as resolved
 

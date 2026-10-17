@@ -43,9 +43,10 @@ def create_app(settings: Settings | None = None, db: DB | None = None) -> FastAP
     app.state.settings = settings
     app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in settings.api_cors_origins.split(",")],
                        allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-    from ripple.api import routes_experts, routes_meta, routes_onboarding, routes_ontology
+    from ripple.api import routes_experts, routes_incidents, routes_meta, routes_onboarding, routes_ontology
 
-    for r in (routes_meta.router, routes_onboarding.router, routes_ontology.router, routes_experts.router):
+    for r in (routes_meta.router, routes_onboarding.router, routes_ontology.router, routes_experts.router,
+              routes_incidents.router):
         app.include_router(r)
     if UI_DIST.exists():
         app.mount("/assets", StaticFiles(directory=UI_DIST / "assets"), name="assets")

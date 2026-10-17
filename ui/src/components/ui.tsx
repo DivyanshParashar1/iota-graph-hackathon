@@ -69,5 +69,9 @@ export function ErrorLine({ error }: { error: string | null }) {
 }
 
 export const statusColor = (s: string) =>
-  ({ proposed: "bg-amber-700", approved: "bg-sky-700", executed: "bg-emerald-700", rejected: "bg-rose-800", undone: "bg-slate-600", open: "bg-orange-700", closed: "bg-slate-600" })[s] ??
+  ({ proposed: "bg-amber-700", approved: "bg-sky-700", executed: "bg-emerald-700", rejected: "bg-rose-800", undone: "bg-slate-600", open: "bg-orange-700", closed: "bg-slate-600",
+     auto_approved: "bg-emerald-700", pending: "bg-amber-700", not_selected: "bg-slate-700", superseded: "bg-slate-600",
+     awaiting_approval: "bg-amber-700", resolved: "bg-slate-600", failed: "bg-rose-800", received: "bg-violet-800",
+     consulting: "bg-violet-700", analysing: "bg-violet-700", planning: "bg-violet-700", deciding: "bg-violet-700",
+     critical: "bg-rose-700", high: "bg-orange-700", medium: "bg-amber-700", low: "bg-slate-600" } as Record<string, string>)[s] ??
   "bg-slate-700";
