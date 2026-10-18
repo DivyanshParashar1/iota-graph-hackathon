@@ -34,13 +34,11 @@ export function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
 }
 
+/** A person's initials in a hairline square. */
 export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
-  let h = 0;
-  for (const c of name) h = (h * 31 + c.charCodeAt(0)) | 0;
-  const hues = ["#2D72D2", "#238551", "#C87619", "#7961DB", "#00A396", "#D1980B", "#DB2C6F"];
   return (
-    <span className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white"
-          style={{ width: size, height: size, background: hues[Math.abs(h) % hues.length], fontSize: size * 0.38 }}>
+    <span className="inline-flex shrink-0 items-center justify-center border border-line-strong font-medium tracking-wide text-ink"
+          style={{ width: size, height: size, fontSize: size * 0.36 }}>
       {initials(name)}
     </span>
   );
@@ -54,7 +52,6 @@ function Picker({ employees, onPick, onChanged }: { employees: Employee[]; onPic
     <div className="flex min-h-full flex-col">
       <PageHeader
         crumbs={[{ label: "My workspace" }]}
-        icon={<span className="flex h-10 w-10 items-center justify-center rounded-[4px] bg-accent-soft text-accent"><Icon name="users" size={22} /></span>}
         title="Who are you?"
         subtitle="Pick your profile to open a dashboard scoped to your roles and a chat with the agent team."
         right={<Btn kind="primary" icon="sparkle" onClick={() => setAdding(true)}>Add a person</Btn>}
@@ -67,7 +64,7 @@ function Picker({ employees, onPick, onChanged }: { employees: Employee[]; onPic
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {employees.map((e) => (
               <button key={e.id} onClick={() => onPick(e.id)}
-                      className="flex items-start gap-3 rounded-[4px] border border-line bg-panel p-4 text-left transition-colors hover:border-line-strong hover:bg-raised">
+                      className="flex items-start gap-3 border border-line bg-panel p-4 text-left transition-colors hover:border-line-strong hover:bg-raised">
                 <Avatar name={e.name} size={40} />
                 <div className="min-w-0 flex-1">
                   <div className="text-[14px] font-semibold text-ink">{e.name}</div>
@@ -135,9 +132,9 @@ function EmployeeEditor({ employee, onDone }: { employee?: Employee; onDone: (e?
                 const on = picked.includes(r.id);
                 return (
                   <button key={r.id} onClick={() => setPicked(on ? picked.filter((x) => x !== r.id) : [...picked, r.id])}
-                          className={`flex items-start gap-2 rounded-[3px] border px-2.5 py-2 text-left ${on ? "border-accent bg-accent-soft" : "border-line bg-sunken hover:border-line-strong"}`}>
-                    <span className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[2px] border ${on ? "border-accent bg-accent-strong" : "border-line-strong"}`}>
-                      {on && <Icon name="check" size={10} className="text-white" strokeWidth={3} />}
+                          className={`flex items-start gap-2 border px-2.5 py-2 text-left ${on ? "border-ink" : "border-line hover:border-line-strong"}`}>
+                    <span className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center border ${on ? "border-ink bg-ink text-black" : "border-line-strong"}`}>
+                      {on && <Icon name="check" size={10} className="text-black" strokeWidth={3} />}
                     </span>
                     <span className="min-w-0">
                       <span className="block text-[12.5px] font-medium text-ink">{r.title}</span>
@@ -201,7 +198,7 @@ function Dashboard({ employee, onSwitch, onChanged }: { employee: Employee; onSw
               {dash?.focus_types.map((t) => {
                 const s = style(t);
                 return (
-                  <Link key={t} to={`/objects/${encodeURIComponent(t)}`} className="flex items-center gap-2 rounded-[3px] px-2 py-1.5 hover:bg-hover">
+                  <Link key={t} to={`/objects/${encodeURIComponent(t)}`} className="flex items-center gap-2 px-2 py-1.5 hover:bg-hover">
                     <TypeIcon label={t} color={s.color} icon={s.icon} size={22} />
                     <span className="flex-1 text-[12.5px] text-ink">{human(t)}</span>
                     <span className="text-[12px] tabular-nums text-muted">{(dash.counts[t] ?? 0).toLocaleString()}</span>
@@ -240,7 +237,7 @@ function Dashboard({ employee, onSwitch, onChanged }: { employee: Employee; onSw
             {!dash?.incidents.length ? <EmptyState icon="incident" title="No incidents" /> : (
               <ul className="flex flex-col gap-1.5 p-2">
                 {dash.incidents.slice(0, 4).map((inc) => (
-                  <li key={inc.id} className="rounded-[3px] border border-line bg-sunken px-2.5 py-2">
+                  <li key={inc.id} className="border border-line bg-sunken px-2.5 py-2">
                     <Tag intent={statusIntent(inc.status)}>{inc.status.replace(/_/g, " ")}</Tag>
                     <div className="mt-1 text-[12px] leading-snug text-ink">{inc.summary}</div>
                   </li>
@@ -327,7 +324,7 @@ function Chat({ employee, dash, onThreads }: { employee: Employee; dash: WsDashb
   }, [dash.roles]);
 
   return (
-    <section className="flex min-h-[560px] overflow-hidden rounded-[4px] border border-line bg-panel">
+    <section className="flex min-h-[560px] overflow-hidden border border-line bg-panel">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-line md:flex">
         <div className="flex h-9 items-center gap-2 border-b border-line px-3">
           <span className="eyebrow !text-muted">Chats</span>
@@ -337,14 +334,14 @@ function Chat({ employee, dash, onThreads }: { employee: Employee; dash: WsDashb
           {threads.map((t) => (
             <li key={t.id} className="group flex items-center">
               <button onClick={() => setTid(t.id)}
-                      className={`min-w-0 flex-1 truncate rounded-[3px] px-2 py-1.5 text-left text-[12px] ${t.id === tid ? "bg-accent-soft text-ink" : "text-muted hover:bg-hover hover:text-ink"}`}>
+                      className={`min-w-0 flex-1 truncate px-2 py-1.5 text-left text-[12px] ${t.id === tid ? "bg-accent-soft text-ink" : "text-muted hover:bg-hover hover:text-ink"}`}>
                 {t.title || "New chat"}
               </button>
               <button title="Delete chat" onClick={async () => {
                 await api.deleteThread(employee.id, t.id).catch(() => undefined);
                 setThreads((p) => p.filter((x) => x.id !== t.id));
                 if (t.id === tid) { setTid(""); setMessages([]); }
-              }} className="ml-0.5 hidden rounded-[3px] p-1 text-faint hover:bg-hover hover:text-rose-300 group-hover:block">
+              }} className="ml-0.5 hidden p-1 text-faint hover:bg-hover hover:text-rose-300 group-hover:block">
                 <Icon name="close" size={12} />
               </button>
             </li>
@@ -363,9 +360,9 @@ function Chat({ employee, dash, onThreads }: { employee: Employee; dash: WsDashb
         <div ref={scroller} className="min-h-0 flex-1 overflow-auto px-4 py-4">
           {messages.length === 0 && !sending ? (
             <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 py-8 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-900/50 text-violet-300"><Icon name="sparkle" size={24} /></span>
+              <Icon name="sparkle" size={22} className="text-slate-500" strokeWidth={1.3} />
               <div>
-                <div className="text-[16px] font-semibold text-ink">Ask the agent team, {employee.name.split(" ")[0]}</div>
+                <div className="text-[22px] font-light text-ink">Ask the agent team, {employee.name.split(" ")[0]}</div>
                 <div className="mt-1 text-[12.5px] text-muted">
                   The orchestrator splits your question across the expert agents, runs them in parallel against the
                   knowledge graph, and brings back one answer with its sources.
@@ -377,7 +374,7 @@ function Chat({ employee, dash, onThreads }: { employee: Employee; dash: WsDashb
               <div className="flex w-full flex-col gap-1.5">
                 {suggestions.map((s) => (
                   <button key={s} onClick={() => void send(s)}
-                          className="rounded-[4px] border border-line-strong bg-raised px-3 py-2 text-left text-[12.5px] text-body hover:border-accent hover:text-ink">
+                          className="border border-line-strong bg-raised px-3 py-2 text-left text-[12.5px] text-body hover:border-accent hover:text-ink">
                     {s}
                   </button>
                 ))}
@@ -387,7 +384,7 @@ function Chat({ employee, dash, onThreads }: { employee: Employee; dash: WsDashb
             <div className="mx-auto flex max-w-3xl flex-col gap-4">
               {messages.map((m) => m.role === "user" ? (
                 <div key={m.id} className="flex justify-end gap-2">
-                  <div className="max-w-[80%] rounded-[6px] rounded-tr-[2px] bg-accent-strong px-3 py-2 text-[13px] text-white">{m.text}</div>
+                  <div className="max-w-[80%] border border-line-strong px-3.5 py-2.5 text-[13.5px] text-ink">{m.text}</div>
                   <Avatar name={employee.name} size={26} />
                 </div>
               ) : (
@@ -431,13 +428,13 @@ function AssistantMessage({ m }: { m: WsMessage }) {
   const queries = del.reduce((a, d) => a + (d.tool_calls || 0), 0);
   return (
     <div className="flex gap-2">
-      <span className="mt-0.5 flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-violet-900/60 text-violet-300"><Icon name="sparkle" size={13} /></span>
+      <span className="mt-1 h-1.5 w-1.5 shrink-0 bg-violet-400" />
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2 text-[11px] text-faint">
-          <span className="font-semibold text-muted">Orchestrator</span>
+          <span className="micro text-muted">Orchestrator</span>
           {m.payload.ok === false && <Tag intent="warning">incomplete</Tag>}
         </div>
-        <div className="rounded-[6px] rounded-tl-[2px] border border-line bg-sunken px-3.5 py-2.5 text-[13px] text-body">
+        <div className="border-l border-line-strong pl-3.5 text-[13.5px] leading-relaxed text-body">
           <Markdown text={m.text || "(no answer)"} />
         </div>
         {del.length > 0 && (
@@ -464,7 +461,7 @@ function AssistantMessage({ m }: { m: WsMessage }) {
 function DelegationCard({ d }: { d: Delegation }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-[4px] border border-line bg-panel">
+    <div className="border border-line bg-panel">
       <button onClick={() => setOpen(!open)} className="flex w-full items-start gap-2 px-3 py-2 text-left">
         <Icon name="experts" size={14} className="mt-0.5 text-violet-300" />
         <div className="min-w-0 flex-1">
@@ -492,11 +489,9 @@ function LiveTrail({ steps }: { steps: Step[] }) {
   const last = steps.slice(-6);
   return (
     <div className="flex gap-2">
-      <span className="mt-0.5 flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-violet-900/60 text-violet-300">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-violet-300" />
-      </span>
-      <div className="min-w-0 flex-1 rounded-[6px] border border-violet-900 bg-violet-950/20 px-3 py-2.5">
-        <div className="text-[12.5px] text-violet-200">
+      <span className="mt-1 h-1.5 w-1.5 shrink-0 animate-pulse bg-violet-400" />
+      <div className="min-w-0 flex-1 border-l border-line-strong pl-3.5">
+        <div className="text-[12.5px] text-muted">
           {agents.length ? <>Working with {agents.length} expert agent{agents.length === 1 ? "" : "s"}: {agents.map((a) => a.replace(/_/g, " ")).join(", ")}</> : "The orchestrator is planning…"}
         </div>
         {last.length > 0 && (

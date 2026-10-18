@@ -29,7 +29,7 @@ export default function Thread({
   }, [messages.length, busy]);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-6">
       {messages.map((m) => (
         <Bubble key={m.id} m={m}>
           {m.kind === "form" && formOf(m) ? (
@@ -54,7 +54,7 @@ export default function Thread({
       ))}
       {busy && (
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
+          <span className="h-2 w-2 animate-pulse bg-sky-500" />
           the agent is working…
         </div>
       )}
@@ -70,24 +70,25 @@ function Bubble({ m, children }: { m: ChatMessage; children?: React.ReactNode })
   if (m.role === "system") {
     return (
       <div className="flex items-center gap-2 text-[11px] text-slate-500">
-        <span className="h-px flex-1 bg-slate-800" />
-        <span>{m.text}</span>
+        <span className="h-px flex-1 bg-line" />
+        <span className="micro">{m.text}</span>
         <span className="h-px flex-1 bg-slate-800" />
       </div>
     );
   }
   const mine = m.role === "user";
   return (
-    <div className={`flex gap-2 ${mine ? "justify-end" : ""}`}>
-      {!mine && (
-        <div className={`mt-0.5 h-6 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-white ${agentColor(m.agent)}`}>
-          {m.agent || "ripple"}
-        </div>
-      )}
-      <div className={`max-w-[85%] min-w-0 ${mine ? "order-first" : ""}`}>
+    <div className={`flex ${mine ? "justify-end" : ""}`}>
+      <div className={`min-w-0 ${mine ? "max-w-[80%]" : "max-w-[92%]"}`}>
+        {!mine && (
+          <div className="micro mb-1.5 flex items-center gap-1.5 text-muted">
+            <span className={`h-1.5 w-1.5 ${agentColor(m.agent)}`} />
+            {(m.agent || "ripple").replace(/_/g, " ")}
+          </div>
+        )}
         <div
-          className={`rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
-            mine ? "bg-sky-900/50 text-sky-50" : "bg-slate-900 text-slate-100"
+          className={`whitespace-pre-wrap text-[13.5px] leading-relaxed ${
+            mine ? "border border-line-strong px-3.5 py-2.5 text-ink" : "border-l border-line-strong pl-3.5 text-body"
           }`}
         >
           {m.kind === "attachment" ? (
@@ -100,7 +101,7 @@ function Bubble({ m, children }: { m: ChatMessage; children?: React.ReactNode })
           )}
         </div>
         {children && <div className="mt-2">{children}</div>}
-        <div className="mt-1 text-[10px] text-slate-600">
+        <div className={`mt-1.5 text-[10.5px] text-faint ${mine ? "text-right" : "pl-3.5"}`}>
           {STAGE_LABELS[m.stage] ?? m.stage} · {new Date(m.ts).toLocaleTimeString()}
         </div>
       </div>

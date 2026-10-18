@@ -31,7 +31,6 @@ export default function Objects() {
     <div className="flex h-full min-h-[600px] flex-col">
       <PageHeader
         crumbs={[{ label: "Object explorer", to: "/objects" }, ...(type ? [{ label: human(type.label), to: id ? `/objects/${encodeURIComponent(type.label)}` : undefined }] : []), ...(id ? [{ label: id }] : [])]}
-        icon={<span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-accent-soft text-accent"><Icon name="table" size={20} /></span>}
         title={type ? `${human(type.label)} objects` : "Object explorer"}
         subtitle={type ? type.description : `${total.toLocaleString()} objects across ${spec.types.length} object types. Pick a type, or press / to search everything.`}
       />
@@ -43,7 +42,7 @@ export default function Objects() {
               const active = t.label === label;
               return (
                 <button key={t.label} onClick={() => nav(`/objects/${encodeURIComponent(t.label)}`)}
-                        className={`flex w-full items-center gap-2 rounded-[3px] px-2 py-1.5 text-left hover:bg-hover ${active ? "bg-accent-soft shadow-[inset_2px_0_0] shadow-accent" : ""}`}>
+                        className={`flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-hover ${active ? "bg-accent-soft shadow-[inset_2px_0_0] shadow-accent" : ""}`}>
                   <TypeIcon label={t.label} color={s.color} icon={s.icon} size={22} />
                   <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">{human(t.label)}</span>
                   <span className="text-[11px] tabular-nums text-muted">{(counts[t.label] ?? 0).toLocaleString()}</span>
@@ -59,7 +58,7 @@ export default function Objects() {
               const s = style(t.label);
               return (
                 <button key={t.label} onClick={() => nav(`/objects/${encodeURIComponent(t.label)}`)}
-                        className="group flex flex-col gap-2 rounded-[4px] border border-line bg-panel p-3 text-left transition-colors hover:border-line-strong hover:bg-raised">
+                        className="group flex flex-col gap-2 border border-line bg-panel p-3 text-left transition-colors hover:border-line-strong hover:bg-raised">
                   <div className="flex items-center gap-2.5">
                     <TypeIcon label={t.label} color={s.color} icon={s.icon} size={30} />
                     <div className="min-w-0 flex-1">
@@ -68,7 +67,7 @@ export default function Objects() {
                     </div>
                     <div className="text-right">
                       <div className="text-[18px] font-semibold tabular-nums text-ink">{(counts[t.label] ?? 0).toLocaleString()}</div>
-                      <div className="text-[10px] uppercase tracking-wide text-faint">objects</div>
+                      <div className="eyebrow !text-[9.5px]">objects</div>
                     </div>
                   </div>
                   <p className="line-clamp-2 text-[12px] text-muted">{t.description}</p>
@@ -78,12 +77,12 @@ export default function Objects() {
           </div>
         ) : (
           <div className={`grid min-h-0 gap-3 ${id ? "xl:grid-cols-[minmax(0,1fr)_minmax(420px,44%)]" : ""}`}>
-            <section className={`min-h-[420px] overflow-hidden rounded-[4px] border border-line bg-panel ${id ? "hidden xl:block" : ""}`}>
+            <section className={`min-h-[420px] overflow-hidden border border-line bg-panel ${id ? "hidden xl:block" : ""}`}>
               <ObjectTable type={type} className="h-full" selectedId={id} maxColumns={id ? 3 : 6}
                            onOpen={(oid) => nav(`/objects/${encodeURIComponent(type.label)}/${encodeURIComponent(oid)}`)} />
             </section>
             {id && (
-              <section className="min-h-[520px] overflow-hidden rounded-[4px] border border-line">
+              <section className="min-h-[520px] overflow-hidden border border-line">
                 <ObjectView key={`${type.label}/${id}`} label={type.label} id={id}
                             onClose={() => nav(`/objects/${encodeURIComponent(type.label)}`)} />
               </section>

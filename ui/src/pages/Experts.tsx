@@ -65,7 +65,6 @@ export default function Experts() {
     <div className="flex h-full flex-col">
       <PageHeader
         crumbs={[{ label: "Experts" }]}
-        icon={<span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-violet-900/60 text-violet-300"><Icon name="experts" size={20} /></span>}
         title="Expert roles"
         subtitle="Agents invented for this supply chain. Each reasons over its focus types in the approved ontology."
         right={<>
@@ -233,7 +232,7 @@ function RoleCard({
           </Btn>
         </div>
         {open && (
-          <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded bg-slate-950 p-2 text-[11px] text-slate-300">
+          <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap bg-slate-950 p-2 text-[11px] text-slate-300">
             {r.system_prompt}
           </pre>
         )}
@@ -244,7 +243,7 @@ function RoleCard({
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void ask()}
               placeholder={r.playbook[0]?.split("?")[0] ? `${r.playbook[0].split("?")[0]}?` : "Ask this expert…"}
-              className="w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100 focus:border-sky-600 focus:outline-none"
+              className="w-full border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100 focus:border-sky-600 focus:outline-none"
             />
             <Btn onClick={ask} disabled={asking || !question.trim()}>
               {asking ? "…" : "ask"}
@@ -252,7 +251,7 @@ function RoleCard({
           </div>
           <ErrorLine error={askError} />
           {answer && (
-            <div className="mt-2 rounded bg-slate-950 p-2">
+            <div className="mt-2 bg-slate-950 p-2">
               <p className="whitespace-pre-wrap text-xs text-slate-200">{answer.text || answer.reason}</p>
               <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-slate-500">
                 <span>{answer.turns} turns</span>
@@ -289,7 +288,7 @@ function RoleEditor({
   onCancel: () => void;
 }) {
   const [r, setR] = useState<Partial<ExpertRole>>(role);
-  const cell = "w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100";
+  const cell = "w-full border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100";
   const set = (k: keyof ExpertRole, v: unknown) => setR((p) => ({ ...p, [k]: v }));
   return (
     <Card title={r.id ? `Edit ${r.name}` : "New role"}>
@@ -329,7 +328,7 @@ function RoleEditor({
                   onClick={() =>
                     set("focus_types", on ? (r.focus_types ?? []).filter((x) => x !== t) : [...(r.focus_types ?? []), t])
                   }
-                  className={`rounded px-2 py-0.5 text-xs ${on ? "bg-sky-700 text-white" : "bg-slate-800 text-slate-300"}`}
+                  className={`px-2 py-0.5 text-xs border ${on ? "border-ink text-ink" : "border-line-strong text-muted hover:text-ink"}`}
                 >
                   {t}
                 </button>

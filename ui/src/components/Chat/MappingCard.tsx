@@ -23,7 +23,7 @@ export default function MappingCard({
   const usable = mappings.filter((m) => byId.has(m.field_id) && attachments.some((a) => a.id === m.attachment_id));
   if (!usable.length) return null;
   return (
-    <div className="rounded-lg border border-sky-900 bg-sky-950/20 p-3">
+    <div className="border border-line-strong border-t-sky-400 p-4">
       <div className="mb-2 text-xs font-semibold text-sky-200">Answer these from a file you uploaded?</div>
       <div className="flex flex-col gap-2">
         {usable.map((m) => (
@@ -70,7 +70,7 @@ function Row({
   );
   const [state, setState] = useState<"" | "busy" | "done">("");
   const [error, setError] = useState<string | null>(null);
-  const select = "rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[11px] text-slate-100";
+  const select = "border border-slate-700 bg-slate-950 px-1 py-0.5 text-[11px] text-slate-100";
 
   const apply = async () => {
     setState("busy");
@@ -90,7 +90,7 @@ function Row({
   };
 
   return (
-    <div className="rounded bg-slate-950/60 p-2">
+    <div className="bg-slate-950/60 p-2">
       <div className="mb-1 flex flex-wrap items-center gap-1.5 text-xs">
         <span className="text-slate-200">{field.label}</span>
         <span className="text-slate-600">from</span>

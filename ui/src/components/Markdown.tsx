@@ -17,7 +17,7 @@ function inline(text: string, key: string): ReactNode[] {
     ID_RE.lastIndex = 0;
     while ((mm = ID_RE.exec(s))) {
       if (mm.index > l) out.push(s.slice(l, mm.index));
-      out.push(<span key={`${key}-id-${i++}`} className="rounded-[3px] bg-raised px-1 font-mono text-[11.5px] text-sky-200">{mm[1]}</span>);
+      out.push(<span key={`${key}-id-${i++}`} className="bg-raised px-1 font-mono text-[11.5px] text-sky-200">{mm[1]}</span>);
       l = mm.index + mm[0].length;
     }
     if (l < s.length) out.push(s.slice(l));
@@ -26,7 +26,7 @@ function inline(text: string, key: string): ReactNode[] {
     if (m.index > last) pushIds(text.slice(last, m.index));
     const tok = m[0];
     if (tok.startsWith("**")) out.push(<strong key={`${key}-b-${i++}`} className="font-semibold text-ink">{tok.slice(2, -2)}</strong>);
-    else out.push(<code key={`${key}-c-${i++}`} className="rounded-[3px] bg-raised px-1 font-mono text-[11.5px]">{tok.slice(1, -1)}</code>);
+    else out.push(<code key={`${key}-c-${i++}`} className="bg-raised px-1 font-mono text-[11.5px]">{tok.slice(1, -1)}</code>);
     last = m.index + tok.length;
   }
   if (last < text.length) pushIds(text.slice(last));
@@ -62,7 +62,7 @@ export default function Markdown({ text, className = "" }: { text: string; class
     } else if (head) {
       flushPara();
       flushList();
-      blocks.push(<div key={`h${n++}`} className="pt-1 text-[12.5px] font-semibold uppercase tracking-wide text-muted">{inline(head[1], `h${n}`)}</div>);
+      blocks.push(<div key={`h${n++}`} className="micro pt-1 text-slate-300">{inline(head[1], `h${n}`)}</div>);
     } else if (bullet || num) {
       flushPara();
       const ordered = !!num;

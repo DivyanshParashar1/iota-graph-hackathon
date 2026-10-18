@@ -10,7 +10,7 @@ const visible = (f: FormField, values: Values): boolean =>
   !f.show_if?.field || values[f.show_if.field] === f.show_if.equals;
 
 const input =
-  "w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-slate-100 placeholder:text-slate-600 focus:border-sky-600 focus:outline-none";
+  "w-full border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-slate-100 placeholder:text-slate-600 focus:border-sky-600 focus:outline-none";
 
 /** One form round, rendered inside the chat thread. Every field autosaves as it loses focus. */
 export default function InlineForm({
@@ -91,7 +91,7 @@ export default function InlineForm({
   };
 
   return (
-    <div className="rounded-lg border border-amber-900/60 bg-amber-950/10 p-3">
+    <div className="border border-line-strong border-t-amber-400 p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-sm font-semibold text-amber-200">{form.title}</span>
         <Chip color="bg-amber-900">round {form.round}</Chip>
@@ -169,7 +169,7 @@ function Field({
           <button
             type="button"
             onClick={() => onBallpark(!ballpark)}
-            className={`ml-auto rounded px-1.5 py-0.5 text-[11px] ${ballpark ? "bg-amber-800 text-amber-100" : "bg-slate-800 text-slate-400"}`}
+            className={`ml-auto px-1.5 py-0.5 text-[11px] border ${ballpark ? "border-amber-400 text-amber-300" : "border-line-strong text-muted hover:text-ink"}`}
             title="mark this answer as a ballpark rather than an exact figure"
           >
             ballpark
@@ -236,7 +236,7 @@ function Control({
                   onChange(on ? list.filter((x) => x !== o) : [...list, o]);
                   setTimeout(onBlur, 0);
                 }}
-                className={`rounded px-2 py-0.5 text-xs ${on ? "bg-sky-700 text-white" : "bg-slate-800 text-slate-300"}`}
+                className={`px-2 py-0.5 text-xs border ${on ? "border-ink text-ink" : "border-line-strong text-muted hover:text-ink"}`}
               >
                 {o}
               </button>
@@ -309,10 +309,10 @@ function GroupTable({
     setTimeout(onBlur, 0);
   };
   return (
-    <div className="overflow-x-auto rounded border border-slate-800">
+    <div className="overflow-x-auto border border-slate-800">
       <table className="w-full text-xs">
         <thead>
-          <tr className="bg-slate-900/80 text-left text-slate-400">
+          <tr className="border-b border-line text-left text-faint">
             {cols.map((c) => (
               <th key={c.id} className="px-2 py-1 font-medium">
                 {c.label}
@@ -330,7 +330,7 @@ function GroupTable({
                   <input
                     disabled={readOnly}
                     onBlur={onBlur}
-                    className="w-full min-w-24 rounded border border-slate-800 bg-slate-950 px-1.5 py-0.5 text-xs text-slate-100 focus:border-sky-600 focus:outline-none"
+                    className="w-full min-w-24 border border-slate-800 bg-slate-950 px-1.5 py-0.5 text-xs text-slate-100 focus:border-sky-600 focus:outline-none"
                     value={r[c.id] === undefined || r[c.id] === null ? "" : String(r[c.id])}
                     placeholder={c.placeholder || c.example}
                     onChange={(e) => setCell(i, c.id, e.target.value)}

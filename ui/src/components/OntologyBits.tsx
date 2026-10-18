@@ -15,7 +15,7 @@ export function TypeRef({ label, text, style }: { label: string; text?: string; 
   const s = style(label);
   return (
     <Link to={`/ontology/types/${encodeURIComponent(label)}`}
-          className="inline-flex items-baseline gap-1 rounded-[2px] font-semibold hover:underline" style={{ color: s.color }}>
+          className="inline-flex items-baseline gap-1 font-semibold hover:underline" style={{ color: s.color }}>
       {text ?? human(label)}
     </Link>
   );
@@ -37,7 +37,7 @@ export function LinkChip({ rel, style, onClick, active }: {
   const t = style(rel.to);
   return (
     <button onClick={onClick}
-            className={`flex w-full items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-left hover:bg-hover ${active ? "bg-accent-soft shadow-[inset_2px_0_0] shadow-accent" : ""}`}>
+            className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-hover ${active ? "bg-accent-soft shadow-[inset_2px_0_0] shadow-accent" : ""}`}>
       <TypeIcon label={rel.from} color={f.color} icon={f.icon} size={18} />
       <span className="flex min-w-0 flex-1 items-center gap-1">
         <span className="h-px w-2 bg-slate-600" />
@@ -90,7 +90,7 @@ export function TypeInspector({ type, spec, counts, style, onOpen, onSelectLink 
               {[...out, ...inc].map((r) => (
                 <li key={relKey(r)} className="flex gap-2 text-[12px]">
                   <button onClick={() => onSelectLink(r)} title="Inspect this link type"
-                          className="mt-0.5 h-fit shrink-0 rounded-[2px] border border-line-strong bg-raised px-1 font-mono text-[10px] text-muted hover:border-accent hover:text-ink">
+                          className="mt-0.5 h-fit shrink-0 border border-line-strong bg-raised px-1 font-mono text-[10px] text-muted hover:border-accent hover:text-ink">
                     {r.type}
                   </button>
                   <SentenceView rel={r} style={style} />
@@ -101,7 +101,7 @@ export function TypeInspector({ type, spec, counts, style, onOpen, onSelectLink 
         )}
         <div>
           <div className="eyebrow mb-1.5">Properties</div>
-          <ul className="divide-y divide-line rounded-[3px] border border-line">
+          <ul className="divide-y divide-line border border-line">
             {type.properties.map((p) => (
               <li key={p.name} className="px-2 py-1.5">
                 <div className="flex items-center gap-1.5">
@@ -138,7 +138,7 @@ export function LinkInspector({ rel, counts, style, onClose }: {
           </Link>
           <span className="flex flex-1 items-center">
             <span className="h-px flex-1 bg-slate-600" />
-            <span className="mx-1 rounded-[3px] border border-sky-800 bg-accent-soft px-1.5 py-0.5 font-mono text-[11px] text-sky-200">{rel.type}</span>
+            <span className="mx-1 border border-sky-800 bg-accent-soft px-1.5 py-0.5 font-mono text-[11px] text-sky-200">{rel.type}</span>
             <span className="h-px flex-1 bg-slate-600" />
             <Icon name="chevronRight" size={12} className="-ml-1 text-slate-500" />
           </span>
@@ -148,7 +148,7 @@ export function LinkInspector({ rel, counts, style, onClose }: {
         </div>
       </div>
       <div className="flex flex-col gap-3 p-3">
-        <div className="rounded-[3px] border border-line bg-sunken p-2.5 text-[13px]">
+        <div className="border border-line bg-sunken p-2.5 text-[13px]">
           <SentenceView rel={rel} style={style} />
         </div>
         {rel.description && <p className="text-[12.5px] leading-relaxed text-body">{rel.description}</p>}
@@ -160,7 +160,7 @@ export function LinkInspector({ rel, counts, style, onClose }: {
         {rel.properties.length > 0 && (
           <div>
             <div className="eyebrow mb-1.5">Properties on the link</div>
-            <ul className="divide-y divide-line rounded-[3px] border border-line">
+            <ul className="divide-y divide-line border border-line">
               {rel.properties.map((p) => (
                 <li key={p.name} className="px-2 py-1.5">
                   <div className="flex items-center gap-2">
@@ -180,8 +180,8 @@ export function LinkInspector({ rel, counts, style, onClose }: {
 
 function MiniStat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-[3px] border border-line bg-sunken px-2 py-1.5">
-      <div className="text-[10px] uppercase tracking-wide text-faint">{label}</div>
+    <div className="border border-line bg-sunken px-2 py-1.5">
+      <div className="eyebrow !text-[9.5px]">{label}</div>
       <div className="text-[15px] font-semibold tabular-nums text-ink">{value}</div>
     </div>
   );

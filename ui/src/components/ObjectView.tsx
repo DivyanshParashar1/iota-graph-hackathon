@@ -106,7 +106,7 @@ export default function ObjectView({ label, id, onClose, initialTab = "propertie
                         <li key={o.id}>
                           <button onClick={() => nav(objUrl(o.label, o.id))}
                                   className="group flex w-full items-center gap-2 px-4 py-1.5 text-left hover:bg-hover">
-                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: gs.color }} />
+                            <span className="h-1.5 w-1.5" style={{ background: gs.color }} />
                             <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink">{o.title}</span>
                             <span className="font-mono text-[10.5px] text-faint">{o.id}</span>
                             <Icon name="chevronRight" size={12} className="text-slate-600 group-hover:text-muted" />
@@ -132,12 +132,12 @@ export default function ObjectView({ label, id, onClose, initialTab = "propertie
                     <Icon name={p.source_label === "_Attachment" ? "document" : "chat"} size={14} className="text-faint" />
                     <span className="text-[12.5px] font-medium text-ink">{p.source_ref || p.source_id}</span>
                     <span className="font-mono text-[10.5px] text-faint">{p.source_id}</span>
-                    <span className={`ml-auto rounded-[3px] px-1.5 py-px text-[10.5px] text-slate-100 ${CONFIDENCE_COLORS[p.confidence] ?? "bg-raised"}`}>{p.confidence}</span>
+                    <span className={`ml-auto px-1.5 py-px text-[10.5px] text-slate-100 ${CONFIDENCE_COLORS[p.confidence] ?? "bg-raised"}`}>{p.confidence}</span>
                   </div>
                   <div className="mt-1 text-[11.5px] text-muted">
                     {p.source_label === "_Attachment" ? "Uploaded file" : "Answer in the onboarding data pack"} · source: {p.source}
                   </div>
-                  {p.source_value && <pre className="mt-1.5 max-h-28 overflow-auto rounded-[3px] bg-sunken p-2 font-mono text-[11px] text-body">{p.source_value}</pre>}
+                  {p.source_value && <pre className="mt-1.5 max-h-28 overflow-auto bg-sunken p-2 font-mono text-[11px] text-body">{p.source_value}</pre>}
                 </li>
               ))}
             </ul>
@@ -216,9 +216,9 @@ function SearchAround({ root }: { root: ObjectDetail }) {
       <GraphView nodes={nodeList} links={linkList} labelWith="title" selectedId={selected} nodeRadius={8}
                  charge={-420} linkDistance={80}
                  onSelect={(n) => void expand(n)} onOpen={(n) => nav(objUrl(n.label, n.id))} />
-      <div className="pointer-events-none absolute bottom-2 left-2 right-12 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[3px] border border-line bg-panel/90 px-2 py-1 text-[10.5px] text-faint">
+      <div className="pointer-events-none absolute bottom-2 left-2 right-12 flex flex-wrap items-center gap-x-3 gap-y-1 border border-line bg-panel/90 px-2 py-1 text-[10.5px] text-faint">
         {legend.map((l) => (
-          <span key={l} className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: style(l).color }} />{human(l)}</span>
+          <span key={l} className="flex items-center gap-1"><span className="h-2 w-2" style={{ background: style(l).color }} />{human(l)}</span>
         ))}
         <span className="ml-auto">{busy ? "searching around…" : "click: search around · double-click: open"}</span>
       </div>

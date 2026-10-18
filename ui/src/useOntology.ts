@@ -61,7 +61,7 @@ export function useOntology() {
   const spec = view?.spec ?? null;
   const styles = useMemo(() => styleMap(spec), [spec]);
   const typeMap = useMemo(() => Object.fromEntries((spec?.types ?? []).map((t) => [t.label, t])) as Record<string, TypeSpec>, [spec]);
-  const style = useCallback((label: string): TypeStyle => styles[label] ?? { color: "#8F99A8", icon: iconFor("", label) }, [styles]);
+  const style = useCallback((label: string): TypeStyle => styles[label] ?? { color: "#838C98", icon: iconFor("", label) }, [styles]);
 
   return { view, spec, error, loading, reload, styles, style, typeMap };
 }

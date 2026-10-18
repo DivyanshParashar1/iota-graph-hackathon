@@ -36,19 +36,19 @@ type N = ViewNode;
 type L = { type: string; badge?: string; key?: string; curvature?: number };
 
 const C = {
-  bg: "#111418",
-  grid: "rgba(64,72,84,0.22)",
-  ring: "#1c2127",
-  edge: "#5f6b7c",
-  edgeHot: "#abb3bf",
-  edgeDim: "rgba(64,72,84,0.35)",
+  bg: "#0a0c0e",
+  grid: "rgba(91,155,243,0.06)",
+  ring: "#14171b",
+  edge: "#5f6873",
+  edgeHot: "#aab2bc",
+  edgeDim: "rgba(43,49,56,0.5)",
   edgeDense: "rgba(115,128,145,0.28)",
-  text: "#e5e8eb",
-  textDim: "#5f6b7c",
-  pill: "rgba(17,20,24,0.88)",
-  pillLine: "#404854",
-  select: "#4c90f0",
-  linkText: "#abb3bf",
+  text: "#e6e9ed",
+  textDim: "#5f6873",
+  pill: "rgba(10,12,14,0.9)",
+  pillLine: "#2b3138",
+  select: "#5b9bf3",
+  linkText: "#aab2bc",
 };
 
 interface Props {
@@ -301,7 +301,7 @@ export default function GraphView({
           ctx.lineWidth = Math.max(1, 1.6 / Math.sqrt(scale));
           ctx.strokeStyle = "rgba(17,20,24,0.9)";
           ctx.stroke();
-          drawIcon(ctx, iconFor(n.icon, n.label), n.x, n.y, r * 1.18, "#111418", 2.1);
+          drawIcon(ctx, iconFor(n.icon, n.label), n.x, n.y, r * 1.18, "#0a0c0e", 2.1);
 
           const zoomedIn = nodes.length <= 30 || r * scale >= 13;
           if (showLabels && (zoomedIn || id === focus || id === selectedId)) {
@@ -374,7 +374,7 @@ export default function GraphView({
         }}
       />
       {toolbar && (
-        <div className="absolute right-2 top-2 flex flex-col overflow-hidden rounded-[3px] border border-line-strong bg-panel/95 shadow-lg shadow-black/30">
+        <div className="absolute right-2 top-2 flex flex-col overflow-hidden border border-line-strong bg-panel/95 shadow-lg shadow-black/30">
           <ToolBtn icon="fit" title="Fit to screen" onClick={() => fg.current?.zoomToFit(400, 50)} />
           <ToolBtn icon="tag" title={showLabels ? "Hide node labels" : "Show node labels"} active={showLabels} onClick={() => setShowLabels(!showLabels)} />
           <ToolBtn icon="link" title={showLinkLabels ? "Hide link names" : "Show link names"} active={showLinkLabels} onClick={() => setShowLinkLabels(!showLinkLabels)} />

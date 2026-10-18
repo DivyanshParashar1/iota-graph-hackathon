@@ -97,7 +97,7 @@ export default function ObjectTable({ type, selectedId, onOpen, maxColumns = 6, 
                     return (
                       <Td key={c.name} right={num} className={c.type === "enum" ? "" : "text-body"}>
                         {c.type === "enum" && v ? (
-                          <span className="rounded-[3px] bg-raised px-1.5 py-px text-[11px] text-body">{String(v)}</span>
+                          <span className="bg-raised px-1.5 py-px text-[11px] text-body">{String(v)}</span>
                         ) : formatValue(v, c.unit, c.type)}
                       </Td>
                     );

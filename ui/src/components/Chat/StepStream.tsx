@@ -18,9 +18,9 @@ export default function StepStream({ steps, height = 420 }: { steps: Step[]; hei
     <div className="overflow-y-auto font-mono text-[11px] leading-relaxed" style={{ maxHeight: height }}>
       {!recent.length && <div className="text-slate-600">no agent activity yet</div>}
       {recent.map((s) => (
-        <div key={`${s.seq}-${s.ts}`} className="flex gap-1.5 border-b border-slate-900 py-1">
+        <div key={`${s.seq}-${s.ts}`} className="flex gap-1.5 border-b border-line py-1">
           <span className="w-12 shrink-0 text-slate-600">{new Date(s.ts).toLocaleTimeString().slice(0, 8)}</span>
-          <span className={`h-4 shrink-0 rounded px-1 text-[10px] text-white ${agentColor(s.agent)}`}>{s.agent}</span>
+          <span className="flex shrink-0 items-center gap-1 text-muted"><span className={`h-1.5 w-1.5 ${agentColor(s.agent)}`} />{s.agent}</span>
           <span className={`shrink-0 ${KIND_TONE[s.kind] ?? "text-slate-400"}`}>{s.kind}</span>
           <span className="min-w-0 break-words text-slate-300">{s.summary}</span>
         </div>

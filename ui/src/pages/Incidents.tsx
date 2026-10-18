@@ -12,8 +12,8 @@ const pct = (p: number | null | undefined) => (p == null ? "-" : `${Math.round(p
 
 function Bar({ p, tone = "bg-sky-500" }: { p: number | null | undefined; tone?: string }) {
   return (
-    <div className="h-1.5 w-full rounded bg-slate-800">
-      <div className={`h-1.5 rounded ${tone}`} style={{ width: `${Math.round((p ?? 0) * 100)}%` }} />
+    <div className="h-[2px] w-full bg-line">
+      <div className={`h-full ${tone}`} style={{ width: `${Math.round((p ?? 0) * 100)}%` }} />
     </div>
   );
 }
@@ -117,7 +117,6 @@ export default function Incidents() {
     <div className="flex h-full flex-col">
     <PageHeader
       crumbs={[{ label: "Incidents" }]}
-      icon={<span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-danger-soft text-rose-300"><Icon name="incident" size={20} /></span>}
       title="Incidents"
       subtitle="Events coming in from the supply chain, worked by the expert agents and decided by Jev."
     />
@@ -154,7 +153,7 @@ export default function Incidents() {
               <li key={r.id}>
                 <button
                   onClick={() => setOpen(r.id)}
-                  className={`w-full rounded p-2 text-left text-xs ${open === r.id ? "bg-slate-800" : "hover:bg-slate-800/60"}`}
+                  className={`w-full p-2 text-left text-xs border-l ${open === r.id ? "border-ink bg-white/[0.03]" : "border-transparent hover:border-line-strong"}`}
                 >
                   <div className="flex flex-wrap items-center gap-1">
                     <Chip color={statusColor(r.status)}>{r.status}</Chip>
@@ -218,7 +217,7 @@ function IncidentView({
         <div className="mt-1 text-xs text-slate-500">
           {inc.kind} · {inc.source} · {inc.received_at}
         </div>
-        {inc.error && <div className="mt-2 rounded bg-rose-950 p-2 text-xs text-rose-200">{inc.error}</div>}
+        {inc.error && <div className="mt-2"><ErrorLine error={inc.error} /></div>}
         {out && (
           <div className="mt-3 grid gap-1">
             <div className="text-xs text-slate-400">Jev's priority: {out.reason}</div>
@@ -244,7 +243,7 @@ function IncidentView({
         <Card title="Approved: live impact">
           <div className="flex flex-col gap-3">
             {d.impact.map((i) => (
-              <div key={i.option_id} className="rounded bg-slate-950/60 p-2 text-xs">
+              <div key={i.option_id} className="border-l border-line-strong py-1 pl-3 text-xs">
                 <div className="flex flex-wrap items-center gap-2">
                   <Chip color={statusColor(i.status)}>{i.status}</Chip>
                   <span className="font-medium text-slate-200">{i.title}</span>
@@ -325,7 +324,7 @@ function IncidentView({
               <summary className="cursor-pointer text-slate-400">questions and answers ({inc.exchanges.length})</summary>
               <div className="mt-2 flex flex-col gap-2">
                 {inc.exchanges.map((x, i) => (
-                  <div key={i} className="rounded bg-slate-950/60 p-2">
+                  <div key={i} className="border-l border-line-strong py-1 pl-3">
                     <div className="text-slate-500">
                       round {x.round} · {x.expert}
                       {!x.ok && " · could not answer"}
@@ -344,7 +343,7 @@ function IncidentView({
         <Card title="Drafted messages (sent only with their option)">
           <div className="flex flex-col gap-2 text-xs">
             {inc.comms.drafts.map((m) => (
-              <details key={m.id} className="rounded bg-slate-950/60 p-2">
+              <details key={m.id} className="border-l border-line-strong py-1 pl-3">
                 <summary className="cursor-pointer">
                   <span className="font-mono text-slate-500">{m.id}</span> {m.recipient_role} · {m.channel} ·{" "}
                   <span className="text-slate-200">{m.subject}</span>
@@ -416,7 +415,7 @@ function OptionRow({
 }) {
   const approved = o.status === "approved" || o.status === "auto_approved";
   return (
-    <div className="rounded bg-slate-950/60 p-2 text-xs">
+    <div className="border-l border-line-strong py-1 pl-3 text-xs">
       <div className="flex flex-wrap items-center gap-2">
         {o.status && <Chip color={statusColor(o.status)}>{o.status}</Chip>}
         <span className="font-medium text-slate-200">{o.title}</span>

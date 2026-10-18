@@ -4,7 +4,7 @@
 
 // Blueprint's extended palette at the weight that reads on a dark canvas.
 export const PALETTE = [
-  "#4C90F0", // blue
+  "#5B9BF3", // blue
   "#32A467", // green
   "#EC9A3C", // orange
   "#BD6BBD", // violet
@@ -38,17 +38,17 @@ export function paletteFor(labels: string[]): Record<string, string> {
 }
 
 export const AGENT_COLORS: Record<string, string> = {
-  interviewer: "bg-sky-700",
-  data_agent: "bg-amber-700",
-  ontologist: "bg-violet-700",
-  expert_generator: "bg-emerald-700",
-  synthesize: "bg-violet-800",
-  attachments: "bg-slate-600",
-  user: "bg-slate-700",
-  ripple: "bg-slate-600",
+  interviewer: "bg-sky-400",
+  data_agent: "bg-amber-400",
+  ontologist: "bg-violet-400",
+  expert_generator: "bg-emerald-400",
+  synthesize: "bg-violet-400",
+  attachments: "bg-slate-500",
+  user: "bg-slate-500",
+  ripple: "bg-slate-500",
 };
 
-export const agentColor = (agent: string): string => AGENT_COLORS[agent] ?? "bg-slate-700";
+export const agentColor = (agent: string): string => AGENT_COLORS[agent] ?? "bg-slate-500";
 
 export const STAGE_LABELS: Record<string, string> = {
   interview: "Interview",

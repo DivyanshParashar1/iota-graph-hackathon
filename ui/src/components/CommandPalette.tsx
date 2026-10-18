@@ -17,7 +17,8 @@ interface Item {
 }
 
 const PAGES: [string, string, string][] = [
-  ["Overview", "/", "layers"],
+  ["Home", "/", "globe"],
+  ["Overview", "/overview", "layers"],
   ["My workspace", "/workspace", "users"],
   ["Onboarding", "/onboarding", "chat"],
   ["Ontology", "/ontology", "schema"],
@@ -105,7 +106,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 pt-[12vh] backdrop-blur-[1px]" onMouseDown={onClose}>
       <div
-        className="w-[640px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[6px] border border-line-strong bg-panel shadow-2xl shadow-black/60"
+        className="w-[640px] max-w-[calc(100vw-32px)] overflow-hidden border border-line-strong bg-panel shadow-2xl shadow-black/60"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex h-12 items-center gap-2 border-b border-line px-3">

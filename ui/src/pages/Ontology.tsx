@@ -89,7 +89,6 @@ export default function Ontology() {
     <div className="flex h-full min-h-[640px] flex-col">
       <PageHeader
         crumbs={[{ label: "Ontology" }]}
-        icon={<span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-accent-soft text-accent"><Icon name="schema" size={20} /></span>}
         title="Supply chain ontology"
         subtitle={<span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span><b className="text-ink">{spec.types.length}</b> object types</span>
@@ -171,7 +170,7 @@ export default function Ontology() {
                   const active = sel?.kind === "type" && sel.id === t.label;
                   return (
                     <button key={t.label} onClick={() => setSel({ kind: "type", id: t.label })} onDoubleClick={() => openType(t.label)}
-                            className={`flex w-full items-center gap-2 rounded-[3px] px-2 py-1.5 text-left hover:bg-hover ${active ? "bg-accent-soft shadow-[inset_2px_0_0] shadow-accent" : ""}`}>
+                            className={`flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-hover ${active ? "bg-accent-soft shadow-[inset_2px_0_0] shadow-accent" : ""}`}>
                       <TypeIcon label={t.label} color={s.color} icon={s.icon} size={22} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[12.5px] font-medium text-ink">{human(t.label)}</span>
@@ -191,7 +190,7 @@ export default function Ontology() {
               </div>
             </Panel>
 
-            <section className="relative min-h-[480px] overflow-hidden rounded-[4px] border border-line">
+            <section className="relative min-h-[480px] overflow-hidden border border-line">
               <GraphView
                 nodes={nodes}
                 links={links}
@@ -206,7 +205,7 @@ export default function Ontology() {
                 charge={-1400}
                 linkDistance={200}
               />
-              <div className="pointer-events-none absolute bottom-2 left-2 flex items-center gap-3 rounded-[3px] border border-line bg-panel/90 px-2 py-1 text-[10.5px] text-faint">
+              <div className="pointer-events-none absolute bottom-2 left-2 flex items-center gap-3 border border-line bg-panel/90 px-2 py-1 text-[10.5px] text-faint">
                 <span>Click to inspect</span><span>Double-click to open</span><span>Drag to arrange</span>
               </div>
             </section>
@@ -236,7 +235,7 @@ export default function Ontology() {
 
         {tab === "read" && (
           <div className="mx-auto max-w-[900px]">
-            <div className="mb-3 rounded-[4px] border border-line bg-panel p-4">
+            <div className="mb-3 border border-line bg-panel p-4">
               <div className="eyebrow mb-1">In one paragraph</div>
               <p className="text-[13.5px] leading-relaxed text-body">{spec.rationale || "The ontology agent left no rationale."}</p>
             </div>
@@ -244,7 +243,7 @@ export default function Ontology() {
               {story(spec).map(({ type, outgoing, incoming }) => {
                 const s = style(type.label);
                 return (
-                  <article key={type.label} className="rounded-[4px] border border-line bg-panel">
+                  <article key={type.label} className="border border-line bg-panel">
                     <header className="flex items-center gap-3 border-b border-line px-4 py-2.5">
                       <TypeIcon label={type.label} color={s.color} icon={s.icon} size={28} />
                       <div className="min-w-0 flex-1">

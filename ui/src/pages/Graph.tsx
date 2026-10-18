@@ -58,12 +58,11 @@ export default function Graph() {
     <div className="flex h-full min-h-[600px] flex-col">
       <PageHeader
         crumbs={[{ label: "Graph" }]}
-        icon={<span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-accent-soft text-accent"><Icon name="graph" size={20} /></span>}
         title="Instance graph"
         subtitle={g ? `${nodes.length.toLocaleString()} of ${g.nodes.length.toLocaleString()} sampled objects · ${links.length.toLocaleString()} links` : "Loading the sample…"}
         right={<>
           <span className="text-[11px] text-faint">Sample</span>
-          <div className="flex overflow-hidden rounded-[3px] border border-line-strong">
+          <div className="flex overflow-hidden border border-line-strong">
             {SIZES.map((s) => (
               <button key={s} onClick={() => setLimit(s)}
                       className={`h-7 px-2.5 text-[12px] ${limit === s ? "bg-accent-strong text-white" : "bg-raised text-muted hover:text-ink"}`}>{s}</button>
@@ -83,8 +82,8 @@ export default function Graph() {
               const off = hidden.has(l);
               return (
                 <button key={l} onClick={() => toggle(l)}
-                        className={`flex w-full items-center gap-2 rounded-[3px] px-2 py-1.5 text-left hover:bg-hover ${off ? "opacity-45" : ""}`}>
-                  <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-[2px] border ${off ? "border-line-strong" : "border-accent bg-accent-strong"}`}>
+                        className={`flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-hover ${off ? "opacity-45" : ""}`}>
+                  <span className={`flex h-3.5 w-3.5 items-center justify-center border ${off ? "border-line-strong" : "border-accent bg-accent-strong"}`}>
                     {!off && <Icon name="check" size={10} className="text-white" strokeWidth={3} />}
                   </span>
                   <TypeIcon label={l} color={s.color} icon={s.icon} size={20} />
@@ -95,7 +94,7 @@ export default function Graph() {
             })}
           </div>
         </Panel>
-        <section className="relative min-h-[480px] overflow-hidden rounded-[4px] border border-line">
+        <section className="relative min-h-[480px] overflow-hidden border border-line">
           {error ? <div className="p-4 text-[12px] text-rose-300">{error}</div> : !g ? (
             <div className="flex h-full items-center justify-center text-[12px] text-faint">Loading the graph…</div>
           ) : (
@@ -105,7 +104,7 @@ export default function Graph() {
                        emptyText="No objects loaded yet - approve the ontology to load data." />
           )}
         </section>
-        <section className="hidden min-h-[480px] overflow-hidden rounded-[4px] border border-line xl:block">
+        <section className="hidden min-h-[480px] overflow-hidden border border-line xl:block">
           {sel ? <ObjectView key={sel.id} label={sel.label} id={sel.id} onClose={() => setSel(null)} /> : (
             <div className="h-full bg-panel">
               <EmptyState icon="eye" title="Select an object">

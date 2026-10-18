@@ -123,7 +123,7 @@ export default function OntologyType() {
                 <ul className="divide-y divide-line">
                   {focusing.map((e) => (
                     <li key={e.id} className="flex items-start gap-3 px-4 py-2.5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-900/60 text-violet-300"><Icon name="experts" size={14} /></span>
+                      <Icon name="experts" size={15} className="mt-0.5 shrink-0 text-slate-500" />
                       <div className="min-w-0">
                         <Link to="/experts" className="text-[13px] font-medium text-ink hover:underline">{e.title}</Link>
                         <div className="text-[12px] text-muted">{e.mandate}</div>
@@ -179,7 +179,7 @@ export default function OntologyType() {
         )}
 
         {tab === "objects" && (
-          <div className="h-full min-h-[480px] overflow-hidden rounded-[4px] border border-line bg-panel">
+          <div className="h-full min-h-[480px] overflow-hidden border border-line bg-panel">
             <ObjectTable type={type} className="h-full" onOpen={(id) => nav(`/objects/${encodeURIComponent(type.label)}/${encodeURIComponent(id)}`)} />
           </div>
         )}

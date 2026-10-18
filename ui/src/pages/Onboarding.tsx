@@ -88,12 +88,12 @@ export default function Onboarding() {
         />
         <ErrorLine error={error} />
         {state.busy && !busy ? (
-          <div className="flex items-center gap-2 rounded border border-violet-800 bg-violet-950/40 p-2 text-xs text-violet-200">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-violet-400" />
+          <div className="micro flex items-center gap-2 py-1 text-muted">
+            <span className="h-1.5 w-1.5 animate-pulse bg-violet-400" />
             The {(state.pending?.agent ?? "agent").replace(/_/g, " ")} is working. This page updates when it replies.
           </div>
         ) : state.pending && !busy && (
-          <div className="flex items-center gap-2 rounded border border-amber-800 bg-amber-950/40 p-2 text-xs text-amber-200">
+          <div className="flex items-center gap-3 border-l border-amber-400 py-1 pl-3 text-[12.5px] text-amber-200">
             A turn was interrupted.
             <Btn onClick={() => void run(async () => await api.resume())}>Resume it</Btn>
           </div>
@@ -138,7 +138,7 @@ export default function Onboarding() {
             onUploaded={load}
           />
         ) : (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-900 bg-emerald-950/30 p-3 text-sm text-emerald-200">
+          <div className="flex flex-wrap items-center gap-3 border-l border-emerald-400 py-1.5 pl-4 text-[13px] text-body">
             Onboarding is done — {state.tenant.name} is live.
             <Btn onClick={() => nav("/experts")}>Ask an expert</Btn>
             <Btn kind="ghost" onClick={() => void run(async () => await api.reonboard("What has changed?"))}>
@@ -173,7 +173,7 @@ export default function Onboarding() {
 
 function Handoff({ text, action, onClick }: { text: string; action: string; onClick: () => void }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-900 bg-violet-950/30 p-3 text-sm text-violet-100">
+    <div className="flex flex-wrap items-center gap-3 border-l border-ink py-1.5 pl-4 text-[13px] text-body">
       {text}
       <Btn kind="primary" onClick={onClick}>
         {action}
@@ -211,7 +211,8 @@ function StartCard({ onStarted }: { onStarted: (s: SessionState) => void }) {
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-10">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-100">Tell Ripple about your company</h1>
+        <div className="micro slide-in text-sky-400">Onboarding</div>
+        <h1 className="rise mt-1 text-3xl font-light tracking-tight text-slate-50">Tell Ripple about your company</h1>
         <p className="mt-1 text-sm text-slate-400">
           Four agents will interview you, ask for the data they need, design your knowledge graph and then write
           the expert agents your supply chain needs. Nothing is pre-built: the model is yours.
@@ -227,7 +228,7 @@ function StartCard({ onStarted }: { onStarted: (s: SessionState) => void }) {
               onChange={(e) => setCompany(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void start()}
               placeholder="Acme Shoes"
-              className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100 focus:border-sky-600 focus:outline-none"
+              className="mt-1 w-full border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100 focus:border-sky-600 focus:outline-none"
             />
           </label>
           <label className="block">
@@ -237,7 +238,7 @@ function StartCard({ onStarted }: { onStarted: (s: SessionState) => void }) {
               onChange={(e) => setIndustry(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void start()}
               placeholder="footwear"
-              className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100 focus:border-sky-600 focus:outline-none"
+              className="mt-1 w-full border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100 focus:border-sky-600 focus:outline-none"
             />
           </label>
           <ErrorLine error={error} />
@@ -257,7 +258,7 @@ function StartCard({ onStarted }: { onStarted: (s: SessionState) => void }) {
                     await api.selectTenant(t.id).catch(() => undefined);
                     onStarted(await api.session());
                   }}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-slate-800"
+                  className="flex w-full items-center gap-2 px-2 py-1 text-left hover:bg-slate-800"
                 >
                   <span className="text-slate-200">{t.name ?? t.id}</span>
                   <Chip color="bg-slate-800">{t.stage}</Chip>

@@ -9,6 +9,7 @@ import { Kbd } from "./components/ui";
 import Experts from "./pages/Experts";
 import Graph from "./pages/Graph";
 import Home from "./pages/Home";
+import Landing from "./pages/Landing";
 import Incidents from "./pages/Incidents";
 import Objects from "./pages/Objects";
 import Onboarding from "./pages/Onboarding";
@@ -19,7 +20,7 @@ import { useOntology } from "./useOntology";
 import { usePersona } from "./usePersona";
 
 const NAV: { to: string; label: string; icon: string; group: string }[] = [
-  { to: "/", label: "Overview", icon: "layers", group: "Home" },
+  { to: "/overview", label: "Overview", icon: "layers", group: "Home" },
   { to: "/workspace", label: "My workspace", icon: "users", group: "Home" },
   { to: "/onboarding", label: "Onboarding", icon: "chat", group: "Build" },
   { to: "/ontology", label: "Ontology", icon: "schema", group: "Build" },
@@ -39,8 +40,8 @@ function readCollapsed() {
 
 function Dot({ ok, label, title }: { ok: boolean | undefined; label: string; title: string }) {
   return (
-    <span className="flex items-center gap-1.5 text-[11px] text-muted" title={title}>
-      <span className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-emerald-400 shadow-[0_0_6px] shadow-emerald-500/70" : ok === false ? "bg-rose-400" : "bg-slate-600"}`} />
+    <span className="micro flex items-center gap-1.5 text-faint" title={title}>
+      <span className={`h-1.5 w-1.5 ${ok ? "bg-emerald-400" : ok === false ? "bg-rose-400" : "bg-slate-600"}`} />
       {label}
     </span>
   );
@@ -48,15 +49,25 @@ function Dot({ ok, label, title }: { ok: boolean | undefined; label: string; tit
 
 function Logo() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="2.6" fill="#4C90F0" />
-      <circle cx="12" cy="12" r="6.3" stroke="#4C90F0" strokeOpacity=".75" strokeWidth="1.6" />
-      <circle cx="12" cy="12" r="10" stroke="#4C90F0" strokeOpacity=".4" strokeWidth="1.6" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" aria-hidden>
+      <circle cx="12" cy="12" r="2.5" />
+      <circle cx="12" cy="12" r="6.5" opacity=".7" />
+      <circle cx="12" cy="12" r="10.5" opacity=".4" />
     </svg>
   );
 }
 
+/** The landing page stands on its own; every other route lives inside the app shell. */
 export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="*" element={<Shell />} />
+    </Routes>
+  );
+}
+
+function Shell() {
   const [health, setHealth] = useState<Health | null>(null);
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [current, setCurrent] = useState(getTenant());
@@ -114,20 +125,19 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col bg-canvas text-body">
-      <header className="flex h-11 shrink-0 items-center gap-3 border-b border-line bg-[#15191e] px-3">
-        <button onClick={toggleRail} className="rounded-[3px] p-1 text-muted hover:bg-hover hover:text-ink" title="Toggle navigation">
+      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-[#0b0c0e] px-3">
+        <button onClick={toggleRail} className="p-1 text-faint hover:text-ink" title="Toggle navigation">
           <Icon name="menu" size={16} />
         </button>
-        <div className="flex items-center gap-2">
+        <NavLink to="/" title="Ripple home" className="flex items-center gap-2">
           <Logo />
-          <span className="text-[14px] font-semibold tracking-tight text-ink">Ripple</span>
-        </div>
+          <span className="text-[15px] font-medium tracking-tight text-white">Ripple</span>
+        </NavLink>
         <span className="h-5 w-px bg-line-strong" />
-        <div className="flex min-w-0 items-center gap-2 text-[12px]">
-          <Icon name="building" size={14} className="text-faint" />
+        <div className="flex min-w-0 items-center gap-3 text-[12.5px]">
           {tenants.length > 1 ? (
             <select
-              className="max-w-[16rem] truncate rounded-[3px] border border-transparent bg-transparent py-0.5 pr-1 font-medium text-ink hover:border-line-strong focus:border-accent"
+              className="max-w-[16rem] truncate border border-transparent bg-transparent py-0.5 pr-1 text-ink hover:border-line-strong"
               value={tenant?.id ?? current}
               onChange={(e) => void switchTenant(e.target.value)}
             >
@@ -139,30 +149,31 @@ export default function App() {
               ))}
             </select>
           ) : (
-            <span className="truncate font-medium text-ink">{tenant?.name ?? "No company yet"}</span>
+            <span className="truncate text-ink">{tenant?.name ?? "No company yet"}</span>
           )}
           {ontoStatus && (
-            <span className={`hidden rounded-[3px] border px-1.5 py-px font-mono text-[10.5px] sm:inline ${view?.has_approved ? "border-emerald-800 bg-success-soft text-emerald-300" : "border-amber-800 bg-warning-soft text-amber-300"}`}>
+            <span className="micro hidden items-center gap-1.5 whitespace-nowrap text-faint md:flex">
+              <span className={`h-1.5 w-1.5 ${view?.has_approved ? "bg-emerald-400" : "bg-amber-400"}`} />
               ontology {ontoStatus}
             </span>
           )}
         </div>
 
         <NavLink to="/workspace" title={me ? `Viewing as ${me.name}` : "Pick who you are"}
-                 className="ml-auto flex h-7 items-center gap-2 rounded-[3px] border border-line px-1.5 pr-2.5 text-[12px] text-muted hover:border-line-strong hover:text-ink">
+                 className="ml-auto flex h-8 items-center gap-2 px-1.5 text-[12.5px] text-muted hover:text-ink">
           {me ? <Avatar name={me.name} size={20} /> : <Icon name="user" size={14} />}
           <span className="hidden max-w-[10rem] truncate sm:inline">{me ? me.name : "Who are you?"}</span>
         </NavLink>
         <button
           onClick={() => setPalette(true)}
-          className=" flex h-7 w-[min(360px,40vw)] items-center gap-2 rounded-[3px] border border-line bg-sunken px-2 text-left text-[12px] text-faint hover:border-line-strong"
+          className="flex h-8 w-[min(340px,38vw)] items-center gap-2 border border-line-strong px-2.5 text-left text-[12.5px] text-faint hover:border-white/40"
         >
           <Icon name="search" size={13} />
           <span className="flex-1 truncate">Search objects, types…</span>
           <Kbd>/</Kbd>
         </button>
 
-        <div className="hidden items-center gap-3 border-l border-line pl-3 lg:flex">
+        <div className="hidden items-center gap-4 border-l border-line pl-4 lg:flex">
           <Dot ok={health?.ok} label={health ? `DB ${health.db_mode}` : "DB"} title="FalkorDB connection" />
           <Dot ok={health ? health.has_llm : undefined} label="LLM"
                title={health?.has_llm ? `${health.llm_provider} · ${health.model}` : "no LLM provider configured"} />
@@ -172,37 +183,37 @@ export default function App() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <nav className={`flex shrink-0 flex-col border-r border-line bg-[#15191e] py-2 transition-[width] duration-150 ${collapsed ? "w-12" : "w-52"}`}>
+        <nav className={`flex shrink-0 flex-col border-r border-line bg-[#0b0c0e] py-2 transition-[width] duration-150 ${collapsed ? "w-12" : "w-52"}`}>
           {NAV.map((n) => {
             const header = !collapsed && n.group !== lastGroup ? n.group : null;
             lastGroup = n.group;
             return (
               <div key={n.to}>
-                {header && <div className="eyebrow px-4 pb-1 pt-3 first:pt-1">{header}</div>}
+                {header && <div className="eyebrow px-5 pb-1.5 pt-4 first:pt-2">{header}</div>}
                 <NavLink
                   to={n.to}
                   end={n.to === "/"}
                   title={collapsed ? n.label : undefined}
                   className={({ isActive }) =>
-                    `mx-1.5 my-px flex h-8 items-center gap-2.5 rounded-[3px] px-2.5 text-[13px] transition-colors ${isActive
-                      ? "bg-accent-soft font-medium text-ink shadow-[inset_2px_0_0] shadow-accent"
-                      : "text-muted hover:bg-hover hover:text-ink"}`
+                    `flex h-8 items-center gap-3 border-l px-[18px] text-[13px] transition-colors ${isActive
+                      ? "border-ink text-ink"
+                      : "border-transparent text-faint hover:text-body"}`
                   }
                 >
-                  <Icon name={n.icon} size={16} />
+                  <Icon name={n.icon} size={15} strokeWidth={1.5} />
                   {!collapsed && <span className="truncate">{n.label}</span>}
                 </NavLink>
               </div>
             );
           })}
-          <div className="mt-auto px-3 pt-2 text-[10.5px] text-slate-600">
+          <div className="micro mt-auto px-5 pt-2 !text-[9.5px] leading-relaxed text-slate-600">
             {!collapsed && <span>Supply-chain knowledge graph · FalkorDB</span>}
           </div>
         </nav>
 
         <main key={loc.pathname.split("/")[1]} className="min-w-0 flex-1 overflow-auto">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/overview" element={<Home />} />
             <Route path="/onboarding" element={<Padded><Onboarding /></Padded>} />
             <Route path="/ontology" element={<Ontology />} />
             <Route path="/ontology/types/:label" element={<OntologyType />} />

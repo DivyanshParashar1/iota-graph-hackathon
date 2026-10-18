@@ -12,13 +12,13 @@ export default function StageRail({
   disabled?: boolean;
 }) {
   return (
-    <ol className="flex flex-wrap items-stretch gap-1">
+    <ol className="flex flex-wrap items-stretch gap-x-3 gap-y-2">
       {stages.map((s) => {
         const tone = s.current
-          ? "border-sky-600 bg-sky-950/60 text-sky-100"
+          ? "border-ink text-ink"
           : s.reached
-            ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
-            : "border-slate-900 bg-slate-950 text-slate-600";
+            ? "border-slate-500 text-muted hover:border-slate-300 hover:text-ink"
+            : "border-line text-slate-600";
         const stale = s.artifact?.stale;
         return (
           <li key={s.stage} className="min-w-28 flex-1">
@@ -27,14 +27,14 @@ export default function StageRail({
               disabled={disabled || !s.reached || s.current}
               onClick={() => onGoto(s.stage)}
               title={s.reached && !s.current ? `go back to ${s.stage}` : undefined}
-              className={`w-full rounded-md border px-2 py-1.5 text-left transition disabled:cursor-default ${tone}`}
+              className={`w-full border-t pt-2 text-left transition-colors disabled:cursor-default ${tone}`}
             >
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] tabular-nums opacity-60">{s.index + 1}</span>
-                <span className="text-xs font-medium">{STAGE_LABELS[s.stage] ?? s.stage}</span>
+                <span className="micro !text-[9.5px] tabular-nums opacity-60">0{s.index + 1}</span>
+                <span className="micro">{STAGE_LABELS[s.stage] ?? s.stage}</span>
                 {stale ? <span className="ml-auto text-[10px] text-amber-400">stale</span> : null}
               </div>
-              <div className="mt-0.5 text-[10px] opacity-70">{detail(s)}</div>
+              <div className="mt-0.5 text-[11px] text-faint">{detail(s)}</div>
             </button>
           </li>
         );

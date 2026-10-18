@@ -77,7 +77,7 @@ export default function Composer({
         setDragging(false);
         void upload(e.dataTransfer.files);
       }}
-      className={`rounded-lg border p-2 ${dragging ? "border-sky-500 bg-sky-950/30" : "border-slate-800 bg-slate-900/60"}`}
+      className={`border p-2 ${dragging ? "border-sky-400" : "border-line-strong focus-within:border-slate-400"}`}
     >
       <textarea
         value={text}
@@ -117,9 +117,9 @@ export default function Composer({
         </div>
       </div>
       {draftNote && text && (
-        <div className="mt-1.5 flex items-center gap-1.5 rounded-[3px] border border-violet-800 bg-violet-900/30 px-2 py-1 text-[11px] text-violet-200">
+        <div className="mt-1.5 flex items-center gap-1.5 border-l border-violet-400 py-0.5 pl-2 text-[11.5px] text-muted">
           <Icon name="sparkle" size={12} />
-          <span><b className="font-semibold">Demo draft</b> - review and edit before sending. {draftNote}</span>
+          <span><b className="font-medium text-violet-300">Demo draft</b> - review and edit before sending. {draftNote}</span>
         </div>
       )}
       <ErrorLine error={error} />
