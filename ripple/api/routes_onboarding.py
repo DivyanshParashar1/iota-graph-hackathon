@@ -19,6 +19,7 @@ from ripple.config import get_settings
 from ripple.db import TenantScope
 from ripple.llm.base import LLMError, get_client
 from ripple.onboarding import session as sess
+from ripple.onboarding.agents import autofill as autofill_agent
 from ripple.onboarding.agents import data_agent
 from ripple.onboarding.attachments import UnsupportedUpload, column_values, ingest
 from ripple.onboarding.events import BUS, StepEmitter
@@ -235,6 +236,21 @@ def synthesize(form_id: str, scope: TenantScope = Depends(scope_dep)):
         raise HTTPException(503, str(e)) from None
     return {"saved": [a.model_dump() for a in saved], "synthetic": True,
             "answers": [a.model_dump() for a in list_answers(scope, form_id)]}
+
+
+@router.post("/autofill")
+def autofill(scope: TenantScope = Depends(scope_dep)):
+    """Demo only: draft a plausible answer to the agent's latest message. Returned, never sent; flags the
+    tenant as containing synthetic data."""
+    s = sess.state(scope)
+    emit = StepEmitter(scope, s["stage"], "autofill")
+    try:
+        out = autofill_agent.autofill(scope, get_client(), emit)
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from None
+    except LLMError as e:
+        raise HTTPException(503, str(e)) from None
+    return {"text": out.text, "note": out.note, "synthetic": True}
 
 
 # --------------------------------------------------------------------------- uploads

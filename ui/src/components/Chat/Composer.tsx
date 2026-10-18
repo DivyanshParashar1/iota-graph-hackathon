@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { api } from "../../api";
+import { Icon } from "../icons";
 import { Btn, ErrorLine } from "../ui";
 
 /** The message box, with the file drop that feeds the agents' upload intake. */
@@ -16,6 +17,8 @@ export default function Composer({
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draftNote, setDraftNote] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
 
   const send = async () => {
@@ -23,11 +26,27 @@ export default function Composer({
     if (!t || disabled) return;
     setText("");
     setError(null);
+    setDraftNote(null);
     try {
       await onSent(t);
     } catch (e) {
       setText(t);
       setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  // Demo only: ask the model for a plausible answer and put it in the box to edit; never sent automatically.
+  const autofill = async () => {
+    setDrafting(true);
+    setError(null);
+    try {
+      const d = await api.autofill();
+      setText(d.text);
+      setDraftNote(d.note || "Demo answer drafted by the model.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDrafting(false);
     }
   };
 
@@ -63,9 +82,12 @@ export default function Composer({
       <textarea
         value={text}
         rows={2}
-        disabled={disabled}
-        placeholder={disabled ? "the agent is working…" : "Answer here — or drop a CSV, spreadsheet or document in"}
-        onChange={(e) => setText(e.target.value)}
+        disabled={disabled || drafting}
+        placeholder={drafting ? "drafting a demo answer…" : disabled ? "the agent is working…" : "Answer here — or drop a CSV, spreadsheet or document in"}
+        onChange={(e) => {
+          setText(e.target.value);
+          if (!e.target.value) setDraftNote(null);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void send();
         }}
@@ -82,7 +104,11 @@ export default function Composer({
         <Btn kind="ghost" onClick={() => file.current?.click()} disabled={disabled}>
           {uploading ? `uploading ${uploading}…` : "Attach"}
         </Btn>
-        <span className="text-[11px] text-slate-600">csv · tsv · json · xlsx · md · txt · pdf · docx</span>
+        <Btn kind="ghost" icon="sparkle" onClick={() => void autofill()} disabled={disabled || drafting}
+             title="Demo only: draft a plausible answer to the agent's latest message. You can edit it before sending.">
+          {drafting ? "Drafting…" : "Autofill"}
+        </Btn>
+        <span className="hidden text-[11px] text-slate-600 md:inline">csv · tsv · json · xlsx · md · txt · pdf · docx</span>
         <div className="ml-auto flex items-center gap-2">
           <span className="hidden text-[11px] text-slate-600 sm:inline">⌘↵ to send</span>
           <Btn kind="primary" onClick={send} disabled={disabled || !text.trim()}>
@@ -90,6 +116,12 @@ export default function Composer({
           </Btn>
         </div>
       </div>
+      {draftNote && text && (
+        <div className="mt-1.5 flex items-center gap-1.5 rounded-[3px] border border-violet-800 bg-violet-900/30 px-2 py-1 text-[11px] text-violet-200">
+          <Icon name="sparkle" size={12} />
+          <span><b className="font-semibold">Demo draft</b> - review and edit before sending. {draftNote}</span>
+        </div>
+      )}
       <ErrorLine error={error} />
     </div>
   );

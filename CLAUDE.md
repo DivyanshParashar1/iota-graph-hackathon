@@ -15,6 +15,9 @@ both). v1 (a DataCo control tower) is at commit `04d4bd4` / local tag `v1-dataco
   question, and autonomy is policy thresholds on its probabilities. Response shape truth:
   `reference/JEV_VERIFIED.md`. Tests reach Jev only through `tests/conftest.JevTransport` (the real client
   over a mock HTTP transport).
+  **One owner-approved exception:** the workspace chat (`ripple/workspace/orchestrator.py`) is an LLM
+  orchestrator that picks which expert agents to consult and when to stop. It only answers questions; it never
+  approves or acts. Do not extend that exception to anything that decides or acts.
 * **No fakes.** There is no scripted agent mode and no fake LLM client. `tests/conftest.StubClient` is a
   transport stub at the provider boundary for route tests - never add logic or prompts to it.
 * Every agent step is a real LLM call through `ripple/llm/`. Default provider: the local `claude` CLI login

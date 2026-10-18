@@ -2,19 +2,20 @@
 // stable across reloads, distinct enough to read, and overridden by the spec's own `display.color` when the
 // ontology agent chose one.
 
-const PALETTE = [
-  "#38bdf8", // sky
-  "#fb923c", // orange
-  "#a3e635", // lime
-  "#c084fc", // purple
-  "#f472b6", // pink
-  "#2dd4bf", // teal
-  "#facc15", // yellow
-  "#818cf8", // indigo
-  "#f87171", // red
-  "#4ade80", // green
-  "#fdba74", // amber
-  "#67e8f9", // cyan
+// Blueprint's extended palette at the weight that reads on a dark canvas.
+export const PALETTE = [
+  "#4C90F0", // blue
+  "#32A467", // green
+  "#EC9A3C", // orange
+  "#BD6BBD", // violet
+  "#13C9BA", // turquoise
+  "#F0B726", // gold
+  "#F5498B", // rose
+  "#9881F3", // indigo
+  "#AF855A", // sepia
+  "#B6D94C", // lime
+  "#EB6847", // vermilion
+  "#68C1EE", // cerulean
 ];
 
 function hash(s: string): number {
@@ -37,11 +38,11 @@ export function paletteFor(labels: string[]): Record<string, string> {
 }
 
 export const AGENT_COLORS: Record<string, string> = {
-  interviewer: "bg-sky-600",
-  data_agent: "bg-amber-600",
-  ontologist: "bg-violet-600",
-  expert_generator: "bg-emerald-600",
-  synthesize: "bg-fuchsia-700",
+  interviewer: "bg-sky-700",
+  data_agent: "bg-amber-700",
+  ontologist: "bg-violet-700",
+  expert_generator: "bg-emerald-700",
+  synthesize: "bg-violet-800",
   attachments: "bg-slate-600",
   user: "bg-slate-700",
   ripple: "bg-slate-600",
@@ -61,5 +62,5 @@ export const CONFIDENCE_COLORS: Record<string, string> = {
   exact: "bg-slate-700",
   ballpark: "bg-amber-800",
   unknown: "bg-slate-800",
-  synthetic: "bg-fuchsia-800",
+  synthetic: "bg-violet-800",
 };

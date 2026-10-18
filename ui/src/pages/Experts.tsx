@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import type { AskResult, ExpertRole } from "../api";
-import { Btn, Card, Chip, ErrorLine } from "../components/ui";
+import { Icon } from "../components/icons";
+import { Btn, Callout, Card, Chip, ErrorLine, PageHeader, Tag, TypeTag } from "../components/ui";
+import { useOntology } from "../useOntology";
 
 const EMPTY: Partial<ExpertRole> = {
   name: "",
@@ -25,6 +27,7 @@ export default function Experts() {
   const [open, setOpen] = useState<string>("");
   const [editing, setEditing] = useState<Partial<ExpertRole> | null>(null);
   const [busy, setBusy] = useState("");
+  const [stage, setStage] = useState<string>("");
 
   const load = useCallback(async () => {
     try {
@@ -32,6 +35,7 @@ export default function Experts() {
       setRoles(out.experts);
       setTypes(out.ontology_types);
       setCounts({ pending: out.pending, approved: out.approved });
+      api.session().then((st) => setStage(st.stage)).catch(() => setStage(""));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -58,35 +62,40 @@ export default function Experts() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-lg font-semibold text-slate-100">Expert roles</h1>
-        <Chip color="bg-emerald-900">{counts.approved} approved</Chip>
-        {counts.pending > 0 && <Chip color="bg-amber-900">{counts.pending} awaiting you</Chip>}
-        <div className="ml-auto flex gap-2">
-          <Btn kind="ghost" onClick={() => setEditing({ ...EMPTY })}>
-            + new role
+    <div className="flex h-full flex-col">
+      <PageHeader
+        crumbs={[{ label: "Experts" }]}
+        icon={<span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-violet-900/60 text-violet-300"><Icon name="experts" size={20} /></span>}
+        title="Expert roles"
+        subtitle="Agents invented for this supply chain. Each reasons over its focus types in the approved ontology."
+        right={<>
+          <Tag intent="success">{counts.approved} approved</Tag>
+          {counts.pending > 0 && <Tag intent="warning">{counts.pending} awaiting you</Tag>}
+          <Btn kind="ghost" icon="sparkle" onClick={() => setEditing({ ...EMPTY })}>New role</Btn>
+          <Btn kind="ghost" icon="document" onClick={() => void act("export", api.exportExperts)}>
+            {busy === "export" ? "Writing…" : "Export"}
           </Btn>
-          <Btn kind="ghost" onClick={() => void act("export", api.exportExperts)}>
-            {busy === "export" ? "writing…" : "Export to markdown"}
+          <Btn kind="ghost" icon="refresh" onClick={() => void act("import", api.importExperts)}>
+            {busy === "import" ? "Reading…" : "Import"}
           </Btn>
-          <Btn kind="ghost" onClick={() => void act("import", api.importExperts)}>
-            {busy === "import" ? "reading…" : "Import from markdown"}
-          </Btn>
-          {counts.approved > 0 && (
-            <Btn kind="primary" onClick={() => void act("finish", api.finishOnboarding)}>
-              {busy === "finish" ? "finishing…" : "Finish onboarding"}
+          {stage === "ready" ? (
+            <Tag intent="success" icon="check">Onboarding complete</Tag>
+          ) : counts.approved > 0 && (
+            <Btn kind="primary" icon="check" onClick={() => void act("finish", api.finishOnboarding)}
+                 disabled={stage !== "experts"}
+                 title={stage !== "experts" ? `Onboarding is at the ${stage} stage; finish it first` : undefined}>
+              {busy === "finish" ? "Finishing…" : "Finish onboarding"}
             </Btn>
           )}
-        </div>
-      </div>
-
+        </>}
+      />
+      <div className="flex flex-col gap-3 p-4">
       <ErrorLine error={error} />
-      {errors.map((e) => (
-        <div key={e} className="rounded bg-rose-950/60 px-2 py-1 text-xs text-rose-200">
-          {e}
-        </div>
-      ))}
+      {errors.length > 0 && (
+        <Callout intent="danger" title="The role was rejected">
+          <ul className="mt-1 list-disc pl-4">{errors.map((e) => <li key={e}>{e}</li>)}</ul>
+        </Callout>
+      )}
 
       {editing && (
         <RoleEditor
@@ -123,6 +132,7 @@ export default function Experts() {
           />
         ))}
       </div>
+      </div>
     </div>
   );
 }
@@ -150,6 +160,7 @@ function RoleCard({
   const [answer, setAnswer] = useState<AskResult | null>(null);
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
+  const { style } = useOntology();
 
   const ask = async () => {
     if (!question.trim()) return;
@@ -180,21 +191,17 @@ function RoleCard({
       }
     >
       <div className="flex flex-col gap-2 text-xs">
-        <p className="text-slate-200">{r.mandate}</p>
+        <p className="text-[13px] text-ink">{r.mandate}</p>
         <p className="text-slate-400">
           <span className="text-slate-500">why: </span>
           {r.justification}
         </p>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           {r.focus_types.map((t) => (
-            <Chip key={t} color="bg-sky-900">
-              {t}
-            </Chip>
+            <TypeTag key={t} label={t} color={style(t).color} icon={style(t).icon} />
           ))}
           {r.focus_relationships.map((t) => (
-            <Chip key={t} color="bg-indigo-900">
-              {t}
-            </Chip>
+            <Tag key={t} mono icon="link">{t}</Tag>
           ))}
         </div>
         {!!r.playbook.length && (

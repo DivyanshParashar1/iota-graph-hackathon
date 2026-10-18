@@ -252,7 +252,7 @@ export interface SessionState {
   session: { id?: string; provider?: string; model?: string };
   stage: Stage;
   busy: boolean;
-  pending: { stage?: string; user_text?: string } | null;
+  pending: { stage?: string; user_text?: string; agent?: string } | null;
   messages: ChatMessage[];
   open_form: FormSpec | null;
   answers: Answer[];
@@ -377,6 +377,115 @@ export interface Provenance {
     source: string;
     confidence: string;
   }[];
+}
+
+// ------------------------------------------------------------------ object explorer
+export interface ObjectRow {
+  id: string;
+  title: string;
+  properties: Record<string, unknown>;
+}
+
+export interface ObjectPage {
+  label: string;
+  title_property: string;
+  total: number;
+  skip: number;
+  objects: ObjectRow[];
+}
+
+export interface ObjectLinkGroup {
+  type: string;
+  direction: "in" | "out";
+  label: string;
+  objects: { id: string; label: string; title: string }[];
+}
+
+export interface ObjectDetail extends ObjectRow {
+  label: string;
+  links: ObjectLinkGroup[];
+  provenance: Provenance["sources"];
+}
+
+export interface ObjectHit extends ObjectRow {
+  label: string;
+}
+
+// ------------------------------------------------------------------ overview (home page)
+export interface Hotspot {
+  kind: "status" | "concentration";
+  label?: string;
+  property?: string;
+  value?: string;
+  count?: number;
+  rel?: string;
+  from?: string;
+  to?: string;
+  single?: number;
+  total: number;
+  description: string;
+  sample: { id: string; title: string }[];
+}
+
+export interface Overview {
+  tenant: { id: string; name?: string; industry?: string; stage?: string; status?: string; has_synthetic?: boolean; seeded_from?: string };
+  stage: Stage;
+  busy: boolean;
+  has_ontology: boolean;
+  version: number | null;
+  counts: { nodes: Record<string, number>; edges: Record<string, number> };
+  types: number;
+  relationships: number;
+  hotspots: Hotspot[];
+  incidents: { total: number; by_status: Record<string, number>; needs_you: number; recent: IncidentRow[] };
+  experts: { id: string; name: string; title: string; mandate: string; status: string; focus_types: string[]; playbook: string[] }[];
+}
+
+// ------------------------------------------------------------------ workspace (employees + orchestrator chat)
+export interface Employee {
+  id: string;
+  name: string;
+  title: string;
+  role_ids: string[];
+  ts: number;
+  roles?: { id: string; title: string; name: string }[];
+}
+
+export interface Delegation {
+  expert: string;
+  title: string;
+  question: string;
+  ok: boolean;
+  answer: string;
+  ids: string[];
+  tool_calls: number;
+}
+
+export interface WsMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  seq: number;
+  ts: number;
+  payload: { ok?: boolean; delegations?: Delegation[]; ids?: string[]; turns?: number };
+}
+
+export interface WsThread {
+  id: string;
+  title?: string;
+  ts?: number;
+  updated_at?: number;
+}
+
+export interface WsDashboard {
+  employee: Employee;
+  roles: { id: string; name: string; title: string; mandate: string; status: string; focus_types: string[]; focus_relationships: string[]; playbook: string[] }[];
+  focus_types: string[];
+  counts: Record<string, number>;
+  hotspots: Hotspot[];
+  incidents: IncidentRow[];
+  experts: { id: string; name: string; title: string }[];
+  threads: WsThread[];
 }
 
 // ------------------------------------------------------------------ incidents (M8)
@@ -524,6 +633,7 @@ export const api = {
   resume: () => post<{ messages: ChatMessage[]; state: SessionState }>("/api/onboarding/resume"),
   goto: (stage: Stage, note = "") => post<{ stage: Stage; stale_flagged: number; state: SessionState }>("/api/onboarding/goto", { stage, note }),
   reonboard: (note = "") => post<{ stage: Stage; state: SessionState }>("/api/onboarding/reonboard", { stage: "interview", note }),
+  autofill: () => post<{ text: string; note: string; synthetic: boolean }>("/api/onboarding/autofill"),
   steps: (stage = "") => get<{ steps: Step[] }>(`/api/onboarding/steps?stage=${stage}`),
 
   saveAnswers: (formId: string, values: Record<string, unknown>, confidences: Record<string, string> = {}) =>
@@ -540,10 +650,29 @@ export const api = {
     return req<{ attachment: Attachment; profile: TableProfile }>("/api/onboarding/attachments", { method: "POST", body });
   },
 
+  overview: () => get<Overview>("/api/overview"),
+  employees: () => get<{ employees: Employee[] }>("/api/workspace/employees"),
+  createEmployee: (e: { name: string; title: string; role_ids: string[] }) => post<Employee>("/api/workspace/employees", e),
+  editEmployee: (id: string, e: { name: string; title: string; role_ids: string[] }) => patch<Employee>(`/api/workspace/employees/${id}`, e),
+  deleteEmployee: (id: string) => del<{ deleted: string }>(`/api/workspace/employees/${id}`),
+  dashboard: (id: string) => get<WsDashboard>(`/api/workspace/employees/${id}/dashboard`),
+  threads: (id: string) => get<{ threads: WsThread[] }>(`/api/workspace/employees/${id}/threads`),
+  newThread: (id: string) => post<WsThread>(`/api/workspace/employees/${id}/threads`, {}),
+  thread: (id: string, tid: string) => get<{ thread: WsThread; messages: WsMessage[]; running: boolean }>(`/api/workspace/employees/${id}/threads/${tid}`),
+  deleteThread: (id: string, tid: string) => del<{ deleted: string }>(`/api/workspace/employees/${id}/threads/${tid}`),
+  chat: (id: string, text: string, threadId: string) =>
+    post<{ thread: WsThread; messages: WsMessage[] }>(`/api/workspace/employees/${id}/chat`, { text, thread_id: threadId }),
   ontology: () => get<OntologyView>("/api/ontology"),
   patchDraft: (spec: OntologySpec) => patch<OntologyView>("/api/ontology/draft", { spec }),
   approveOntology: () => post<{ nodes: number; edges: number; types: number; state: SessionState }>("/api/ontology/approve"),
   provenance: (nodeId: string) => get<Provenance>(`/api/ontology/provenance/${encodeURIComponent(nodeId)}`),
+
+  objects: (label: string, opts: { q?: string; limit?: number; skip?: number } = {}) =>
+    get<ObjectPage>(`/api/objects/${encodeURIComponent(label)}?q=${encodeURIComponent(opts.q ?? "")}&limit=${opts.limit ?? 50}&skip=${opts.skip ?? 0}`),
+  object: (label: string, id: string) =>
+    get<ObjectDetail>(`/api/objects/${encodeURIComponent(label)}/${encodeURIComponent(id)}`),
+  searchObjects: (q: string, limit = 5) =>
+    get<{ q: string; hits: ObjectHit[] }>(`/api/objects/search?q=${encodeURIComponent(q)}&limit=${limit}`),
 
   experts: () => get<{ experts: ExpertRole[]; ontology_types: string[]; pending: number; approved: number }>("/api/experts"),
   createExpert: (role: Partial<ExpertRole>) => post<ExpertRole>("/api/experts", { role }),

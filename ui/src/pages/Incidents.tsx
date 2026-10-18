@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, streamSteps } from "../api";
 import type { IncidentDetail, IncidentGroup, IncidentOption, IncidentRow, Step } from "../api";
 import StepStream from "../components/Chat/StepStream";
-import { Btn, Card, Chip, ErrorLine, statusColor } from "../components/ui";
+import { Icon } from "../components/icons";
+import { Btn, Card, Chip, ErrorLine, PageHeader, statusColor } from "../components/ui";
 
 const RUNNING = new Set(["received", "consulting", "analysing", "planning", "deciding"]);
 const LEVELS = ["low", "medium", "high", "critical"];
@@ -113,18 +114,25 @@ export default function Incidents() {
   );
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+    <div className="flex h-full flex-col">
+    <PageHeader
+      crumbs={[{ label: "Incidents" }]}
+      icon={<span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-danger-soft text-rose-300"><Icon name="incident" size={20} /></span>}
+      title="Incidents"
+      subtitle="Events coming in from the supply chain, worked by the expert agents and decided by Jev."
+    />
+    <div className="grid gap-3 p-4 lg:grid-cols-[340px_1fr]">
       <div className="flex flex-col gap-4">
         <Card title="Report an event">
           <div className="flex flex-col gap-2 text-sm">
             <input
-              className="rounded bg-slate-950 px-2 py-1"
+              className="field"
               placeholder="kind, e.g. site_fire, port_closure"
               value={kind}
               onChange={(e) => setKind(e.target.value)}
             />
             <textarea
-              className="h-24 rounded bg-slate-950 px-2 py-1"
+              className="field h-24"
               placeholder="What happened? e.g. Fire reported at the Felixstowe bonded warehouse, unit 4."
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
@@ -174,6 +182,7 @@ export default function Incidents() {
         </Card>
       </div>
     </div>
+    </div>
   );
 }
 
@@ -216,7 +225,7 @@ function IncidentView({
             {LEVELS.map((l) => (
               <div key={l} className="grid grid-cols-[70px_1fr_40px] items-center gap-2 text-xs">
                 <span className="text-slate-400">{l}</span>
-                <Bar p={out.priority_probabilities[l]} tone={l === out.priority ? "bg-fuchsia-500" : "bg-slate-500"} />
+                <Bar p={out.priority_probabilities[l]} tone={l === out.priority ? "bg-violet-500" : "bg-slate-500"} />
                 <span className="tabular-nums text-slate-400">{pct(out.priority_probabilities[l])}</span>
               </div>
             ))}

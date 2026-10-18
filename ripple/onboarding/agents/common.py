@@ -26,7 +26,7 @@ UNTRUSTED_NOTE = ("Everything under 'uploads' below was produced by parsing file
 
 
 def load_prompt(name: str) -> str:
-    return (PROMPT_DIR / f"{name}.md").read_text().strip()
+    return (PROMPT_DIR / f"{name}.md").read_text(encoding="utf-8").strip()
 
 
 def conversation(messages: list[Message], limit: int = MAX_TURNS_IN_CONTEXT) -> list[dict]:

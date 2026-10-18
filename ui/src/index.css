@@ -1,8 +1,156 @@
 @import "tailwindcss";
 
-html,
-body,
-#root {
-  background: #020617;
-  color-scheme: dark;
+/* Ripple's design tokens. The palette follows Palantir's Blueprint (dark theme): layered dark grays, one blue
+   for primary actions and selection, and green / orange / red reserved for intent. The stock Tailwind scales
+   the pages already use (slate, sky, emerald, rose, amber, violet) are remapped onto the same palette so every
+   screen reads as one product; new code uses the semantic names (bg-panel, text-ink, border-line, ...). */
+@theme {
+  --font-sans: "Inter", "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* semantic surfaces, lines and text */
+  --color-canvas: #111418;
+  --color-panel: #1c2127;
+  --color-raised: #252a31;
+  --color-sunken: #15181d;
+  --color-hover: #2f343c;
+  --color-line: #2f343c;
+  --color-line-strong: #404854;
+  --color-ink: #f6f7f9;
+  --color-body: #d3d8de;
+  --color-muted: #abb3bf;
+  --color-faint: #738091;
+
+  /* intent */
+  --color-accent: #4c90f0;
+  --color-accent-strong: #2d72d2;
+  --color-accent-soft: rgb(45 114 210 / 0.16);
+  --color-success: #32a467;
+  --color-success-soft: rgb(35 133 81 / 0.18);
+  --color-warning: #ec9a3c;
+  --color-warning-soft: rgb(200 118 25 / 0.18);
+  --color-danger: #e76a6e;
+  --color-danger-soft: rgb(205 66 70 / 0.18);
+
+  /* Blueprint dark grays as the slate scale */
+  --color-slate-50: #f6f7f9;
+  --color-slate-100: #e5e8eb;
+  --color-slate-200: #d3d8de;
+  --color-slate-300: #c5cbd3;
+  --color-slate-400: #abb3bf;
+  --color-slate-500: #8f99a8;
+  --color-slate-600: #5f6b7c;
+  --color-slate-700: #404854;
+  --color-slate-800: #2f343c;
+  --color-slate-900: #1c2127;
+  --color-slate-950: #111418;
+
+  /* blue */
+  --color-sky-200: #b8d5ff;
+  --color-sky-300: #8abbff;
+  --color-sky-400: #4c90f0;
+  --color-sky-500: #2d72d2;
+  --color-sky-600: #2d72d2;
+  --color-sky-700: #215db0;
+  --color-sky-800: #184a90;
+  --color-sky-900: #11315e;
+  --color-sky-950: #0b2240;
+
+  /* green */
+  --color-emerald-200: #a6e0c0;
+  --color-emerald-300: #72ca9b;
+  --color-emerald-400: #32a467;
+  --color-emerald-500: #238551;
+  --color-emerald-600: #238551;
+  --color-emerald-700: #1c6e42;
+  --color-emerald-800: #165a36;
+  --color-emerald-900: #0f3d25;
+  --color-emerald-950: #0a2a1a;
+
+  /* red */
+  --color-rose-200: #ffc9cb;
+  --color-rose-300: #fa999c;
+  --color-rose-400: #e76a6e;
+  --color-rose-500: #cd4246;
+  --color-rose-600: #cd4246;
+  --color-rose-700: #ac2f33;
+  --color-rose-800: #8e292c;
+  --color-rose-900: #5e1b1d;
+  --color-rose-950: #3d1213;
+
+  /* orange */
+  --color-amber-200: #fdd5a6;
+  --color-amber-300: #fbb360;
+  --color-amber-400: #ec9a3c;
+  --color-amber-500: #c87619;
+  --color-amber-600: #c87619;
+  --color-amber-700: #935610;
+  --color-amber-800: #77450d;
+  --color-amber-900: #4d2d08;
+  --color-amber-950: #331e05;
+
+  /* indigo, used for agent and pipeline states */
+  --color-violet-300: #bdadff;
+  --color-violet-400: #9881f3;
+  --color-violet-500: #7961db;
+  --color-violet-600: #634dbf;
+  --color-violet-700: #5642a6;
+  --color-violet-800: #45358a;
+  --color-violet-900: #2e2361;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    background: var(--color-canvas);
+    color: var(--color-body);
+    color-scheme: dark;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.45;
+    font-feature-settings: "cv11", "ss01", "tnum";
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: rgb(76 144 240 / 0.35);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #404854 transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #404854;
+    border-radius: 4px;
+  }
+  :focus-visible {
+    outline: 2px solid rgb(76 144 240 / 0.7);
+    outline-offset: 1px;
+  }
+  input,
+  select,
+  textarea {
+    color: var(--color-ink);
+  }
+}
+
+@layer components {
+  /* A form control in the Blueprint style: sunken, hairline border, blue focus ring. */
+  .field {
+    @apply rounded-[3px] border border-line bg-sunken px-2 py-1 text-[12px] text-ink placeholder:text-faint
+      outline-none focus:border-accent focus:ring-1 focus:ring-accent/50;
+  }
+  .eyebrow {
+    @apply text-[10.5px] font-semibold uppercase tracking-[0.08em] text-faint;
+  }
+  .link {
+    @apply text-accent hover:text-sky-300 hover:underline cursor-pointer;
+  }
 }

@@ -7,7 +7,7 @@ const KIND_TONE: Record<string, string> = {
   tool_call: "text-amber-300",
   tool_result: "text-amber-200",
   stage: "text-violet-300",
-  decision: "text-fuchsia-300",
+  decision: "text-violet-300",
   error: "text-rose-300",
 };
 

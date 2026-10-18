@@ -36,6 +36,13 @@ export default function Onboarding() {
     void load();
   }, [load]);
 
+  // A turn running on the server (started by another tab, or before a reload): poll until it replies.
+  useEffect(() => {
+    if (!state?.busy || busy) return;
+    const t = window.setInterval(() => void load(), 3000);
+    return () => window.clearInterval(t);
+  }, [state?.busy, busy, load]);
+
   // the live step stream: it replays history on connect, so a reload rebuilds the trail. EventSource reconnects
   // on its own with the URL it was opened with, which replays that history again: skip what is already shown.
   useEffect(() => {
@@ -45,6 +52,7 @@ export default function Onboarding() {
       if (seenSteps.current.has(key)) return;
       seenSteps.current.add(key);
       lastSeq.current = Math.max(lastSeq.current, s.seq);
+      if (s.stage === "workspace") return; // the workspace chat has its own trail
       setSteps((prev) => [...prev.slice(-400), s]);
     });
     return stop;
@@ -79,7 +87,12 @@ export default function Onboarding() {
           onGoto={(s: Stage) => void run(() => api.goto(s))}
         />
         <ErrorLine error={error} />
-        {state.pending && (
+        {state.busy && !busy ? (
+          <div className="flex items-center gap-2 rounded border border-violet-800 bg-violet-950/40 p-2 text-xs text-violet-200">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-violet-400" />
+            The {(state.pending?.agent ?? "agent").replace(/_/g, " ")} is working. This page updates when it replies.
+          </div>
+        ) : state.pending && !busy && (
           <div className="flex items-center gap-2 rounded border border-amber-800 bg-amber-950/40 p-2 text-xs text-amber-200">
             A turn was interrupted.
             <Btn onClick={() => void run(async () => await api.resume())}>Resume it</Btn>

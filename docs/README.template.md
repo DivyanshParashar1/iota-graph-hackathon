@@ -78,6 +78,41 @@ Or replay a recorded run into a database you can click through, with no LLM call
 RIPPLE_DB_PATH=var/demo.db .venv/bin/uvicorn ripple.api.app:app
 ```
 
+No recording at hand? `scripts/seed_mock.py` writes a hand-made footwear tenant (10 object types, 16 link types,
+~280 objects, four expert roles, three incoming events) so every screen has something to show. It is marked
+`seeded_from="mock"`, its objects are `confidence="synthetic"`, and its events are left undecided - only Jev
+decides:
+
+```bash
+.venv/bin/python scripts/seed_mock.py                       # into RIPPLE_DB_MODE's database
+.venv/bin/python scripts/seed_mock.py --mode embedded --db var/mock.db
+```
+
+### The workspace
+
+The UI follows the shape of Palantir's Foundry: a dark, dense workspace (Blueprint's palette, tokens in
+`ui/src/index.css`) with a left rail, a global object search (`/` or `Ctrl+K`), and the ontology as the centre
+of everything.
+
+* **Overview** (the home page once there is an approved ontology) - headline numbers, hot spots read off the
+  approved spec (objects in a risky enum state such as *delayed* or *high*, and objects linked to a single partner
+  over a many-to-many link), incidents waiting for a decision, and a quick-ask box for every approved expert.
+* **My workspace** - a persona switcher (no auth: who you are scopes the view, it does not secure it). Each
+  person is assigned one or more expert roles; their dashboard shows those roles' focus types, hot spots and
+  incidents next to a chat with the **agent team**: an orchestrator that splits the question across the expert
+  agents, runs them in parallel against the graph (`consult_experts`), and returns one sourced answer with the
+  delegations attached. Unlike the incident pipeline, this orchestrator routes with an LLM, by the owner's choice.
+* **Ontology** - the schema as a graph whose nodes are object types (icon and colour per type) and whose edges
+  carry the link name and cardinality; an inspector that explains the selected type or link; a *Read the model*
+  view that turns every link type into a sentence ("Each Supplier is based in one Region; a Region can have many
+  Suppliers."); tables of object and link types; the rationale, assumptions and live validation errors.
+* **Object type pages** - description, properties with their meaning and allowed values, how the type connects,
+  which expert roles reason over it, and its objects.
+* **Object explorer** - browse and search any approved type, open an object into an Object View: properties,
+  linked objects grouped by link type, a search-around graph, and the provenance of every value
+  (`/api/objects/*`, label-checked against the approved spec like the expert tools).
+* **Graph** - the instance graph with type layers, highlight search and the same Object View as inspector.
+
 ## Architecture
 
 ```mermaid
@@ -96,7 +131,7 @@ flowchart TB
   ER --> RT[experts/runtime.py<br/>one generic agent runs any role]
   RT <--> TOOLS[tools/graph_tools.py<br/>ontology-aware, label-checked, read-only]
   TOOLS <--> FDB
-  API --> UI[React UI<br/>chat + stage rail + inline forms + live agent trail<br/>ontology review · experts CRUD · graph]
+  API --> UI[React UI<br/>chat + stage rail + inline forms + live agent trail<br/>ontology workspace · object explorer · experts CRUD · graph]
 ```
 
 ### The ideas worth stealing

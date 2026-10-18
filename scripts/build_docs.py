@@ -73,7 +73,7 @@ def prompts_md() -> str:
     for p in sorted(PROMPT_DIR.glob("*.md")):
         text = p.read_text().strip()
         first = next((ln for ln in text.splitlines() if ln.strip() and not ln.startswith("#")), "")
-        rel = p.relative_to(ROOT)
+        rel = p.relative_to(ROOT).as_posix()
         out.append(f"| [`{p.stem}`]({rel}) | {len(text.split()):,} | {first[:120].replace('**', '')} |")
     return "\n".join(out)
 

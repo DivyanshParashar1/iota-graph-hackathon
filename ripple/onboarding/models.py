@@ -301,6 +301,13 @@ class FormAnswer(Model):
     ts: int = 0
 
 
+class AutofillReply(Model):
+    """The demo-only Autofill pass: a plausible answer to the agent's latest turn, written as the company."""
+
+    text: str
+    note: str = ""
+
+
 class SynthesizedForm(Model):
     """The demo-only Synthesize pass: one plausible value per field, all flagged synthetic."""
 
@@ -451,7 +458,7 @@ class Message(Model):
 
 class AgentStep(Model):
     id: str = ""
-    stage: Stage | Literal["incident"] = "interview"  # "incident": the post-onboarding incident pipeline
+    stage: Stage | Literal["incident", "workspace"] = "interview"  # post-onboarding: incidents, workspace chat
     agent: str = ""
     kind: str = "llm"  # llm | tool | write | error | stage
     summary: str = ""

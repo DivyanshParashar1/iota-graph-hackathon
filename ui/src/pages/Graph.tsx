@@ -1,109 +1,119 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api";
-import type { GraphSample, Provenance } from "../api";
+import type { GraphSample } from "../api";
 import GraphView from "../components/GraphView";
-import { paletteFor } from "../components/colors";
-import { Btn, Card, Chip, ErrorLine } from "../components/ui";
+import type { ViewLink, ViewNode } from "../components/GraphView";
+import { Icon } from "../components/icons";
+import ObjectView from "../components/ObjectView";
+import { Btn, EmptyState, PageHeader, Panel, SearchInput, TypeIcon } from "../components/ui";
+import { human } from "../ontologyText";
+import { useOntology } from "../useOntology";
 
-/** The loaded instance graph, and "where did this come from?" for any node in it. */
+const SIZES = [300, 800, 2000];
+
+/** The instance graph: a sample of the loaded objects, filterable by type, with an Object View inspector. */
 export default function Graph() {
-  const [sample, setSample] = useState<GraphSample>({ nodes: [], edges: [] });
-  const [counts, setCounts] = useState<{ nodes: Record<string, number>; edges: Record<string, number> }>({
-    nodes: {},
-    edges: {},
-  });
-  const [selected, setSelected] = useState<{ id: string; label: string } | null>(null);
-  const [prov, setProv] = useState<Provenance | null>(null);
+  const { spec, style } = useOntology();
+  const [limit, setLimit] = useState(800);
+  const [g, setG] = useState<GraphSample | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const palette = useMemo(() => paletteFor(sample.nodes.map((n) => n.label)), [sample.nodes]);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState<{ id: string; label: string } | null>(null);
 
   useEffect(() => {
-    api.graph(500).then(setSample).catch((e) => setError(String(e)));
-    api
-      .tenant()
-      .then((t) => setCounts(t.counts))
-      .catch(() => undefined);
-  }, []);
+    setG(null);
+    api.graph(limit).then(setG).catch((e: Error) => setError(e.message));
+  }, [limit]);
 
-  useEffect(() => {
-    if (!selected) return setProv(null);
-    api.provenance(selected.id).then(setProv).catch(() => setProv(null));
-  }, [selected]);
+  const byLabel = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const n of g?.nodes ?? []) m[n.label] = (m[n.label] ?? 0) + 1;
+    return m;
+  }, [g]);
+
+  const nodes = useMemo<ViewNode[]>(() => (g?.nodes ?? []).filter((n) => !hidden.has(n.label)).map((n) => {
+    const s = style(n.label);
+    return { id: n.id, label: n.label, title: n.title, color: s.color, icon: s.icon };
+  }), [g, hidden, style]);
+  const visible = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
+  const links = useMemo<ViewLink[]>(() => (g?.edges ?? []).filter((e) => visible.has(e.source) && visible.has(e.target))
+    .map((e) => ({ source: e.source, target: e.target, type: e.type })), [g, visible]);
+  const highlight = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    if (!t) return undefined;
+    return new Set(nodes.filter((n) => n.title.toLowerCase().includes(t) || n.id.toLowerCase().includes(t)).map((n) => n.id));
+  }, [q, nodes]);
+
+  const labels = (spec?.types.map((t) => t.label) ?? Object.keys(byLabel)).filter((l) => byLabel[l]);
+  const toggle = (l: string) => {
+    const next = new Set(hidden);
+    if (next.has(l)) next.delete(l);
+    else next.add(l);
+    setHidden(next);
+  };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-      <Card
-        title="Your graph"
-        right={
-          <span className="text-[11px] text-slate-500">
-            {sample.nodes.length} of {Object.values(counts.nodes).reduce((a, b) => a + b, 0)} nodes
-          </span>
-        }
-      >
-        <ErrorLine error={error} />
-        <GraphView
-          nodes={sample.nodes.map((n) => ({ id: n.id, label: n.label, title: n.title, color: palette[n.label] }))}
-          links={sample.edges.map((e) => ({ source: e.source, target: e.target, type: e.type }))}
-          height={560}
-          showLabels
-          labelWith="title"
-          onSelect={(n) => setSelected({ id: n.id, label: n.label })}
-        />
-        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
-          {Object.keys(counts.nodes).map((label) => (
-            <span key={label} className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: palette[label] }} />
-              {label}
-            </span>
-          ))}
-        </div>
-      </Card>
-      <div className="flex flex-col gap-4">
-        <Card title="Counts">
-          <table className="w-full text-xs">
-            <tbody>
-              {Object.entries(counts.nodes).map(([label, n]) => (
-                <tr key={label} className="border-t border-slate-800">
-                  <td className="py-1 text-slate-300">{label}</td>
-                  <td className="py-1 text-right tabular-nums text-slate-400">{n}</td>
-                </tr>
-              ))}
-              {Object.entries(counts.edges).map(([rel, n]) => (
-                <tr key={rel} className="border-t border-slate-800">
-                  <td className="py-1 font-mono text-[11px] text-slate-400">{rel}</td>
-                  <td className="py-1 text-right tabular-nums text-slate-500">{n}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-        <Card
-          title="Where did this come from?"
-          right={selected ? <Btn kind="ghost" onClick={() => setSelected(null)}>clear</Btn> : undefined}
-        >
-          {!selected && <p className="text-xs text-slate-500">Click a node in the graph.</p>}
-          {selected && (
-            <div className="flex flex-col gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <Chip color="bg-sky-900">{selected.label}</Chip>
-                <span className="font-mono text-slate-300">{selected.id}</span>
-              </div>
-              {!prov?.sources.length && <p className="text-slate-500">no provenance recorded for this node</p>}
-              {prov?.sources.map((s) => (
-                <div key={s.source_id} className="rounded bg-slate-950 p-2">
-                  <div className="flex items-center gap-1">
-                    <Chip color="bg-slate-800">{s.source_label.replace("_", "")}</Chip>
-                    <span className="text-slate-400">{s.source_ref}</span>
-                    <Chip color={s.confidence === "synthetic" ? "bg-fuchsia-800" : "bg-slate-800"}>
-                      {s.confidence}
-                    </Chip>
-                  </div>
-                  <div className="mt-1 break-words font-mono text-[11px] text-slate-500">{s.source_value}</div>
-                </div>
-              ))}
+    <div className="flex h-full min-h-[600px] flex-col">
+      <PageHeader
+        crumbs={[{ label: "Graph" }]}
+        icon={<span className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-accent-soft text-accent"><Icon name="graph" size={20} /></span>}
+        title="Instance graph"
+        subtitle={g ? `${nodes.length.toLocaleString()} of ${g.nodes.length.toLocaleString()} sampled objects · ${links.length.toLocaleString()} links` : "Loading the sample…"}
+        right={<>
+          <span className="text-[11px] text-faint">Sample</span>
+          <div className="flex overflow-hidden rounded-[3px] border border-line-strong">
+            {SIZES.map((s) => (
+              <button key={s} onClick={() => setLimit(s)}
+                      className={`h-7 px-2.5 text-[12px] ${limit === s ? "bg-accent-strong text-white" : "bg-raised text-muted hover:text-ink"}`}>{s}</button>
+            ))}
+          </div>
+        </>}
+      />
+      <div className="grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_400px]">
+        <Panel title="Layers" icon="layers" className="hidden lg:flex"
+               right={hidden.size > 0 ? <Btn small kind="minimal" onClick={() => setHidden(new Set())}>Show all</Btn> : null}>
+          <div className="border-b border-line p-2">
+            <SearchInput value={q} onChange={setQ} placeholder="Highlight by name or id" />
+          </div>
+          <div className="p-1.5">
+            {labels.map((l) => {
+              const s = style(l);
+              const off = hidden.has(l);
+              return (
+                <button key={l} onClick={() => toggle(l)}
+                        className={`flex w-full items-center gap-2 rounded-[3px] px-2 py-1.5 text-left hover:bg-hover ${off ? "opacity-45" : ""}`}>
+                  <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-[2px] border ${off ? "border-line-strong" : "border-accent bg-accent-strong"}`}>
+                    {!off && <Icon name="check" size={10} className="text-white" strokeWidth={3} />}
+                  </span>
+                  <TypeIcon label={l} color={s.color} icon={s.icon} size={20} />
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink">{human(l)}</span>
+                  <span className="text-[11px] tabular-nums text-muted">{byLabel[l] ?? 0}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Panel>
+        <section className="relative min-h-[480px] overflow-hidden rounded-[4px] border border-line">
+          {error ? <div className="p-4 text-[12px] text-rose-300">{error}</div> : !g ? (
+            <div className="flex h-full items-center justify-center text-[12px] text-faint">Loading the graph…</div>
+          ) : (
+            <GraphView nodes={nodes} links={links} labelWith="title" highlight={highlight} selectedId={sel?.id ?? null}
+                       onSelect={(n) => setSel({ id: n.id, label: n.label })} onBackground={() => setSel(null)}
+                       nodeRadius={6} charge={-90} linkDistance={40} linkLabels={false}
+                       emptyText="No objects loaded yet - approve the ontology to load data." />
+          )}
+        </section>
+        <section className="hidden min-h-[480px] overflow-hidden rounded-[4px] border border-line xl:block">
+          {sel ? <ObjectView key={sel.id} label={sel.label} id={sel.id} onClose={() => setSel(null)} /> : (
+            <div className="h-full bg-panel">
+              <EmptyState icon="eye" title="Select an object">
+                Click a node to open its properties, links and sources here. <Link to="/objects" className="link">Browse all objects</Link>
+              </EmptyState>
             </div>
           )}
-        </Card>
+        </section>
       </div>
     </div>
   );

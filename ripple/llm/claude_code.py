@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import time
+from pathlib import Path
 from typing import Any
 
 from ripple.llm.base import LLMError, Reply, ToolCall, log_call
@@ -82,17 +84,35 @@ def build_request(system: str, messages: list[dict], tools: list[dict] | None, s
     return {"system": system, "prompt": render_transcript(messages), "schema": out_schema}
 
 
+def resolve_binary(binary: str) -> str:
+    """The executable to start for `binary`.
+
+    On Windows npm installs Claude Code as a `claude.cmd` shim, which `subprocess` cannot find by bare name and
+    which would route the multi-line system prompt through cmd.exe (newlines end a batch argument). The shim
+    only forwards to the native `claude.exe` in the package, so start that directly when it is there."""
+    found = shutil.which(binary)
+    if not found:
+        return binary
+    if os.name == "nt" and found.lower().endswith((".cmd", ".bat", ".ps1")):
+        exe = Path(found).parent / "node_modules" / "@anthropic-ai" / "claude-code" / "bin" / "claude.exe"
+        if exe.exists():
+            return str(exe)
+    return found
+
+
 def run_claude(system: str, prompt: str, schema: dict, model: str, effort: str | None = None,
                binary: str = "claude", timeout: float = 600) -> dict:
     """One headless Claude Code call with its built-in tools and MCP servers off. Returns structured output."""
-    cmd = [binary, "-p", "--output-format", "json", "--tools", "", "--strict-mcp-config", "--no-session-persistence",
-           "--model", model, "--system-prompt", system, "--json-schema", json.dumps(schema)]
+    cmd = [resolve_binary(binary), "-p", "--output-format", "json", "--tools", "", "--strict-mcp-config",
+           "--no-session-persistence", "--model", model, "--system-prompt", system,
+           "--json-schema", json.dumps(schema)]
     if effort:
         cmd += ["--effort", effort]
     env = {k: v for k, v in os.environ.items()
            if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}  # use the CLI's own login
     try:
-        p = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout, env=env,
+        p = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           timeout=timeout, env=env,
                            cwd=tempfile.gettempdir())  # outside the repo: no project CLAUDE.md or settings
     except FileNotFoundError:
         raise LLMError(f"{binary!r} is not installed; set CLAUDE_CODE_BRIDGE_URL or another provider") from None

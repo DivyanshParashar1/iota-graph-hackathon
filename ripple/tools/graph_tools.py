@@ -28,7 +28,8 @@ def _spec(scope: TenantScope) -> OntologySpec:
     return spec
 
 
-def _type(scope: TenantScope, label: str):
+def spec_type(scope: TenantScope, label: str):
+    """A type of the approved spec by label; ToolError for anything else (so a label can reach Cypher)."""
     spec = _spec(scope)
     t = spec.type_map().get(label)
     if t is None:
@@ -36,7 +37,8 @@ def _type(scope: TenantScope, label: str):
     return t
 
 
-def _title_prop(t) -> str:
+def title_property(t) -> str:
+    """The property that names a node of this type: its display.title_property when declared, else id."""
     title = t.display.title_property or "name"
     return title if title == "id" or any(p.name == title for p in t.properties) else "id"
 
@@ -54,7 +56,7 @@ def describe_ontology(scope: TenantScope) -> ToolResult:
     spec = _spec(scope)
     counts = instance_counts(scope)
     types = [{"label": t.label, "description": t.description, "count": counts["nodes"].get(t.label, 0),
-              "title_property": _title_prop(t),
+              "title_property": title_property(t),
               "properties": [{"name": p.name, "type": p.type, "unit": p.unit, "description": p.description}
                              for p in t.properties]} for t in spec.types]
     rels = [{"type": r.type, "from": r.from_, "to": r.to, "cardinality": r.cardinality,
@@ -67,9 +69,9 @@ def describe_ontology(scope: TenantScope) -> ToolResult:
 @logged_tool
 def find_nodes(scope: TenantScope, label: str, query: str = "", limit: int = 25) -> ToolResult:
     """Nodes of one type, optionally filtered by a substring of their title property or id."""
-    t = _type(scope, label)
+    t = spec_type(scope, label)
     n = _clamp(limit)
-    prop = _title_prop(t)
+    prop = title_property(t)
     if query:
         rows = scope.ops.run("search_nodes", {"q": query, "limit": n}, label=label, prop=prop)
     else:
@@ -83,7 +85,7 @@ def find_nodes(scope: TenantScope, label: str, query: str = "", limit: int = 25)
 @logged_tool
 def get_node(scope: TenantScope, label: str, id: str) -> ToolResult:  # noqa: A002 - the graph calls it id
     """Every property of one node of a known type."""
-    _type(scope, label)
+    spec_type(scope, label)
     rows = scope.ops.run("node_lookup", {"id": id}, label=label)
     if not rows:
         raise ToolError(f"no {label} with id {id!r}")
@@ -96,7 +98,7 @@ def get_node(scope: TenantScope, label: str, id: str) -> ToolResult:  # noqa: A0
 @logged_tool
 def neighbours(scope: TenantScope, label: str, id: str, limit: int = 50) -> ToolResult:  # noqa: A002
     """One node's immediate neighbours, grouped by the relationship that reaches them."""
-    _type(scope, label)
+    spec_type(scope, label)
     rows = scope.ops.run("neighbourhood", {"id": id, "limit": _clamp(limit, 50)}, label=label)
     grouped: dict[str, list[dict]] = {}
     for r in rows:
@@ -112,7 +114,7 @@ def neighbours(scope: TenantScope, label: str, id: str, limit: int = 50) -> Tool
 def aggregate(scope: TenantScope, label: str, property: str = "", group_by: str = "",  # noqa: A002
               limit: int = 25) -> ToolResult:
     """Count / sum / avg / min / max of a numeric property of a type, or counts grouped by a property."""
-    t = _type(scope, label)
+    t = spec_type(scope, label)
     names = {p.name for p in t.properties} | {"id"}
     if group_by:
         if group_by not in names:

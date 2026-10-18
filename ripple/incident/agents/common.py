@@ -32,7 +32,7 @@ class AgentFailed(RuntimeError):
 
 
 def load_prompt(name: str) -> str:
-    return (PROMPT_DIR / f"{name}.md").read_text().strip()
+    return (PROMPT_DIR / f"{name}.md").read_text(encoding="utf-8").strip()
 
 
 def state_message(title: str, blocks: dict, instruction: str) -> dict:

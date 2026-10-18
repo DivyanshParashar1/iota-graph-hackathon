@@ -162,6 +162,8 @@ def finish(scope: TenantScope = Depends(scope_dep)):
     s = get_session(scope)
     if not s:
         raise HTTPException(409, "no onboarding session")
+    if s.get("stage") == "ready":  # already live: finishing again changes nothing
+        return {"messages": [], "state": sess.state(scope)}
     if s.get("stage") != "experts":
         raise HTTPException(409, f"onboarding is at the {s.get('stage')} stage, not experts")
     msgs = sess.advance(scope, s["id"], "experts", reason="expert roles approved")

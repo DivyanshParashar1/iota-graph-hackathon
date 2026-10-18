@@ -78,6 +78,41 @@ Or replay a recorded run into a database you can click through, with no LLM call
 RIPPLE_DB_PATH=var/demo.db .venv/bin/uvicorn ripple.api.app:app
 ```
 
+No recording at hand? `scripts/seed_mock.py` writes a hand-made footwear tenant (10 object types, 16 link types,
+~280 objects, four expert roles, three incoming events) so every screen has something to show. It is marked
+`seeded_from="mock"`, its objects are `confidence="synthetic"`, and its events are left undecided - only Jev
+decides:
+
+```bash
+.venv/bin/python scripts/seed_mock.py                       # into RIPPLE_DB_MODE's database
+.venv/bin/python scripts/seed_mock.py --mode embedded --db var/mock.db
+```
+
+### The workspace
+
+The UI follows the shape of Palantir's Foundry: a dark, dense workspace (Blueprint's palette, tokens in
+`ui/src/index.css`) with a left rail, a global object search (`/` or `Ctrl+K`), and the ontology as the centre
+of everything.
+
+* **Overview** (the home page once there is an approved ontology) - headline numbers, hot spots read off the
+  approved spec (objects in a risky enum state such as *delayed* or *high*, and objects linked to a single partner
+  over a many-to-many link), incidents waiting for a decision, and a quick-ask box for every approved expert.
+* **My workspace** - a persona switcher (no auth: who you are scopes the view, it does not secure it). Each
+  person is assigned one or more expert roles; their dashboard shows those roles' focus types, hot spots and
+  incidents next to a chat with the **agent team**: an orchestrator that splits the question across the expert
+  agents, runs them in parallel against the graph (`consult_experts`), and returns one sourced answer with the
+  delegations attached. Unlike the incident pipeline, this orchestrator routes with an LLM, by the owner's choice.
+* **Ontology** - the schema as a graph whose nodes are object types (icon and colour per type) and whose edges
+  carry the link name and cardinality; an inspector that explains the selected type or link; a *Read the model*
+  view that turns every link type into a sentence ("Each Supplier is based in one Region; a Region can have many
+  Suppliers."); tables of object and link types; the rationale, assumptions and live validation errors.
+* **Object type pages** - description, properties with their meaning and allowed values, how the type connects,
+  which expert roles reason over it, and its objects.
+* **Object explorer** - browse and search any approved type, open an object into an Object View: properties,
+  linked objects grouped by link type, a search-around graph, and the provenance of every value
+  (`/api/objects/*`, label-checked against the approved spec like the expert tools).
+* **Graph** - the instance graph with type layers, highlight search and the same Object View as inspector.
+
 ## Architecture
 
 ```mermaid
@@ -96,7 +131,7 @@ flowchart TB
   ER --> RT[experts/runtime.py<br/>one generic agent runs any role]
   RT <--> TOOLS[tools/graph_tools.py<br/>ontology-aware, label-checked, read-only]
   TOOLS <--> FDB
-  API --> UI[React UI<br/>chat + stage rail + inline forms + live agent trail<br/>ontology review · experts CRUD · graph]
+  API --> UI[React UI<br/>chat + stage rail + inline forms + live agent trail<br/>ontology workspace · object explorer · experts CRUD · graph]
 ```
 
 ### The ideas worth stealing
@@ -148,10 +183,11 @@ them.
 
 | Prompt | Words | Opens with |
 |---|---|---|
+| [`autofill`](ripple/onboarding/agents/prompts/autofill.md) | 288 | You are drafting a plausible made-up answer for a demo of Ripple's onboarding chat. |
 | [`data_agent`](ripple/onboarding/agents/prompts/data_agent.md) | 649 | You are the Ripple data agent. The interviewer has handed you a Supply Chain Brief: a readable description |
 | [`expert_generator`](ripple/onboarding/agents/prompts/expert_generator.md) | 468 | You are the Ripple expert generator. You decide which expert agents this particular company needs, and you |
 | [`interviewer`](ripple/onboarding/agents/prompts/interviewer.md) | 672 | You are the Ripple interviewer: a product manager who is also a supply chain expert. You are talking to |
-| [`ontologist`](ripple/onboarding/agents/prompts/ontologist.md) | 570 | You are the Ripple ontology agent. You design the graph model for one company's supply chain, from the |
+| [`ontologist`](ripple/onboarding/agents/prompts/ontologist.md) | 593 | You are the Ripple ontology agent. You design the graph model for one company's supply chain, from the |
 | [`synthesize`](ripple/onboarding/agents/prompts/synthesize.md) | 230 | You are filling in a demo form with plausible made-up values. |
 
 ## The artifact models
@@ -163,14 +199,14 @@ validation of what comes back, and the shape the UI reads.
 |---|---|---|
 | [`Brief`](ripple/onboarding/models.py#L75) | the interviewer | `company`, `industry`, `summary`, `products`, `components`, `suppliers`, `sites`, `manufacturing`, `transport_modes`, `warehousing`, `distribution`, `customers`, `markets`, `commercial`, `constraints`, `risks`, `pains`, `vocabulary`, `unknowns`, `scale` |
 | [`InterviewTurn`](ripple/onboarding/models.py#L179) | the interviewer | `reply`, `checklist_ops`, `brief_patch`, `ask_for_files`, `done`, `done_reason` |
-| [`FormSpec`](ripple/onboarding/models.py#L247) | the data agent | `id`, `round`, `title`, `intro`, `fields`, `status`, `ts` |
-| [`DataTurn`](ripple/onboarding/models.py#L268) | the data agent | `reply`, `form`, `checklist_ops`, `ask_for_files`, `file_mappings`, `done`, `done_reason` |
-| [`FormAnswer`](ripple/onboarding/models.py#L293) | the user (or Synthesize) | `id`, `form_id`, `field_id`, `value`, `source`, `confidence`, `ts` |
-| [`OntologySpec`](ripple/onboarding/models.py#L357) | the ontology agent | `version`, `types`, `relationships`, `indexes`, `rationale`, `coverage` |
-| [`OntologyTurn`](ripple/onboarding/models.py#L387) | the ontology agent | `reply`, `spec`, `questions` |
-| [`InstanceBatch`](ripple/onboarding/models.py#L395) | the ontology agent | `nodes`, `edges`, `notes` |
-| [`ExpertRole`](ripple/onboarding/models.py#L405) | the expert generator (or the user) | `id`, `name`, `title`, `mandate`, `justification`, `focus_types`, `focus_relationships`, `playbook`, `tools`, `system_prompt`, `status`, `version`, `origin`, `stale`, `ts` |
-| [`ExpertsTurn`](ripple/onboarding/models.py#L429) | the expert generator | `reply`, `roles`, `dropped` |
+| [`FormSpec`](ripple/onboarding/models.py#L247) | the data agent | `id`, `round`, `title`, `intro`, `fields`, `status`, `stale`, `ts` |
+| [`DataTurn`](ripple/onboarding/models.py#L269) | the data agent | `reply`, `form`, `checklist_ops`, `ask_for_files`, `file_mappings`, `done`, `done_reason` |
+| [`FormAnswer`](ripple/onboarding/models.py#L294) | the user (or Synthesize) | `id`, `form_id`, `field_id`, `value`, `source`, `confidence`, `ts` |
+| [`OntologySpec`](ripple/onboarding/models.py#L365) | the ontology agent | `version`, `types`, `relationships`, `indexes`, `rationale`, `coverage` |
+| [`OntologyTurn`](ripple/onboarding/models.py#L395) | the ontology agent | `reply`, `spec`, `questions` |
+| [`InstanceBatch`](ripple/onboarding/models.py#L403) | the ontology agent | `nodes`, `edges`, `notes` |
+| [`ExpertRole`](ripple/onboarding/models.py#L413) | the expert generator (or the user) | `id`, `name`, `title`, `mandate`, `justification`, `focus_types`, `focus_relationships`, `playbook`, `tools`, `system_prompt`, `status`, `version`, `origin`, `stale`, `ts` |
+| [`ExpertsTurn`](ripple/onboarding/models.py#L437) | the expert generator | `reply`, `roles`, `dropped` |
 
 ## The expert runtime's tools (6)
 
@@ -209,7 +245,7 @@ Edges: `(_Session)-[:HAS_MESSAGE]->(_Message)`, `(_FormSpec)-[:HAS_ANSWER]->(_Fo
 `(_OntologySpec)-[:DEFINES]->(_OntologyType)`, `(_ExpertRole)-[:FOCUSES_ON]->(_OntologyType)`,
 `(node)-[:HAS_PROVENANCE]->(_Provenance)-[:FROM_SOURCE]->(_FormAnswer|_Attachment)`.
 
-### Every query (62 files)
+### Every query (85 files)
 
 Every query Ripple runs lives in `graph/queries/*.cypher` with a header the docs are generated from. The ones
 marked `template` carry `{placeholders}` filled from the approved spec — that is how a per-tenant ontology is
@@ -295,7 +331,7 @@ ORDER BY rel, id
 LIMIT $limit
 ```
 
-### All 62 query files
+### All 85 query files
 
 #### Onboarding state
 
@@ -311,7 +347,8 @@ LIMIT $limit
 | [`session_set`](graph/queries/session_set.cypher) | write | ops | Patch session fields (stage, updated_at, pending_json) |
 | [`session_upsert`](graph/queries/session_upsert.cypher) | write | ops | Create or update the onboarding session (stage cursor, provider, model) |
 | [`step_append`](graph/queries/step_append.cypher) | write | ops | Record one agent step (the audit and stream trail) |
-| [`steps_list`](graph/queries/steps_list.cypher) | read | ops | Agent steps in order, newest last (optionally one stage) |
+| [`steps_count`](graph/queries/steps_count.cypher) | read | ops | How many agent steps there are (optionally one stage) |
+| [`steps_list`](graph/queries/steps_list.cypher) | read | ops | Agent steps in order, newest last (optionally one stage); skip the oldest to get the newest $limit |
 | [`tenant_counts`](graph/queries/tenant_counts.cypher) | read | ops | Node and edge totals of a graph |
 | [`tenant_get`](graph/queries/tenant_get.cypher) | read | ops | The tenant node (id, name, stage, status, flags) |
 | [`tenant_set`](graph/queries/tenant_set.cypher) | write | ops | Patch tenant fields (stage, status, has_synthetic, name) |
@@ -378,11 +415,33 @@ LIMIT $limit
 
 | File | Kind | Purpose |
 |---|---|---|
+| [`approval_append`](graph/queries/approval_append.cypher) | write | Record an approval or rejection of an option, by a person or by the auto-approval policy |
+| [`approvals_list`](graph/queries/approvals_list.cypher) | read | Every approval and rejection on one incident, in order |
 | [`attachments_list`](graph/queries/attachments_list.cypher) | read | Every upload of this tenant with its profile |
+| [`chat_message_append`](graph/queries/chat_message_append.cypher) | write | Append one message (the employee's, or the orchestrator's answer with its delegations) to a thread |
+| [`chat_messages_list`](graph/queries/chat_messages_list.cypher) | read | Every message of one chat thread in order |
+| [`chat_thread_delete`](graph/queries/chat_thread_delete.cypher) | write | Delete one chat thread and its messages |
+| [`chat_thread_upsert`](graph/queries/chat_thread_upsert.cypher) | write | Create or update one employee's chat thread with the workspace orchestrator |
+| [`chat_threads_list`](graph/queries/chat_threads_list.cypher) | read | One employee's chat threads, most recently active first |
 | [`create_index`](graph/queries/create_index.cypher) | template | One index for a generated type. Template: {label}, {prop}; raises when the index already exists. |
+| [`employee_delete`](graph/queries/employee_delete.cypher) | write | Delete an employee with their chat threads and messages |
+| [`employee_upsert`](graph/queries/employee_upsert.cypher) | write | Create or update an employee (a person who uses the workspace) and their assigned expert roles |
+| [`employees_list`](graph/queries/employees_list.cypher) | read | Every employee, by name |
 | [`graph_edges_between`](graph/queries/graph_edges_between.cypher) | read | The edges among a given set of instance node ids (the graph view's links) |
 | [`graph_nodes_sample`](graph/queries/graph_nodes_sample.cypher) | read | A sample of the generated instance nodes for the graph view (platform state excluded) |
+| [`incident_concerns_link`](graph/queries/incident_concerns_link.cypher) | write | Link an incident to the instance nodes its evidence names (unlabelled match: incidents name few ids) |
+| [`incident_get`](graph/queries/incident_get.cypher) | read | One incident with every stored property (the JSON artifacts are decoded in ripple/incident/store.py) |
+| [`incident_option_set`](graph/queries/incident_option_set.cypher) | write | Patch one option (its status after an approval, a rejection or a superseding choice) |
+| [`incident_option_upsert`](graph/queries/incident_option_upsert.cypher) | write | Create or update one proposed option of an incident, with Jev's probability and the policy verdict |
+| [`incident_options_list`](graph/queries/incident_options_list.cypher) | read | Every option of one incident, by group and Jev's rank |
+| [`incident_upsert`](graph/queries/incident_upsert.cypher) | write | Create or update an incident (one reported event and everything the pipeline made of it) |
+| [`incidents_list`](graph/queries/incidents_list.cypher) | read | Incidents, newest first, without their artifacts |
+| [`jev_decision_append`](graph/queries/jev_decision_append.cypher) | write | Record one Jev call of an incident: why it was asked, the request, the answers and the build |
+| [`jev_decisions_list`](graph/queries/jev_decisions_list.cypher) | read | Every Jev call of one incident, in order |
 | [`messages_list`](graph/queries/messages_list.cypher) | read | Every message of a session in order, optionally after a sequence number |
+| [`nodes_by_ids`](graph/queries/nodes_by_ids.cypher) | read | Instance nodes by id whatever their generated type (an option's live impact); never platform nodes |
+| [`nodes_with_value`](graph/queries/nodes_with_value.cypher) | template | Nodes of one generated type whose property equals a value (an overview hot spot's examples). Template: {label}, {prop}. |
+| [`single_linked_targets`](graph/queries/single_linked_targets.cypher) | template | How many nodes of a type have exactly one partner over a many-to-many link (concentration risk). Template: {from_label}, {rel}, {to_label}. |
 
 ## Measured numbers
 

@@ -140,6 +140,18 @@ def test_synthesize_flags_everything_synthetic(app_client, stub):
     assert app_client.get("/api/tenant").json()["has_synthetic"] is True
 
 
+def test_autofill_drafts_an_answer_without_sending_it(app_client, stub):
+    start(app_client, stub)
+    before = app_client.get("/api/onboarding/session").json()["messages"]
+    stub.load({"text": "We make about 2M pairs a year in Vietnam and Portugal.", "note": "assumed two plants"})
+    r = app_client.post("/api/onboarding/autofill")
+    assert r.status_code == 200, r.text
+    assert r.json() == {"text": "We make about 2M pairs a year in Vietnam and Portugal.",
+                        "note": "assumed two plants", "synthetic": True}
+    assert app_client.get("/api/onboarding/session").json()["messages"] == before  # drafted, not sent
+    assert app_client.get("/api/tenant").json()["has_synthetic"] is True
+
+
 def test_upload_profiles_the_file(app_client, stub, tenants_dir):
     start(app_client, stub)
     csv = b"name,country,lead_time_days\nGZ Leather,CN,30\nRubber Co,VN,21\n"
@@ -249,6 +261,50 @@ def test_provenance_is_answerable_over_http(app_client, stub):
     assert {s["source_ref"] for s in sources} == {"supplier_count", "tier1"}
 
 
+# --------------------------------------------------------------------------- objects
+
+def at_approved(client, stub):
+    at_ontology(client, stub)
+    stub.load(f.batch().model_dump(by_alias=True), experts_turn())
+    assert client.post("/api/ontology/approve").status_code == 200
+
+
+def test_objects_of_a_type_are_listed_and_searched(app_client, stub):
+    at_approved(app_client, stub)
+    out = app_client.get("/api/objects/Supplier").json()
+    assert out["total"] == 2 and out["title_property"] == "name"
+    assert [o["id"] for o in out["objects"]] == ["SUP-0001", "SUP-0002"]
+    assert out["objects"][0]["title"] == "GZ Leather" and out["objects"][0]["properties"]["country"] == "CN"
+    hits = app_client.get("/api/objects/Supplier", params={"q": "rubber"}).json()["objects"]
+    assert [o["id"] for o in hits] == ["SUP-0002"]
+
+
+def test_an_object_opens_with_its_links(app_client, stub):
+    at_approved(app_client, stub)
+    out = app_client.get("/api/objects/Part/PRT-0001").json()
+    assert out["title"] == "Sole"
+    links = {(lk["type"], lk["direction"], lk["label"]): [o["id"] for o in lk["objects"]] for lk in out["links"]}
+    assert links == {("SUPPLIES", "in", "Supplier"): ["SUP-0001", "SUP-0002"],
+                     ("PART_OF", "out", "Product"): ["PRD-0001"]}
+    assert app_client.get("/api/objects/Part/PRT-9999").status_code == 404
+
+
+def test_global_object_search_spans_types(app_client, stub):
+    at_approved(app_client, stub)
+    hits = app_client.get("/api/objects/search", params={"q": "o"}).json()["hits"]
+    assert {(h["label"], h["id"]) for h in hits} >= {("Supplier", "SUP-0002"), ("Part", "PRT-0001")}
+
+
+def test_objects_only_open_approved_types(app_client, stub):
+    at_ontology(app_client, stub)
+    assert app_client.get("/api/objects/Supplier").status_code == 404  # drafted, not approved
+    stub.load(f.batch().model_dump(by_alias=True), experts_turn())
+    assert app_client.post("/api/ontology/approve").status_code == 200
+    assert app_client.get("/api/objects/Nope").status_code == 404
+    assert app_client.get("/api/objects/_Tenant").status_code == 404
+    assert app_client.get("/api/objects/_Tenant/x").status_code == 404
+
+
 # --------------------------------------------------------------------------- experts
 
 def at_experts(client, stub, tenants_dir=None):
@@ -331,6 +387,25 @@ def test_finish_needs_an_approved_role(app_client, stub, tenants_dir):
     assert r.status_code == 200
     assert r.json()["state"]["stage"] == "ready"
     assert app_client.get("/api/tenant").json()["status"] == "live"
+    again = app_client.post("/api/experts/finish")  # a second click on a live tenant is a no-op
+    assert again.status_code == 200 and again.json()["state"]["stage"] == "ready" and again.json()["messages"] == []
+
+
+def test_overview_reads_hot_spots_off_the_approved_spec(app_client, stub, tenants_dir):
+    at_experts(app_client, stub)
+    out = app_client.get("/api/overview").json()
+    assert out["has_ontology"] and out["types"] == 3 and out["relationships"] == 2
+    assert out["counts"]["nodes"] == {"Supplier": 2, "Part": 1, "Product": 1}
+    # PRT-0001 has two suppliers (no concentration); PRD-0001 is built from a single part
+    assert [(h["rel"], h["single"], h["total"]) for h in out["hotspots"]] == [("PART_OF", 1, 1)]
+    assert out["hotspots"][0]["sample"] == [{"id": "PRD-0001", "title": "Runner"}]
+    assert out["incidents"]["total"] == 0 and out["experts"]
+
+
+def test_overview_without_an_ontology_is_empty(app_client, stub):
+    start(app_client, stub)
+    out = app_client.get("/api/overview").json()
+    assert out["has_ontology"] is False and out["hotspots"] == [] and out["stage"] == "interview"
 
 
 def test_the_graph_sample_excludes_platform_nodes(app_client, stub, tenants_dir):
@@ -544,3 +619,56 @@ def test_reapproving_clears_the_stale_flag_and_keeps_a_live_stage(app_client, st
     assert r.json()["state"]["stage"] == "ready", "re-approving on a live tenant must not reopen onboarding"
     assert app_client.get("/api/ontology").json()["row"]["stale"] is False
     assert all(e["stale"] for e in app_client.get("/api/experts").json()["experts"])
+
+
+# --------------------------------------------------------------------------- workspace (employees + orchestrator)
+
+def at_workspace(client, stub, tenants_dir):
+    roles = at_experts(client, stub, tenants_dir)
+    rid = roles["experts"][0]["id"]
+    client.post(f"/api/experts/{rid}/approve")
+    emp = client.post("/api/workspace/employees", json={"name": "Maya Chen", "title": "Sourcing lead",
+                                                        "role_ids": [rid]})
+    assert emp.status_code == 200, emp.text
+    return emp.json(), rid
+
+
+def test_employees_are_assigned_known_roles(app_client, stub, tenants_dir):
+    emp, rid = at_workspace(app_client, stub, tenants_dir)
+    listed = app_client.get("/api/workspace/employees").json()["employees"]
+    assert [(e["name"], [r["id"] for r in e["roles"]]) for e in listed] == [("Maya Chen", [rid])]
+    bad = app_client.post("/api/workspace/employees", json={"name": "X", "role_ids": ["EXP-nope"]})
+    assert bad.status_code == 400
+    dash = app_client.get(f"/api/workspace/employees/{emp['id']}/dashboard").json()
+    assert dash["employee"]["name"] == "Maya Chen" and [r["id"] for r in dash["roles"]] == [rid]
+    assert set(dash["focus_types"]) <= {"Supplier", "Part", "Product"} and dash["threads"] == []
+    assert app_client.delete(f"/api/workspace/employees/{emp['id']}").status_code == 200
+    assert app_client.get("/api/workspace/employees").json()["employees"] == []
+
+
+def test_the_orchestrator_deploys_experts_and_cites_their_ids(app_client, stub, tenants_dir):
+    emp, _ = at_workspace(app_client, stub, tenants_dir)
+    stub.load(
+        ("", [("consult_experts", {"asks": [{"expert": "sourcing_risk", "question": "Who supplies the sole?"}]})]),
+        ("", [("find_nodes", {"label": "Supplier"})]),
+        "GZ Leather (SUP-0001) and Rubber Co (SUP-0002) supply it.",
+        "Two suppliers, SUP-0001 and SUP-0002, according to the Sourcing Risk Analyst.",
+    )
+    r = app_client.post(f"/api/workspace/employees/{emp['id']}/chat", json={"text": "Who supplies our sole?"})
+    assert r.status_code == 200, r.text
+    user, reply = r.json()["messages"]
+    assert user["role"] == "user" and reply["role"] == "assistant"
+    assert "SUP-0001" in reply["text"] and reply["payload"]["ok"] is True
+    [d] = reply["payload"]["delegations"]
+    assert d["expert"] == "sourcing_risk" and d["ok"] and set(d["ids"]) >= {"SUP-0001", "SUP-0002"}
+    tid = r.json()["thread"]["id"]
+    thread = app_client.get(f"/api/workspace/employees/{emp['id']}/threads/{tid}").json()
+    assert [m["role"] for m in thread["messages"]] == ["user", "assistant"] and thread["running"] is False
+    assert app_client.get(f"/api/workspace/employees/{emp['id']}/threads").json()["threads"][0]["id"] == tid
+
+
+def test_the_orchestrator_cannot_cite_ids_no_expert_returned(app_client, stub, tenants_dir):
+    emp, _ = at_workspace(app_client, stub, tenants_dir)
+    stub.load("SUP-9999 is your only supplier.")
+    reply = app_client.post(f"/api/workspace/employees/{emp['id']}/chat", json={"text": "hi"}).json()["messages"][1]
+    assert reply["payload"]["ok"] is False and reply["payload"]["delegations"] == []
