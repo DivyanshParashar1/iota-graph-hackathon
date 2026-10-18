@@ -238,7 +238,12 @@ const SOP = [
   { t: "Ask and revisit", who: "Anyone, any time", inp: "A question, or a changed fact", out: "Sourced answers, or re-look flags and new versions", gate: "You review what changed", note: "Ask the agent team from your workspace. Say “we also ship by rail” at any stage and downstream work is flagged, never silently rewritten." },
 ] as const;
 
-const RULES = ["Only Jev decides. Every LLM agent only generates.", "Nothing is invented. Unknowns become labelled ballparks.", "Nothing is committed without your approval; only critical events act alone.", "Artifacts are versioned, never overwritten. You can go back at any stage."];
+// Where each step belongs: the two halves of the product, then what is open at any time.
+const PARTS = [
+  ["[A]", "Build the brain", "01-04"],
+  ["[B]", "Run the decisions", "05-07"],
+  ["[ ]", "Any time", "08"],
+] as const;
 
 /** A step number that lights up while its step crosses the middle of the viewport. */
 function StepNum({ n }: { n: number }) {
@@ -279,10 +284,11 @@ function Workflow() {
           <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight text-white">One standard procedure, every company.</h2>
           <p className="mt-4 text-sm leading-relaxed text-slate-400">Eight steps from first question to a decided incident. Each names who acts, what goes in, what comes out, and who has to approve.</p>
           <ul className="mt-6 space-y-2 border-t border-white/10 pt-4">
-            {RULES.map((r) => (
-              <li key={r} className="flex gap-2 text-xs text-slate-300">
-                <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 bg-sky-400" />
-                {r}
+            {PARTS.map(([mark, name, steps]) => (
+              <li key={name} className="flex items-baseline gap-3 text-sm">
+                <span className="micro w-6 text-slate-600">{mark}</span>
+                <span className="text-slate-200">{name}</span>
+                <span className="ml-auto font-mono text-xs tabular-nums text-slate-500">{steps}</span>
               </li>
             ))}
           </ul>
