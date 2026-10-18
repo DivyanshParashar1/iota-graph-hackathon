@@ -18,10 +18,9 @@ export default function Workspace() {
   const [employees, setEmployees] = useState<Employee[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    api.employees().then((r) => setEmployees(r.employees)).catch((e: Error) => setError(e.message));
-  }, []);
-  useEffect(load, [load]);
+  const load = useCallback(() =>
+    api.employees().then((r) => setEmployees(r.employees)).catch((e: Error) => setError(e.message)), []);
+  useEffect(() => { void load(); }, [load]);
 
   if (error) return <div className="p-6"><Callout intent="danger" title="Could not load the workspace">{error}</Callout></div>;
   if (!employees) return <div className="p-6 text-[12px] text-faint">Loading…</div>;
@@ -46,7 +45,7 @@ export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
 
 // --------------------------------------------------------------------------- choose who you are
 
-function Picker({ employees, onPick, onChanged }: { employees: Employee[]; onPick: (id: string) => void; onChanged: () => void }) {
+function Picker({ employees, onPick, onChanged }: { employees: Employee[]; onPick: (id: string) => void; onChanged: () => Promise<void> | void }) {
   const [adding, setAdding] = useState(employees.length === 0);
   return (
     <div className="flex min-h-full flex-col">
@@ -54,10 +53,14 @@ function Picker({ employees, onPick, onChanged }: { employees: Employee[]; onPic
         crumbs={[{ label: "My workspace" }]}
         title="Who are you?"
         subtitle="Pick your profile to open a dashboard scoped to your roles and a chat with the agent team."
-        right={<Btn kind="primary" icon="sparkle" onClick={() => setAdding(true)}>Add a person</Btn>}
+        right={<Btn kind="primary" icon="sparkle" onClick={() => setAdding((a) => !a)}>{adding ? "Close form" : "Add a person"}</Btn>}
       />
       <div className="flex flex-col gap-3 p-4">
-        {adding && <EmployeeEditor onDone={(e) => { setAdding(false); onChanged(); if (e) onPick(e.id); }} />}
+        {adding && <EmployeeEditor onDone={async (e) => {
+          if (e) await onChanged(); // refresh first, so the new person exists when we open their workspace
+          setAdding(false);
+          if (e) onPick(e.id);
+        }} />}
         {employees.length === 0 && !adding ? (
           <EmptyState icon="users" title="No people yet">Add the people who will use Ripple and the expert roles each one works as.</EmptyState>
         ) : (
@@ -84,13 +87,14 @@ function Picker({ employees, onPick, onChanged }: { employees: Employee[]; onPic
   );
 }
 
-function EmployeeEditor({ employee, onDone }: { employee?: Employee; onDone: (e?: Employee) => void }) {
+function EmployeeEditor({ employee, onDone }: { employee?: Employee; onDone: (e?: Employee) => void | Promise<void> }) {
   const [roles, setRoles] = useState<ExpertRole[]>([]);
   const [name, setName] = useState(employee?.name ?? "");
   const [title, setTitle] = useState(employee?.title ?? "");
   const [picked, setPicked] = useState<string[]>(employee?.role_ids ?? []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     api.experts().then((r) => setRoles(r.experts.filter((x) => x.status !== "retired"))).catch(() => setRoles([]));
@@ -102,7 +106,8 @@ function EmployeeEditor({ employee, onDone }: { employee?: Employee; onDone: (e?
     try {
       const body = { name, title, role_ids: picked };
       const e = employee ? await api.editEmployee(employee.id, body) : await api.createEmployee(body);
-      onDone(e);
+      setSaved(true);
+      await onDone(e);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -149,7 +154,7 @@ function EmployeeEditor({ employee, onDone }: { employee?: Employee; onDone: (e?
         {error && <Callout intent="danger">{error}</Callout>}
         <div className="flex justify-end gap-2">
           <Btn kind="ghost" onClick={() => onDone()}>Cancel</Btn>
-          <Btn kind="primary" icon="check" onClick={() => void save()} disabled={busy || !name.trim()}>{busy ? "Saving…" : "Save"}</Btn>
+          <Btn kind="primary" icon="check" onClick={() => void save()} disabled={busy || !name.trim()}>{saved ? "Saved, opening…" : busy ? "Saving…" : "Save"}</Btn>
         </div>
       </div>
     </Panel>
