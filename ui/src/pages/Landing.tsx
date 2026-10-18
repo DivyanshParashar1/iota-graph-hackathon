@@ -543,7 +543,13 @@ export default function Landing() {
           </div>
         </div>
       </section>
-      <footer className="micro border-t border-white/10 px-6 py-6 text-slate-600">Ripple · Supply chain operating system · Built on FalkorDB</footer>
+      <footer className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-3 border-t border-white/10 px-6 py-6">
+        <span className="micro text-slate-600">Ripple · Supply chain operating system · Built on FalkorDB</span>
+        <span className="text-right">
+          <span className="micro block text-slate-400">Built by Team Iota</span>
+          <span className="mt-1 block text-xs text-slate-500">Divyansh Parashar, Virag Tiwari, Vaibhav</span>
+        </span>
+      </footer>
     </div>
   );
 }
