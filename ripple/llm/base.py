@@ -15,6 +15,7 @@ boundary, not a fake agent); everything else that needs a model calls a real one
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 import time
@@ -23,6 +24,8 @@ from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 from ripple.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class LLMError(RuntimeError):
@@ -86,11 +89,40 @@ def set_client(client: Any) -> None:
         _OVERRIDE = client
 
 
+class FallbackClient:
+    """Primary provider with a real second provider behind it: when the primary raises `LLMError` (Vertex quota,
+    outage, auth), the same request goes to the backup. Never a script - the backup is another live model."""
+
+    def __init__(self, primary: Any, backup: Any):
+        self.primary, self.backup = primary, backup
+        self.name, self.model = primary.name, primary.model
+
+    def complete(self, **kw) -> Reply:
+        try:
+            return self.primary.complete(**kw)
+        except LLMError as e:
+            logger.warning("%s failed (%s); falling back to %s", self.primary.name, str(e)[:300], self.backup.name)
+        # provider state (Gemini thought signatures) means nothing to the backup
+        msgs = [{**m, "content": [{k: v for k, v in b.items() if k != "extra_content"} if isinstance(b, dict) else b
+                                  for b in m["content"]]} if isinstance(m["content"], list) else m
+                for m in kw.get("messages", [])]
+        return self.backup.complete(**{**kw, "messages": msgs})
+
+
 def get_client(settings=None) -> LLMClient:
     """The configured provider. Raises LLMError when none is available - v2 never falls back to a script."""
     if _OVERRIDE is not None:
         return _OVERRIDE
     s = settings or get_settings()
+    client = _provider_client(s)
+    if s.llm_provider == "vertex" and s.openrouter_api_key:  # OpenRouter is the backup when Vertex is not live
+        from ripple.llm.openrouter import OpenRouterClient
+
+        return FallbackClient(client, OpenRouterClient(s.openrouter_api_key, s.openrouter_model, s.openrouter_base_url))
+    return client
+
+
+def _provider_client(s) -> LLMClient:
     provider = s.llm_provider
     if provider == "claude_code":
         from ripple.llm.claude_code import ClaudeCodeClient

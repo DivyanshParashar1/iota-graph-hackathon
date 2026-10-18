@@ -438,3 +438,25 @@ def test_a_recursive_model_is_refused_at_build_time():
     Node.model_rebuild()
     with pytest.raises(RecursiveModel):
         json_schema(Node)
+
+
+def test_fallback_client_uses_backup_when_primary_fails():
+    from ripple.llm.base import FallbackClient, Reply
+
+    class Down:
+        name, model = "vertex", "m"
+
+        def complete(self, **kw):
+            raise LLMError("429 quota")
+
+    class Backup:
+        name, model = "openrouter", "b"
+
+        def complete(self, **kw):
+            assert "extra_content" not in kw["messages"][0]["content"][0]
+            return Reply(text="ok")
+
+    msgs = [{"role": "assistant", "content": [{"type": "tool_use", "id": "1", "name": "t", "input": {},
+                                              "extra_content": {"sig": "x"}}]}]
+    c = FallbackClient(Down(), Backup())
+    assert c.complete(messages=msgs).text == "ok" and c.name == "vertex"
