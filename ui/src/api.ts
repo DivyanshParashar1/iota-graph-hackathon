@@ -18,6 +18,7 @@ export function setTenant(t: string): void {
   } catch {
     /* private mode: the cookie still carries it */
   }
+  window.dispatchEvent(new Event("ripple:tenant"));
 }
 
 export class ApiError extends Error {

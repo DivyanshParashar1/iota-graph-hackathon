@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { api, getTenant, setTenant } from "./api";
@@ -83,6 +83,16 @@ function Shell() {
     api.tenants().then(setTenants).catch(() => undefined);
   }, []);
 
+  // onboarding (or anything else) changed the active company: pick it up and refresh the list
+  useEffect(() => {
+    const sync = () => {
+      setCurrent(getTenant());
+      api.tenants().then(setTenants).catch(() => undefined);
+    };
+    window.addEventListener("ripple:tenant", sync);
+    return () => window.removeEventListener("ripple:tenant", sync);
+  }, []);
+
   useEffect(() => {
     api.employees().then((r) => setPeople(r.employees)).catch(() => setPeople([]));
   }, [persona]);
@@ -135,22 +145,7 @@ function Shell() {
         </NavLink>
         <span className="h-5 w-px bg-line-strong" />
         <div className="flex min-w-0 items-center gap-3 text-[12.5px]">
-          {tenants.length > 1 ? (
-            <select
-              className="max-w-[16rem] truncate border border-transparent bg-transparent py-0.5 pr-1 text-ink hover:border-line-strong"
-              value={tenant?.id ?? current}
-              onChange={(e) => void switchTenant(e.target.value)}
-            >
-              {!tenant && <option value="">Select a company…</option>}
-              {tenants.map((t) => (
-                <option key={t.id} value={t.id} className="bg-panel">
-                  {t.name ?? t.id}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="truncate text-ink">{tenant?.name ?? "No company yet"}</span>
-          )}
+          <CompanyMenu tenants={tenants} current={tenant?.id ?? current} onPick={(id) => void switchTenant(id)} />
           {ontoStatus && (
             <span className="micro hidden items-center gap-1.5 whitespace-nowrap text-faint md:flex">
               <span className={`h-1.5 w-1.5 ${view?.has_approved ? "bg-emerald-400" : "bg-amber-400"}`} />
@@ -228,6 +223,55 @@ function Shell() {
         </main>
       </div>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
+    </div>
+  );
+}
+
+function CompanyMenu({ tenants, current, onPick }: { tenants: TenantRow[]; current: string; onPick: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const active = tenants.find((t) => t.id === current);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex max-w-[16rem] items-center gap-1.5 border border-line-strong px-2 py-0.5 text-ink hover:border-white/40"
+        title="Switch company"
+      >
+        <span className="truncate">{active ? active.name ?? active.id : tenants.length ? "Select a company…" : "No company yet"}</span>
+        <Icon name="chevronDown" size={12} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 max-h-72 min-w-full w-64 overflow-auto border border-line-strong bg-panel py-1 shadow-lg">
+          {tenants.length === 0 && <div className="px-3 py-2 text-faint">Run onboarding to add one</div>}
+          {tenants.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                setOpen(false);
+                if (t.id !== current) onPick(t.id);
+              }}
+              className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left hover:bg-white/5 ${t.id === current ? "text-ink" : "text-muted"}`}
+            >
+              <span className="truncate">{t.name ?? t.id}</span>
+              {t.id === current && <span className="h-1.5 w-1.5 shrink-0 bg-emerald-400" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
