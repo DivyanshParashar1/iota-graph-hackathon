@@ -1,10 +1,10 @@
-# Ripple: it interviews your company and builds the graph
+# Ripple: it talks to your company and builds the graph
 
 > **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB), Oct 15–18, 2026.
 > **Tracks entered: 01 (Agents That Act on Connected Data), 02 (Agent Memory and Coordination), 03 (Company Brain).**
 
 Most graph demos ship with a schema. Ripple ships with none. A company arrives at an empty FalkorDB, and four
-agents turn *"we make shoes"* into a running knowledge-graph application: they interview the business, work out
+agents turn *"we make shoes"* into a running knowledge-graph application: they talk to the business, work out
 what data is needed and ask for it as forms in the chat, design the ontology and load the company's data against
 it, and then **invent the expert agents that this particular supply chain needs** — writing each one's system
 prompt, justifying it against the ontology it reasons over, and running it as a real agent over the graph.
@@ -18,7 +18,7 @@ company's instance data, the expert roles and all agent memory live in it.
                      a brief          a data pack     a graph + data      agents that answer
 ```
 
-Everything below is one real run — a mid-sized shoe manufacturer, interviewed end to end
+Everything below is one real run — a mid-sized shoe manufacturer, onboarded end to end
 (`artifacts/llm_runs/`, replayed into a clickable tenant by `scripts/seed_from_run.py`). Nobody wrote these
 types, these roles or these prompts.
 
@@ -112,6 +112,12 @@ of everything.
   linked objects grouped by link type, a search-around graph, and the provenance of every value
   (`/api/objects/*`, label-checked against the approved spec like the expert tools).
 * **Graph** - the instance graph with type layers, highlight search and the same Object View as inspector.
+* **Incidents** - a reported event, the experts' evidence, the impact analysis and Jev's decision on one page. Every
+  option is a card tinted by its status (green approved, red rejected, blue awaiting, amber superseded) with big
+  Approve / Reject buttons, reversibility, cost, risk and numbered steps up front, and the technical detail (Jev's
+  confidence, action type, evidence ids) in a quiet footer. The impact analysis and the approved live impact sit
+  side by side on wide screens; evidence rows show their confidence (fact, ballpark, unknown) in colour.
+* **About us** (`/about`, and a section on the landing page) - Team Iota and their LinkedIn profiles.
 
 ## Architecture
 
@@ -256,6 +262,11 @@ company brain) on a fixed ontology; all of that is archived rather than reused, 
 ontology the shape of an incident, an action and a playbook is a design question, not a port. `plan.md` §10 is
 where it picks up; the expert runtime's read-only tool set is the deliberate minimum that proves a generated
 role is alive.
+
+## Team
+
+Team Iota: Divyansh Parashar (developer), Virag Tiwari (co-founder, Orange Cat Technologies) and Vaibhav, all
+final-year undergraduates.
 
 ## Licence and provenance
 

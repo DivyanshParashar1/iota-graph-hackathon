@@ -6,6 +6,7 @@ import type { Employee, Health, TenantRow } from "./api";
 import CommandPalette from "./components/CommandPalette";
 import { Icon } from "./components/icons";
 import { Kbd } from "./components/ui";
+import About from "./pages/About";
 import Experts from "./pages/Experts";
 import Graph from "./pages/Graph";
 import Home from "./pages/Home";
@@ -28,6 +29,7 @@ const NAV: { to: string; label: string; icon: string; group: string }[] = [
   { to: "/graph", label: "Graph", icon: "graph", group: "Explore" },
   { to: "/experts", label: "Experts", icon: "experts", group: "Operate" },
   { to: "/incidents", label: "Incidents", icon: "incident", group: "Operate" },
+  { to: "/about", label: "About us", icon: "users", group: "Project" },
 ];
 
 function readCollapsed() {
@@ -219,6 +221,7 @@ function Shell() {
             <Route path="/workspace" element={<Workspace />} />
             <Route path="/experts" element={<Experts />} />
             <Route path="/incidents" element={<Incidents />} />
+            <Route path="/about" element={<About />} />
           </Routes>
         </main>
       </div>

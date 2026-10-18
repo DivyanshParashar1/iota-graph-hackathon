@@ -26,6 +26,7 @@ const PAGES: [string, string, string][] = [
   ["Graph", "/graph", "graph"],
   ["Experts", "/experts", "experts"],
   ["Incidents", "/incidents", "incident"],
+  ["About us", "/about", "users"],
 ];
 
 /** Global search (press / or Ctrl+K): pages, object types and objects of every approved type. */

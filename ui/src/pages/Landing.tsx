@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
+import { LinkedInMark, TEAM } from "./About";
 import { Reveal, mapRange, useInView, useScrollProgress } from "../components/motion";
 
 // The public landing page: a scroll-driven globe hero, then the pitch, the build and decide stages, the SOP from
@@ -333,6 +334,7 @@ const MENU: [string, string][] = [
   ["/graph", "Graph"],
   ["/experts", "Experts"],
   ["/incidents", "Incidents"],
+  ["/about", "About us"],
 ];
 
 function Menu({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -513,6 +515,32 @@ export default function Landing() {
             <Reveal key={t} delay={(i % 3) * 0.1} className="border-t border-white/15 pt-5">
               <div className="text-xl font-light text-white">{t}</div>
               <p className="mt-2 text-sm leading-relaxed text-slate-400">{d}</p>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* about us */}
+      <section id="about" className="mx-auto max-w-6xl px-6 pb-32">
+        <div className="micro mb-8 text-sky-400">About us</div>
+        <Reveal as="h2" from="none" className="max-w-3xl text-3xl font-light leading-tight text-white md:text-5xl">
+          Team Iota: three final-year students building a supply chain you can talk into existence.
+        </Reveal>
+        <div className="mt-12 grid gap-x-10 gap-y-10 md:grid-cols-3">
+          {TEAM.map((m, i) => (
+            <Reveal key={m.name} delay={i * 0.1} className="border-t border-white/15 pt-5">
+              <div className="text-xl font-light text-white">{m.name}</div>
+              <div className="mt-1 text-sm text-sky-300">{m.role}</div>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">{m.school}</p>
+              <a
+                href={m.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center gap-2 border border-white/20 px-3 py-1.5 text-[13px] text-slate-200 transition-colors hover:bg-white/10"
+              >
+                <LinkedInMark />
+                LinkedIn
+              </a>
             </Reveal>
           ))}
         </div>
