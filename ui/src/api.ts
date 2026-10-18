@@ -626,6 +626,7 @@ export const api = {
   tenants: () => get<TenantRow[]>("/api/tenants"),
   tenant: () => get<TenantRow & { counts: SessionState["counts"]; progress: SessionState["progress"] }>("/api/tenant"),
   selectTenant: (id: string) => post<TenantRow>(`/api/tenant/select/${id}`),
+  deleteTenant: (id: string) => del<{ deleted: string }>(`/api/tenant/${id}`),
   graph: (limit = 400) => get<GraphSample>(`/api/graph?limit=${limit}`),
 
   start: (company: string, industry: string) => post<SessionState>("/api/onboarding/start", { company, industry }),

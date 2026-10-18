@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from ripple.api.deps import COOKIE, scope_dep, scope_for, tenant_id
@@ -62,6 +64,17 @@ def select_tenant(tid: str, request: Request, response: Response):
     scope = scope_for(request, tid)
     response.set_cookie(COOKIE, scope.tenant_id, max_age=60 * 60 * 24 * 365, samesite="lax")
     return {**(get_tenant(scope) or {"id": tid})}
+
+
+@router.delete("/tenant/{tid}")
+def delete_tenant(tid: str, request: Request, response: Response):
+    """Permanently remove a tenant: both of its graphs and its file-side mirror (`tenants/<id>/`)."""
+    scope = scope_for(request, tid)
+    scope.drop()
+    shutil.rmtree(get_settings().tenants_dir / scope.tenant_id, ignore_errors=True)
+    if request.cookies.get(COOKIE) == scope.tenant_id:
+        response.delete_cookie(COOKIE)
+    return {"deleted": scope.tenant_id}
 
 
 @router.get("/graph")

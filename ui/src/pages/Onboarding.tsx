@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, ApiError, getTenant, setTenant, streamSteps } from "../api";
 import type { Answer, Brief, SessionState, Stage, Step } from "../api";
 import Composer from "../components/Chat/Composer";
@@ -16,6 +16,8 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const nav = useNavigate();
+  // `/onboarding?new=1` (the company menu's "New company") shows the start card even when a company is active
+  const isNew = useSearchParams()[0].get("new") === "1";
   const lastSeq = useRef(0);
   const seenSteps = useRef(new Set<string>());
 
@@ -33,8 +35,11 @@ export default function Onboarding() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (isNew) {
+      setState(null);
+      setLoading(false);
+    } else void load();
+  }, [load, isNew]);
 
   // A turn running on the server (started by another tab, or before a reload): poll until it replies.
   useEffect(() => {
@@ -73,7 +78,10 @@ export default function Onboarding() {
   };
 
   if (loading) return <div className="p-6 text-sm text-slate-500">loading…</div>;
-  if (!state) return <StartCard onStarted={(s) => setState(s)} />;
+  if (!state) {
+    // after "New company" the rest of the app still holds the previous company's data: reload cleanly
+    return <StartCard onStarted={(s) => (isNew ? window.location.assign("/onboarding") : setState(s))} />;
+  }
 
   const stage = state.stage;
   const brief = state.artifacts.brief.data;

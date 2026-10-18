@@ -672,3 +672,16 @@ def test_the_orchestrator_cannot_cite_ids_no_expert_returned(app_client, stub, t
     stub.load("SUP-9999 is your only supplier.")
     reply = app_client.post(f"/api/workspace/employees/{emp['id']}/chat", json={"text": "hi"}).json()["messages"][1]
     assert reply["payload"]["ok"] is False and reply["payload"]["delegations"] == []
+
+
+def test_a_tenant_can_be_deleted_with_its_files(app_client, stub, tenants_dir):
+    start(app_client, stub)
+    tid = app_client.tenant_id
+    (tenants_dir / tid).mkdir(parents=True)
+    (tenants_dir / tid / "note.txt").write_text("x")
+    assert tid in [t["id"] for t in app_client.get("/api/tenants").json()]
+    assert app_client.delete(f"/api/tenant/{tid}").json() == {"deleted": tid}
+    assert tid not in [t["id"] for t in app_client.get("/api/tenants").json()]
+    assert not (tenants_dir / tid).exists()
+    assert app_client.delete(f"/api/tenant/{tid}").status_code == 404
+    assert app_client.delete("/api/tenant/Bad-Id").status_code == 400

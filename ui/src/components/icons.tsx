@@ -40,6 +40,7 @@ export const ICONS: Record<string, string[]> = {
   chevronLeft: ["M15 5l-7 7 7 7"],
   arrowRight: ["M4 12h15", "M13 6l6 6-6 6"],
   close: ["M6 6l12 12", "M18 6 6 18"],
+  trash: ["M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13", "M10 11v6", "M14 11v6"],
   check: ["M4.5 12.5l5 5L19.5 7"],
   external: ["M14 4h6v6", "M20 4l-9 9", "M18 14v6H4V6h6"],
   fit: ["M4 9V4h5", "M15 4h5v5", "M20 15v5h-5", "M9 20H4v-5"],

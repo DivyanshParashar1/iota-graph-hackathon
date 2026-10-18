@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { api, getTenant, setTenant } from "./api";
 import type { Employee, Health, TenantRow } from "./api";
 import CommandPalette from "./components/CommandPalette";
@@ -131,6 +131,20 @@ function Shell() {
     window.location.reload();
   };
 
+  // the server removes both graphs and the tenant's files; if it was the active company, fall back to another
+  const deleteTenant = async (id: string) => {
+    await api.deleteTenant(id);
+    const rest = tenants.filter((t) => t.id !== id);
+    if (id === getTenant()) {
+      const next = rest[0]?.id ?? "";
+      setTenant(next);
+      if (next) await api.selectTenant(next).catch(() => undefined);
+      window.location.reload();
+    } else {
+      setTenants(rest);
+    }
+  };
+
   const tenant = tenants.find((t) => t.id === current) ?? (tenants.length === 1 ? tenants[0] : undefined);
   const ontoStatus = view?.has_approved ? `v${view.approved_version} approved` : view?.row?.version ? `v${view.row.version} draft` : null;
   let lastGroup = "";
@@ -147,7 +161,12 @@ function Shell() {
         </NavLink>
         <span className="h-5 w-px bg-line-strong" />
         <div className="flex min-w-0 items-center gap-3 text-[12.5px]">
-          <CompanyMenu tenants={tenants} current={tenant?.id ?? current} onPick={(id) => void switchTenant(id)} />
+          <CompanyMenu
+            tenants={tenants}
+            current={tenant?.id ?? current}
+            onPick={(id) => void switchTenant(id)}
+            onDelete={deleteTenant}
+          />
           {ontoStatus && (
             <span className="micro hidden items-center gap-1.5 whitespace-nowrap text-faint md:flex">
               <span className={`h-1.5 w-1.5 ${view?.has_approved ? "bg-emerald-400" : "bg-amber-400"}`} />
@@ -230,15 +249,46 @@ function Shell() {
   );
 }
 
-function CompanyMenu({ tenants, current, onPick }: { tenants: TenantRow[]; current: string; onPick: (id: string) => void }) {
+function CompanyMenu({
+  tenants,
+  current,
+  onPick,
+  onDelete,
+}: {
+  tenants: TenantRow[];
+  current: string;
+  onPick: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const close = () => {
+    setOpen(false);
+    setConfirming(null);
+    setError("");
+  };
+  const remove = async (id: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      await onDelete(id);
+      setConfirming(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setBusy(false);
+    }
+  };
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     const away = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      if (!ref.current?.contains(e.target as Node)) close();
     };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && close();
     document.addEventListener("mousedown", away);
     document.addEventListener("keydown", esc);
     return () => {
@@ -250,7 +300,7 @@ function CompanyMenu({ tenants, current, onPick }: { tenants: TenantRow[]; curre
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close() : setOpen(true))}
         className="flex max-w-[16rem] items-center gap-1.5 border border-line-strong px-2 py-0.5 text-ink hover:border-white/40"
         title="Switch company"
       >
@@ -259,20 +309,71 @@ function CompanyMenu({ tenants, current, onPick }: { tenants: TenantRow[]; curre
       </button>
       {open && (
         <div className="absolute left-0 top-full z-50 mt-1 max-h-72 min-w-full w-64 overflow-auto border border-line-strong bg-panel py-1 shadow-lg">
-          {tenants.length === 0 && <div className="px-3 py-2 text-faint">Run onboarding to add one</div>}
-          {tenants.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                setOpen(false);
-                if (t.id !== current) onPick(t.id);
-              }}
-              className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left hover:bg-white/5 ${t.id === current ? "text-ink" : "text-muted"}`}
-            >
-              <span className="truncate">{t.name ?? t.id}</span>
-              {t.id === current && <span className="h-1.5 w-1.5 shrink-0 bg-emerald-400" />}
-            </button>
-          ))}
+          {tenants.length === 0 && <div className="px-3 py-2 text-faint">No companies yet</div>}
+          {tenants.map((t) =>
+            confirming === t.id ? (
+              <div key={t.id} className="border-y border-red-500/40 bg-red-500/5 px-3 py-2">
+                <div className="text-ink">Delete {t.name ?? t.id}?</div>
+                <div className="mt-0.5 text-faint">
+                  This permanently removes its graph
+                  {t.nodes != null ? ` (${t.nodes} nodes, ${t.edges ?? 0} edges)` : ""}, experts and uploaded files. It cannot be undone.
+                </div>
+                {error && <div className="mt-1 text-red-400">{error}</div>}
+                <div className="mt-2 flex justify-end gap-2">
+                  <button
+                    disabled={busy}
+                    onClick={() => {
+                      setConfirming(null);
+                      setError("");
+                    }}
+                    className="border border-line-strong px-2 py-0.5 text-muted hover:text-ink disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => void remove(t.id)}
+                    className="border border-red-500/60 bg-red-500/10 px-2 py-0.5 text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    {busy ? "Deleting…" : "Delete"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div key={t.id} className={`group flex items-center hover:bg-white/5 ${t.id === current ? "text-ink" : "text-muted"}`}>
+                <button
+                  onClick={() => {
+                    close();
+                    if (t.id !== current) onPick(t.id);
+                  }}
+                  className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-1.5 text-left"
+                >
+                  <span className="truncate">{t.name ?? t.id}</span>
+                  {t.id === current && <span className="h-1.5 w-1.5 shrink-0 bg-emerald-400" />}
+                </button>
+                <button
+                  onClick={() => {
+                    setError("");
+                    setConfirming(t.id);
+                  }}
+                  title={`Delete ${t.name ?? t.id}`}
+                  aria-label={`Delete ${t.name ?? t.id}`}
+                  className="px-2 py-1.5 text-faint opacity-0 hover:text-red-400 focus:opacity-100 group-hover:opacity-100"
+                >
+                  <Icon name="trash" size={13} />
+                </button>
+              </div>
+            ),
+          )}
+          <button
+            onClick={() => {
+              close();
+              nav("/onboarding?new=1");
+            }}
+            className="flex w-full items-center gap-2 border-t border-line-strong px-3 py-1.5 text-left text-sky-400 hover:bg-white/5"
+          >
+            <span className="text-base leading-none">+</span> New company
+          </button>
         </div>
       )}
     </div>
