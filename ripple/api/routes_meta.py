@@ -37,7 +37,10 @@ def tenants(request: Request):
     for tid in request.app.state.db.list_tenants():
         scope = TenantScope(tid, request.app.state.db)
         t = get_tenant(scope) or {"id": tid}
-        out.append({**t, **counts(scope)})
+        try:
+            out.append({**t, **counts(scope)})
+        except Exception:  # one huge or broken tenant must not hide the rest from the switcher
+            out.append(t)
     return sorted(out, key=lambda t: t.get("created_at") or 0, reverse=True)
 
 
