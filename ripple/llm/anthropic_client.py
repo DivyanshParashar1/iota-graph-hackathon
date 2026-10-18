@@ -44,7 +44,7 @@ class AnthropicClient:
         try:
             resp = self._c.messages.create(**kw)
         except Exception as e:  # noqa: BLE001
-            raise LLMError(f"Anthropic request failed: {e}") from None
+            raise LLMError(f"{self.name} request failed: {e}") from None
         ms = round((time.perf_counter() - t0) * 1000, 1)
         log_call(self.name, {k: v for k, v in kw.items() if k != "messages"}, str(resp)[:4000], ms)
         text = "\n".join(getattr(b, "text", "") for b in resp.content if getattr(b, "type", "") == "text").strip()

@@ -27,8 +27,9 @@ class Settings(BaseSettings):
     falkordb_db: int = 0  # Redis logical database (remote mode); tests give each fixture its own
 
     # LLM provider. "claude_code" (the default) runs on the local Claude Code login - no API key.
-    # "openrouter" and "anthropic" need their key. "auto" prefers claude_code, then openrouter, then anthropic.
-    ripple_llm_provider: str = "claude_code"  # claude_code | openrouter | anthropic | auto
+    # "openrouter" and "anthropic" need their key. "vertex" is Gemini or Claude on Google Vertex AI (gcloud
+    # login or VERTEX_ACCESS_TOKEN). "auto" prefers claude_code, then openrouter, then anthropic.
+    ripple_llm_provider: str = "claude_code"  # claude_code | vertex | openrouter | anthropic | auto
     ripple_llm_effort: str = "medium"  # low | medium | high
     ripple_llm_max_tokens: int = 16000
     claude_code_bin: str = "claude"
@@ -41,6 +42,10 @@ class Settings(BaseSettings):
     openrouter_model: str = "anthropic/claude-opus-5.5"
     anthropic_api_key: str | None = None
     ripple_model: str = "claude-opus-5-5"  # Anthropic API model id
+    vertex_project_id: str | None = None  # empty = `gcloud config get-value project`
+    vertex_region: str = "global"  # global | us | eu | a region such as us-east5
+    vertex_model: str = "gemini-3.1-pro-preview"  # gemini-* or claude-* (Claude needs Vertex quota for it)
+    vertex_access_token: str | None = None  # empty = `gcloud auth print-access-token`, refreshed as it expires
 
     # Onboarding
     ripple_tenants_dir: str = "tenants"  # file-side mirror: experts/*.md, uploads/, exports/
@@ -88,6 +93,9 @@ class Settings(BaseSettings):
             return "openrouter" if self.openrouter_api_key else None
         if p == "anthropic":
             return "anthropic" if self.anthropic_api_key else None
+        if p == "vertex":
+            ok = bool(self.vertex_access_token) or bool(shutil.which("gcloud"))
+            return "vertex" if ok else None
         if p == "auto":
             if cc:
                 return "claude_code"
@@ -114,7 +122,7 @@ class Settings(BaseSettings):
     def model_name(self) -> str:
         """The model id/alias of the active provider, for display and for `_Session.model`."""
         return {"claude_code": self.claude_code_model, "openrouter": self.openrouter_model,
-                "anthropic": self.ripple_model}.get(self.llm_provider or "", "none")
+                "anthropic": self.ripple_model, "vertex": self.vertex_model}.get(self.llm_provider or "", "none")
 
 
 @lru_cache

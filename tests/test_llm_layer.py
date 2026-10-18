@@ -45,6 +45,65 @@ def test_provider_selection():
     s = Settings(ripple_llm_provider="auto", claude_code_bin="definitely-not-installed",
                  openrouter_api_key="k", anthropic_api_key="k2")
     assert s.llm_provider == "openrouter"
+    s = Settings(ripple_llm_provider="vertex", vertex_access_token="t")
+    assert s.llm_provider == "vertex" and s.model_name == s.vertex_model
+
+
+def test_vertex_sends_messages_to_the_vertex_endpoint():
+    import httpx2 as httpx
+    from anthropic import AnthropicVertex
+
+    from ripple.llm.vertex import ClaudeVertexClient
+
+    seen = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen["url"], seen["auth"], seen["body"] = str(req.url), req.headers["authorization"], json.loads(req.content)
+        return httpx.Response(200, json={"id": "m", "type": "message", "role": "assistant", "model": "claude-x",
+                                         "content": [{"type": "text", "text": "hi"}], "stop_reason": "end_turn",
+                                         "usage": {"input_tokens": 1, "output_tokens": 1}})
+
+    sdk = AnthropicVertex(project_id="p", region="us-east5", access_token="tok",
+                          http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    reply = ClaudeVertexClient("p", "us-east5", "claude-x", token="tok", client=sdk).complete(
+        system="s", messages=[{"role": "user", "content": "hello"}])
+    assert reply.text == "hi"
+    assert seen["auth"] == "Bearer tok"
+    assert seen["url"].endswith("/projects/p/locations/us-east5/publishers/anthropic/models/claude-x:rawPredict")
+    assert seen["body"]["anthropic_version"] and "model" not in seen["body"]
+
+
+def test_gemini_on_vertex_round_trips_thought_signatures_and_retries_malformed_calls():
+    import httpx
+
+    from ripple.llm.vertex import GeminiVertexClient
+
+    sig = {"google": {"thought_signature": "sig-1"}}
+    replies = [{"choices": [{"finish_reason": "malformed_function_call", "message": {}}]},
+               {"choices": [{"finish_reason": "tool_calls", "message": {"content": None, "tool_calls": [
+                   {"id": "c1", "type": "function", "extra_content": sig,
+                    "function": {"name": "get_stock", "arguments": '{"sku": "A-17"}'}}]}}]},
+               {"choices": [{"finish_reason": "stop", "message": {"content": "40 units"}}]}]
+    sent = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        sent.append((str(req.url), req.headers["authorization"], json.loads(req.content)))
+        return httpx.Response(200, json=replies[len(sent) - 1])
+
+    c = GeminiVertexClient("p", "global", "gemini-x", token="tok",
+                           http=httpx.Client(transport=httpx.MockTransport(handler)))
+    tools = [{"name": "get_stock", "input_schema": {"type": "object", "properties": {"sku": {"type": "string"}}}}]
+    msgs = [{"role": "user", "content": "stock of A-17?"}]
+    r = c.complete(messages=msgs, tools=tools, effort="low")
+    assert len(sent) == 2 and r.tool_calls[0].extra == sig  # the malformed reply was resampled
+    url, auth, body = sent[0]
+    assert url == "https://aiplatform.googleapis.com/v1/projects/p/locations/global/endpoints/openapi/chat/completions"
+    assert auth == "Bearer tok" and body["model"] == "google/gemini-x"
+    assert body["reasoning_effort"] == "low" and "reasoning" not in body
+    msgs += [r.assistant_message(), {"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "c1", "content": "40"}]}]
+    assert c.complete(messages=msgs, tools=tools).text == "40 units"
+    assert sent[2][2]["messages"][1]["tool_calls"][0]["extra_content"] == sig
 
 
 def test_no_provider_raises_rather_than_falling_back():

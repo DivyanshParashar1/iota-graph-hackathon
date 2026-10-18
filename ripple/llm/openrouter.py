@@ -16,7 +16,8 @@ import httpx
 
 from ripple.llm.base import LLMError, Reply, ToolCall, log_call
 
-_STOP = {"tool_calls": "tool_use", "length": "max_tokens", "stop": "end_turn"}
+_STOP = {"tool_calls": "tool_use", "length": "max_tokens", "stop": "end_turn",
+         "malformed_function_call": "malformed_function_call"}  # Gemini's tool-call misfire; retried on Vertex
 
 
 def _get(b: Any, k: str, default=None):
@@ -34,7 +35,8 @@ def to_openai_messages(system: str | None, messages: list[dict]) -> list[dict]:
             text = "\n".join(_get(b, "text", "") for b in content if _get(b, "type") == "text")
             msg: dict = {"role": "assistant", "content": text or None}
             calls = [{"id": _get(b, "id"), "type": "function",
-                      "function": {"name": _get(b, "name"), "arguments": json.dumps(_get(b, "input") or {})}}
+                      "function": {"name": _get(b, "name"), "arguments": json.dumps(_get(b, "input") or {})},
+                      **({"extra_content": _get(b, "extra_content")} if _get(b, "extra_content") else {})}
                      for b in content if _get(b, "type") == "tool_use"]
             if calls:
                 msg["tool_calls"] = calls
@@ -96,7 +98,7 @@ class OpenRouterClient:
             r.raise_for_status()
             data = r.json()
         except Exception as e:  # noqa: BLE001
-            raise LLMError(f"OpenRouter request failed: {e}") from None
+            raise LLMError(f"{self.name} request failed: {e}") from None
         ms = round((time.perf_counter() - t0) * 1000, 1)
         log_call(self.name, body, data, ms)
         if "error" in data:
@@ -110,7 +112,7 @@ class OpenRouterClient:
                 args = json.loads(c["function"].get("arguments") or "{}")
             except json.JSONDecodeError:
                 args = {}
-            reply.tool_calls.append(ToolCall(c["id"], c["function"]["name"], args))
+            reply.tool_calls.append(ToolCall(c["id"], c["function"]["name"], args, c.get("extra_content") or {}))
         reply.stop_reason = ("tool_use" if reply.tool_calls
                              else _STOP.get(choice.get("finish_reason"), "end_turn"))
         if schema and not tools and reply.text:

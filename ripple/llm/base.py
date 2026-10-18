@@ -34,6 +34,8 @@ class ToolCall:
     id: str
     name: str
     input: dict
+    # Provider state to send back with this call on the next turn (Gemini's thought signature); usually empty.
+    extra: dict = field(default_factory=dict, compare=False)
 
 
 @dataclass
@@ -56,7 +58,10 @@ class Reply:
         if self.text:
             blocks.append({"type": "text", "text": self.text})
         for c in self.tool_calls:
-            blocks.append({"type": "tool_use", "id": c.id, "name": c.name, "input": c.input})
+            block = {"type": "tool_use", "id": c.id, "name": c.name, "input": c.input}
+            if c.extra:
+                block["extra_content"] = c.extra
+            blocks.append(block)
         return {"role": "assistant", "content": blocks or [{"type": "text", "text": ""}]}
 
 
@@ -100,8 +105,16 @@ def get_client(settings=None) -> LLMClient:
         from ripple.llm.anthropic_client import AnthropicClient
 
         return AnthropicClient(s.anthropic_api_key or "", s.ripple_model)
+    if provider == "vertex":
+        from ripple.llm.vertex import default_project, make_client
+
+        project = s.vertex_project_id or default_project()
+        if not project:
+            raise LLMError("Vertex AI needs VERTEX_PROJECT_ID (or `gcloud config set project ...`)")
+        return make_client(project, s.vertex_region, s.vertex_model, s.vertex_access_token)
     raise LLMError(f"no LLM provider available (RIPPLE_LLM_PROVIDER={s.ripple_llm_provider!r}); "
-                   "install the `claude` CLI or set OPENROUTER_API_KEY / ANTHROPIC_API_KEY")
+                   "install the `claude` CLI, log in to gcloud for vertex, "
+                   "or set OPENROUTER_API_KEY / ANTHROPIC_API_KEY")
 
 
 def log_call(provider: str, request: dict, response: Any, ms: float) -> None:

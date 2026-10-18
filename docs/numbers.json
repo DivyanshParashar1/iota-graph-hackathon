@@ -1,36 +1,36 @@
 {
-  "generated_at": "2026-10-16",
+  "generated_at": "2026-10-18",
   "platform": {
-    "python": "3.12.3",
-    "machine": "x86_64",
-    "system": "Linux"
+    "python": "3.13.7",
+    "machine": "arm64",
+    "system": "Darwin"
   },
   "counts": {
-    "query_files": 62,
+    "query_files": 85,
     "query_kinds": {
-      "read": 27,
-      "write": 26,
-      "template": 9
+      "write": 37,
+      "read": 37,
+      "template": 11
     },
     "tools": 6,
-    "prompt_files": 5,
-    "prompt_words": 2589,
-    "test_files": 11,
-    "python_files": 42,
-    "python_lines": 4881,
-    "ui_files": 17,
-    "ui_lines": 2740
+    "prompt_files": 6,
+    "prompt_words": 2900,
+    "test_files": 15,
+    "python_files": 68,
+    "python_lines": 7794,
+    "ui_files": 34,
+    "ui_lines": 7546
   },
   "graph": {
-    "tenant_create_ms": 20.1,
-    "apply_spec_ms": 10.8,
+    "tenant_create_ms": 20.2,
+    "apply_spec_ms": 6.8,
     "applied": {
       "indexes_created": 24,
       "indexes_existing": 0,
       "types": 12,
       "relationships": 11
     },
-    "load_instances_ms": 266.2,
+    "load_instances_ms": 151.1,
     "loaded": {
       "nodes": 6000,
       "edges": 5500,
@@ -38,124 +38,35 @@
     },
     "nodes": 6000,
     "edges": 5500,
-    "nodes_per_second": 22539.4,
-    "db_bytes": 393489,
+    "nodes_per_second": 39708.8,
+    "db_bytes": 394713,
     "tool_latency_ms": {
       "describe_ontology": {
-        "p50": 30.35,
-        "p95": 34.9
+        "p50": 16.6,
+        "p95": 17.0
       },
       "find_nodes": {
-        "p50": 3.55,
-        "p95": 5.7
+        "p50": 1.6,
+        "p95": 1.7
       },
       "get_node": {
-        "p50": 3.25,
-        "p95": 5.0
+        "p50": 0.9,
+        "p95": 0.9
       },
       "neighbours": {
-        "p50": 2.2,
-        "p95": 3.3
+        "p50": 0.9,
+        "p95": 1.2
       },
       "aggregate": {
-        "p50": 2.05,
-        "p95": 5.8
+        "p50": 1.0,
+        "p95": 1.1
       }
     }
   },
   "suite": {
-    "deterministic_tests": 191,
-    "seconds": 13.8,
-    "exit_code": 0,
-    "summary": "191 passed, 15 deselected in 12.59s"
-  },
-  "llm_run": {
-    "run": "20261015-204539",
-    "llm_calls": 25,
-    "interview_turns": 4,
-    "form_rounds": 2,
-    "brief_products": 3,
-    "brief_suppliers": 4,
-    "ontology_types": 12,
-    "ontology_relationships": 25,
-    "nodes_loaded": {
-      "Customer": 5,
-      "Site": 5,
-      "Lane": 3,
-      "ProductLine": 3,
-      "Supplier": 3,
-      "Component": 2,
-      "Role": 1
-    },
-    "experts": [
-      {
-        "name": "key_account_commitments",
-        "focus": [
-          "Customer",
-          "Order",
-          "Site"
-        ],
-        "prompt_words": 381
-      },
-      {
-        "name": "production_inventory",
-        "focus": [
-          "ProductLine",
-          "Sku",
-          "Site",
-          "Component"
-        ],
-        "prompt_words": 361
-      },
-      {
-        "name": "freight_lanes",
-        "focus": [
-          "Lane",
-          "Shipment",
-          "Forwarder",
-          "Site",
-          "RiskEvent",
-          "Role"
-        ],
-        "prompt_words": 376
-      },
-      {
-        "name": "disruption_impact",
-        "focus": [
-          "RiskEvent",
-          "Order",
-          "Sku",
-          "ProductLine",
-          "Shipment",
-          "Customer",
-          "Supplier",
-          "Site",
-          "Lane",
-          "Component"
-        ],
-        "prompt_words": 428
-      },
-      {
-        "name": "alternative_sourcing",
-        "focus": [
-          "Supplier",
-          "Component",
-          "ProductLine",
-          "Sku",
-          "Site"
-        ],
-        "prompt_words": 366
-      },
-      {
-        "name": "supplier_risk_monitor",
-        "focus": [
-          "Supplier",
-          "Component",
-          "RiskEvent",
-          "Role"
-        ],
-        "prompt_words": 460
-      }
-    ]
+    "deterministic_tests": 1,
+    "seconds": 16.6,
+    "exit_code": 1,
+    "summary": "1 failed, 281 passed, 23 deselected in 15.50s"
   }
 }

@@ -1,167 +1,284 @@
-# Ripple: it talks to your company and builds the graph
+# Ripple: it interviews your company, builds its supply chain graph, then runs it
 
 > **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB), Oct 15–18, 2026.
 > **Tracks entered: 01 (Agents That Act on Connected Data), 02 (Agent Memory and Coordination), 03 (Company Brain).**
 
-Most graph demos ship with a schema. Ripple ships with none. A company arrives at an empty FalkorDB, and four
-agents turn *"we make shoes"* into a running knowledge-graph application: they talk to the business, work out
-what data is needed and ask for it as forms in the chat, design the ontology and load the company's data against
-it, and then **invent the expert agents that this particular supply chain needs** — writing each one's system
-prompt, justifying it against the ontology it reasons over, and running it as a real agent over the graph.
+![Ripple](docs/img/landing.png)
+
+Most graph demos ship with a schema. Ripple ships with none. A company arrives at an empty FalkorDB and Ripple
+does two jobs, one after the other:
+
+1. **Build.** Four agents talk to the business and turn *"we make shoes"* into a knowledge graph: they interview
+   the company, ask for the data they need as forms in the chat, design an ontology and load the data against it,
+   then **invent the expert agents that this particular supply chain needs**.
+2. **Operate.** When something happens in the real world (a fire at a supplier, a port closing), those experts
+   investigate it from the graph, a planner lays out the options, and **Jev, TypeSafe's decision model, makes the
+   call**. People approve or reject; for a truly critical event nobody has time to, so policy lets Jev's choice
+   stand.
 
 Nothing is hard-wired. There is no DataCo, no shipped ontology, no fallback script. Every agent step is a real
 LLM call, and **FalkorDB is the only hard dependency**: the onboarding state, the generated ontology, the
-company's instance data, the expert roles and all agent memory live in it.
+company's data, the expert roles, the incidents and every decision live in it.
 
 ```
-"we make shoes"  ─►  Interviewer  ─►  Data agent  ─►  Ontology agent  ─►  Expert generator  ─►  a live app
-                     a brief          a data pack     a graph + data      agents that answer
+ BUILD  (onboarding)                                                    OPERATE  (workflow)
+ "we make shoes" ─► Interviewer ─► Data agent ─► Ontology agent ─► Expert generator ─► experts ─► event ─► evidence
+                    a brief        a data pack    graph + data      agent roles                           ─► options ─► Jev ─► approve
 ```
 
-Everything below is one real run — a mid-sized shoe manufacturer, onboarded end to end
-(`artifacts/llm_runs/`, replayed into a clickable tenant by `scripts/seed_from_run.py`). Nobody wrote these
-types, these roles or these prompts.
+## Contents
 
-Point the same four agents at a specialty coffee roaster and they ask about green coffee coverage by origin,
-importers versus direct co-op lots, decaffeinators, bonded warehousing and C-price volatility instead — and
-the pain they surface is a container held 19 days at Felixstowe, about £18k in fill-rate penalties. Nothing in
-this repository knows what coffee is.
+[The product](#the-product) · [Architecture 1: onboarding](#architecture-1-onboarding-the-agents-that-build-the-graph) ·
+[Architecture 2: the workflow](#architecture-2-the-workflow-the-agents-that-operate-it) ·
+[The ideas worth stealing](#the-ideas-worth-stealing) · [Run it](#run-it) · [Reference](#the-agents-prompts)
 
-![The expert roles Ripple wrote for this company](docs/img/experts.png)
+---
 
-| | |
-|---|---|
-| ![The generated ontology](docs/img/ontology.png) | ![The company's graph](docs/img/graph.png) |
+## The product
 
-## The four agents
+Screenshots are from the running app, on two tenants that Ripple onboarded itself: **Brightwater Brewing** (a craft
+brewery) and **Amazon** (an e-marketplace fulfilment network). Nobody wrote their types, roles or prompts. Point
+the same agents at a specialty coffee roaster and they ask about green coffee coverage by origin, bonded
+warehousing and C-price volatility instead; nothing in this repository knows what coffee is.
 
-| # | Agent | Role | Produces | Approved by |
-|---|---|---|---|---|
-| 1 | **Interviewer** | A product manager who is also a supply chain expert. Keeps a private checklist of its own open doubts and works it down, so the interview's length scales with how complicated the business is. | A structured **Supply Chain Brief** | the agent, gated by a core-topic guard |
-| 2 | **Data agent** | Decides what data would make the brief concrete and asks for it as **forms inside the chat** — iterative, narrowing, round by round. Never invents a value. | A **Data Pack**: answers, uploaded tables, documents | the agent |
-| 3 | **Ontology agent** | Designs the tenant's graph model from the brief and the data pack, then loads the data against it with provenance. | An **Ontology Spec** + a populated graph | **you**, in the UI |
-| 4 | **Expert generator** | Invents the expert roles this supply chain needs, justifies each against the ontology, and writes its full system prompt. | **Expert Roles**, each a real runtime agent | **you**, role by role |
-
-Onboarding is **non-linear**: you can jump back to any stage you have reached, and every downstream artifact is
-flagged stale and re-derived. Everything persists in FalkorDB as it happens, so closing the browser mid-answer
-loses nothing — including a turn that was in flight when the process died.
-
-## What a judge sees (3 acts, ~4 minutes)
-
-1. **Act 1 — nothing up our sleeve (Track 01).** Start with an empty database: `/api/health` shows no graphs.
-   Type a company name. The interviewer asks five questions, not fifty, and its private checklist appears in the
-   live agent trail on the right. Answer three turns, upload a `suppliers.csv`, and watch the brief fill in on
-   the right-hand panel — the upload is profiled (columns, dtypes, null rates, five sample rows) and only the
-   profile reaches the agent's context. The data agent then asks for exactly what is missing as a form with a
-   repeating supplier table; press **Synthesize** and every value comes back badged `synthetic`, because a demo
-   should not need your real numbers to be honest about which ones they are.
-2. **Act 2 — the model is yours (Track 01 + 03).** The ontology agent drafts the spec and the diagram renders
-   from it: your types, your words, with lead time on the `SUPPLIES` edge where it belongs. Rename a type in the
-   table or ask the agent in chat to merge two — it returns the whole revised spec and the version history grows.
-   Approve: indexes are created, the data pack is read into the approved types, and clicking any node answers
-   **"where did this number come from?"** from the graph — back to the exact form field or uploaded column.
-3. **Act 3 — agents that did not exist an hour ago (Tracks 01 + 02).** The expert generator proposes the roles
-   *this* chain needs, each with an ontology-grounded justification; a role whose focus types are not in the spec
-   is rejected and the agent is told to drop or merge it. Approve them, then ask one a question. It calls
-   `describe_ontology` (it does not know your labels in advance either), walks the graph, and answers citing node
-   ids that an **id validator** has checked against what the tools actually returned. Its prompt is in the graph
-   *and* at `tenants/<id>/experts/<name>.md`, so you can review it in git, edit it in a text editor, and import
-   it back.
+### 1. Onboarding: a conversation, not a form
 
 ![Onboarding](docs/img/onboarding.png)
 
-Terminal walk-through of the same three acts: `.venv/bin/python scripts/demo.py --company "Northwind Trainers"`.
-Or replay a recorded run into a database you can click through, with no LLM calls at all:
+A stage rail (**Interview → Data → Ontology → Experts → Ready**) on top, the chat in the middle, and on the right
+the **agent trail** (every LLM call, tool call and Jev decision, streamed live) and the **brief** as the
+interviewer understands it. You can jump back to any stage you have reached; downstream artifacts are flagged
+stale and re-derived. Everything persists in FalkorDB as it happens, so closing the browser mid-answer loses
+nothing, including a turn that was in flight when the process died.
 
-```bash
-.venv/bin/python scripts/seed_from_run.py --db var/demo.db
-RIPPLE_DB_PATH=var/demo.db .venv/bin/uvicorn ripple.api.app:app
-```
+### 2. The ontology the agents designed
 
-No recording at hand? `scripts/seed_mock.py` writes a hand-made footwear tenant (10 object types, 16 link types,
-~280 objects, four expert roles, three incoming events) so every screen has something to show. It is marked
-`seeded_from="mock"`, its objects are `confidence="synthetic"`, and its events are left undecided - only Jev
-decides:
+![Ontology](docs/img/ontology.png)
 
-```bash
-.venv/bin/python scripts/seed_mock.py                       # into RIPPLE_DB_MODE's database
-.venv/bin/python scripts/seed_mock.py --mode embedded --db var/mock.db
-```
+The schema as a graph (icon and colour per type, cardinality on every link), an inspector that explains the
+selected type, and a *Read the model* view that turns every link into a sentence ("Each Supplier is based in one
+Region; a Region can have many Suppliers."). Rename a type or ask the agent to merge two: it returns the whole
+revised spec and the version history grows. Approving creates the indexes and loads the data pack.
 
-### The workspace
+### 3. Expert agents that did not exist an hour ago
 
-The UI follows the shape of Palantir's Foundry: a dark, dense workspace (Blueprint's palette, tokens in
-`ui/src/index.css`) with a left rail, a global object search (`/` or `Ctrl+K`), and the ontology as the centre
-of everything.
+![Experts](docs/img/experts.png)
 
-* **Overview** (the home page once there is an approved ontology) - headline numbers, hot spots read off the
-  approved spec (objects in a risky enum state such as *delayed* or *high*, and objects linked to a single partner
-  over a many-to-many link), incidents waiting for a decision, and a quick-ask box for every approved expert.
-* **My workspace** - a persona switcher (no auth: who you are scopes the view, it does not secure it). Each
-  person is assigned one or more expert roles; their dashboard shows those roles' focus types, hot spots and
-  incidents next to a chat with the **agent team**: an orchestrator that splits the question across the expert
-  agents, runs them in parallel against the graph (`consult_experts`), and returns one sourced answer with the
-  delegations attached. Unlike the incident pipeline, this orchestrator routes with an LLM, by the owner's choice.
-* **Ontology** - the schema as a graph whose nodes are object types (icon and colour per type) and whose edges
-  carry the link name and cardinality; an inspector that explains the selected type or link; a *Read the model*
-  view that turns every link type into a sentence ("Each Supplier is based in one Region; a Region can have many
-  Suppliers."); tables of object and link types; the rationale, assumptions and live validation errors.
-* **Object type pages** - description, properties with their meaning and allowed values, how the type connects,
-  which expert roles reason over it, and its objects.
-* **Object explorer** - browse and search any approved type, open an object into an Object View: properties,
-  linked objects grouped by link type, a search-around graph, and the provenance of every value
-  (`/api/objects/*`, label-checked against the approved spec like the expert tools).
-* **Graph** - the instance graph with type layers, highlight search and the same Object View as inspector.
-* **Incidents** - a reported event, the experts' evidence, the impact analysis and Jev's decision on one page. Every
-  option is a card tinted by its status (green approved, red rejected, blue awaiting, amber superseded) with big
-  Approve / Reject buttons, reversibility, cost, risk and numbered steps up front, and the technical detail (Jev's
-  confidence, action type, evidence ids) in a quiet footer. The impact analysis and the approved live impact sit
-  side by side on wide screens; evidence rows show their confidence (fact, ballpark, unknown) in colour.
-* **About us** (`/about`, and a section on the landing page) - Team Iota and their LinkedIn profiles.
+Each role has a mandate, a justification grounded in the ontology (*"Stockouts on Prime items are a stated pain;
+this role reasons over FulfillmentCenter, Product, Supplier…"*), the types it reasons over, and a full system
+prompt that is stored in the graph **and** at `tenants/<id>/experts/<name>.md`, so you can review it in git, edit
+it in a text editor and import it back. Ask any of them a question directly.
 
-## Architecture
+### 4. Overview and the instance graph
+
+![Overview](docs/img/overview.png)
+
+Headline numbers, objects by type, **hot spots read off the approved spec** (e.g. *"Parts linked to only one
+Supplier: 38%"*, single-sourced and therefore fragile), open incidents and a quick-ask box for every expert.
+Beside it, the **Object explorer** (every object, its links and the provenance of every value) and the
+**Graph** page (the instance graph with type layers).
+
+![The company's graph](docs/img/graph.png)
+
+### 5. My workspace: a person, their roles and an agent team
+
+![Workspace](docs/img/workspace.png)
+
+Pick who you are; the persona scopes the view to your roles. Your dashboard shows the types
+your roles reason over, your hot spots and the incidents that need you, next to a chat with the **agent team**:
+an orchestrator that splits your question across the experts, runs them in parallel against the graph and returns
+one sourced answer with the delegations attached.
+
+### 6. Incidents: an event in, a decision out
+
+![Incidents](docs/img/incidents.png)
+
+A reported event, Jev's priority distribution (here *critical, 79%*, so no time for a human approval), and each
+option as a card: reversibility, cost, risk, numbered steps, Jev's confidence and the evidence ids it rests on.
+Green cards were auto-approved by policy and have an **Undo**; anything else waits for a person's Approve / Reject.
+
+### What a judge sees (3 acts, ~4 minutes)
+
+1. **Act 1: nothing up our sleeve (Track 01).** Start with an empty database: `/api/health` shows no graphs. Type a
+   company name. The interviewer asks five questions, not fifty, and its private checklist appears in the agent
+   trail. Upload a `suppliers.csv`: it is profiled (columns, dtypes, null rates, sample rows) and only the profile
+   reaches the agent. The data agent then asks for exactly what is missing as a form; **Synthesize** fills the rest
+   and badges every value `synthetic`, so the demo is honest about which numbers are real.
+2. **Act 2: the model is yours (Track 01 + 03).** The ontologist drafts the spec; you edit it; you approve it.
+   Click any node and **"where did this number come from?"** is answered from the graph, back to the exact form
+   field or uploaded column.
+3. **Act 3: agents that act (Tracks 01 + 02).** Approve the experts, report *"fire at the Pune fulfilment
+   centre"*, and watch the incident pipeline run live: experts consulted, evidence gathered, options planned, Jev
+   decides, impact shown on the graph.
+
+Terminal version: `.venv/bin/python scripts/demo.py --company "Northwind Trainers"`. Replay a recorded run with no
+LLM calls: `scripts/seed_from_run.py --db var/demo.db`; or load a hand-made footwear tenant with
+`scripts/seed_mock.py` (marked `seeded_from="mock"`, objects `confidence="synthetic"`, events left undecided: only
+Jev decides).
+
+---
+
+## Architecture 1: onboarding, the agents that build the graph
+
+The build half is a **stage machine** that drives four LLM agents, one structured call per turn, and a host that
+enforces the invariants the model must not be trusted with.
 
 ```mermaid
 flowchart TB
-  U[the user] -->|chat, forms, uploads| API
-  subgraph Agents["ripple/onboarding/agents — one structured LLM call per turn"]
-    I[interviewer] --> D[data_agent] --> O[ontologist] --> X[expert_generator]
+  U[the user<br/>chat · forms · uploads] --> API[FastAPI<br/>onboarding routes + SSE stream]
+  API <--> SM
+
+  subgraph SM["onboarding/session.py : the stage machine (resume · jump back · staleness)"]
+    direction LR
+    S1[interview] --> S2[data] --> S3[ontology] --> S4[experts] --> S5[ready]
   end
-  API[FastAPI<br/>onboarding · ontology · experts · SSE] <--> SM[session.py<br/>stage machine: resume, jump back, staleness]
-  SM <--> Agents
-  Agents <--> LLM[ripple/llm<br/>Claude Code CLI · OpenRouter · Anthropic<br/>structured output + repair · tool loop + id validator]
-  SM <--> ST[onboarding/store.py<br/>every read and write of state]
-  O -->|validate, then interpolate once| AP[graph/apply.py<br/>indexes + instance data + provenance]
-  ST & AP <--> FDB[(FalkorDB<br/>tenant_&lt;id&gt;: _Session _Message _Brief _FormSpec<br/>_OntologySpec _ExpertRole + the generated types<br/>mem_&lt;id&gt;: agent memory)]
-  X --> ER[experts/store.py<br/>graph + tenants/&lt;id&gt;/experts/*.md]
-  ER --> RT[experts/runtime.py<br/>one generic agent runs any role]
-  RT <--> TOOLS[tools/graph_tools.py<br/>ontology-aware, label-checked, read-only]
-  TOOLS <--> FDB
-  API --> UI[React UI<br/>chat + stage rail + inline forms + live agent trail<br/>ontology workspace · object explorer · experts CRUD · graph]
+
+  S1 --> A1[Interviewer<br/>private checklist of doubts]
+  S2 --> A2[Data agent<br/>asks as in-chat forms<br/>never invents a value]
+  S3 --> A3[Ontologist<br/>designs the spec]
+  S4 --> A4[Expert generator<br/>roles + system prompts]
+
+  A1 -->|Supply Chain Brief| B[(_Brief)]
+  A2 -->|answers + profiled uploads| P[(_FormAnswer · _Attachment)]
+  A3 -->|OntologySpec draft| V{{validate_spec<br/>errors go back to the agent, x2}}
+  V -->|you approve| AP[graph/apply.py<br/>indexes · load data · provenance]
+  A4 -->|ExpertRole| V2{{grounding check<br/>focus types must exist}}
+  V2 -->|you approve each| ER[experts/store.py<br/>graph + tenants/id/experts/*.md]
+
+  A1 & A2 & A3 & A4 <--> LLM[ripple/llm<br/>Claude Code CLI · OpenRouter · Anthropic<br/>structured output + repair · tool loop]
+  B & P & AP & ER --> FDB[(FalkorDB<br/>tenant_id: _Session _Message _Brief _FormSpec _OntologySpec _ExpertRole<br/>+ the generated types<br/>mem_id: agent memory)]
 ```
 
-### The ideas worth stealing
+| # | Agent | Job | Produces | Approved by |
+|---|---|---|---|---|
+| 1 | **Interviewer** | A product manager who is also a supply chain expert. Keeps a private checklist of its own open doubts and works it down, so the interview's length scales with the business. | **Supply Chain Brief** | the agent, gated by a core-topic guard |
+| 2 | **Data agent** | Decides what data would make the brief concrete and asks for it as **forms inside the chat**, round by round. Never invents a value. | **Data Pack**: answers, uploaded tables, documents | the agent |
+| 3 | **Ontologist** | Designs the graph model from the brief and data pack, then loads the data with provenance. | **Ontology Spec** + a populated graph | **you** |
+| 4 | **Expert generator** | Invents the roles this chain needs, justifies each against the ontology, writes its system prompt. | **Expert Roles** | **you**, role by role |
 
-* **The ontology is data, not code.** A per-tenant model means Cypher cannot parameterise a label, so every
-  generated label passes `validate_spec` and then exactly one guarded interpolation point
-  (`graph/queries.ident`, regex `^[A-Za-z][A-Za-z0-9_]{0,63}$`). The query *text* still lives in
-  `graph/queries/*.cypher` as `kind: template`, so the house rule survives a dynamic schema.
-* **The agent's checklist is its working memory.** The interviewer and the data agent emit
-  `add`/`resolve`/`revise`/`drop` operations on a private checklist, persisted as `_ChecklistItem` nodes. It
-  stops repetition, it makes the interview end when the business is understood rather than after N questions,
-  and `open` count is the progress signal the stage machine reads.
-* **An agent decides it is finished; the host decides whether it may be.** The interviewer sets `done: true`;
-  the stage machine refuses while `Brief.core_gaps()` is non-empty and reopens a checklist item instead. The
-  model is in charge of the conversation, the code is in charge of the invariant.
-* **Validation is a conversation, not an exception.** An invalid spec or an ungrounded expert role goes back to
-  the agent with the list of errors, up to twice, before the user ever sees it.
-* **Never invent data.** The data agent must ask for a ballpark rather than fill a number in, and every answer
-  carries `source` and `confidence` — which are carried onto the loaded nodes, so an expert can say *"this rests
-  on a ballpark"*. `Synthesize` is a separate, explicitly demo-only pass that flags the whole tenant.
-* **Provenance is an edge, not a log line.** Every generated node has `HAS_PROVENANCE → _Provenance → FROM_SOURCE
-  → _FormAnswer | _Attachment`, so *"where did this come from?"* is one Cypher query.
-* **No fakes.** There is no scripted mode and no `FakeLLM` to hide behind: the suite is split into
-  {{N_TESTS}} deterministic tests (no network) and a live half under `-m llm` whose transcripts are recorded.
+**What makes it robust**
+
+* **The model converses, the host guards the invariants.** The interviewer sets `done: true`; the stage machine
+  refuses while `Brief.core_gaps()` is non-empty and reopens a checklist item. An invalid spec or an ungrounded role
+  goes back to the agent with the list of errors, up to twice, before the user sees it.
+* **The ontology is data, not code.** Cypher cannot parameterise a label, so every generated label passes
+  `validate_spec` and then exactly one guarded interpolation point (`graph/queries.ident`). Query text still lives
+  in `graph/queries/*.cypher` as `kind: template`.
+* **Provenance is an edge.** Every generated node has `HAS_PROVENANCE → _Provenance → FROM_SOURCE → _FormAnswer |
+  _Attachment`, so *"where did this come from?"* is one Cypher query.
+* **Everything resumes.** State is written to FalkorDB as it happens; a crashed turn is replayed from `pending_json`.
+
+---
+
+## Architecture 2: the workflow, the agents that operate it
+
+Once the experts exist, the same graph runs the day-to-day. There are two entry points, and they deliberately
+treat *choice* differently.
+
+### 2a. The incident pipeline (an event arrives)
+
+`POST /api/events/{tenant}` accepts any JSON with a free-text `summary` (a webhook, or the Report box in the UI).
+The pipeline turns it into a decision. **LLM agents generate; only Jev decides.**
+
+```mermaid
+flowchart TB
+  EV[event webhook<br/>POST /api/events/tenant] --> RX[receive → _Incident]
+  RX --> J1{{JEV · relevance<br/>one yes/no per expert role}}
+  J1 -->|who to consult| ORC
+
+  subgraph LOOP["evidence loop (≤ RIPPLE_INCIDENT_MAX_ROUNDS)"]
+    ORC[Orchestrator LLM<br/>writes a question per expert] --> EXP[Expert agents in parallel<br/>read-only graph tools]
+    EXP --> J2{{JEV · sufficiency<br/>is the evidence enough?}}
+    J2 -->|no| ORC
+  end
+
+  J2 -->|yes| REP[Orchestrator<br/>numbered, sourced evidence E1..En]
+  REP --> AN[Analyst LLM<br/>impact + metrics + time to impact]
+  REP --> CM[Comms LLM<br/>one draft per recipient]
+  AN & CM --> PL[Planner LLM<br/>decision groups · options · alternatives<br/>no ranking, no recommendation]
+  PL --> PK[DecisionPacket<br/>assembled in code]
+  PK --> J3{{JEV · decision<br/>P of each option · priority}}
+  J3 --> POL[Policy: fixed thresholds, no model]
+  POL -->|critical and P ≥ 0.5| AUTO[auto_approved<br/>no human needed · Undo available]
+  POL -->|otherwise| WAIT[awaiting_approval<br/>every option pending]
+  WAIT --> H[a person approves / rejects]
+  AUTO & H --> IMP[live impact on the graph<br/>nodes touched · metrics · messages · timing]
+```
+
+Every agent reply passes a deterministic validator (`ripple/incident/validate.py`): experts that exist, node ids
+that actually came back from tools, evidence ids that are in the report, an exclusive group with exactly one
+*wait* option. A rejected reply goes back to the model with the problems listed, twice. A run that still fails is
+recorded on the incident with its error; it is never lost.
+
+**Who decides what**
+
+| A decision that would be easy to hide in a prompt | Is instead |
+|---|---|
+| which experts to ask | a Jev yes/no per approved role |
+| when to stop questioning | a Jev yes/no after each round, plus a round cap |
+| which option to take, and how urgent it is | one Jev `choice` per exclusive group, one yes/no per independent action, one 4-level `score` for priority |
+| whether a human must look | policy thresholds on Jev's probabilities (`ripple/decide/policy.py`), not a model |
+
+The LLM agents never see a probability or a verdict (`tests/test_incident.py` checks this). **Jev** is
+[TypeSafe's decision model](reference/JEV_VERIFIED.md), not an LLM: it takes a state and typed questions and
+returns calibrated probabilities. It lives in `ripple/decide/`, never in `ripple/llm/`. Its state includes the two
+or three nearest of nine documented real disruptions (Philips/Nokia/Ericsson 2000, Aisin 1997, Ever Given, Red
+Sea, Baltimore bridge…) as precedents. Full spec: [`docs/m8_decision_pipeline.md`](docs/m8_decision_pipeline.md).
+
+**Autonomy is policy.** Priority measures how long a decision can wait for a person, not how high the stakes are.
+Only a `critical` event (options disappearing within hours) with P(critical) ≥ 0.5 is auto-approved; an
+independent action also needs P(yes) ≥ 0.6. Everything else is queued with Jev's probability beside each option.
+"Execute" means the option is marked approved and its live impact is shown on the graph: the nodes it touches, the metrics it moves, the messages it sends and when it takes effect.
+
+### 2b. The workspace chat (a person asks a question)
+
+```mermaid
+flowchart LR
+  P[a person<br/>assigned to expert roles] --> CH[workspace chat]
+  CH --> O[Orchestrator LLM<br/>chooses experts and when to stop]
+  O -->|consult_experts: ≤ 6 asks, in parallel| E1[Expert A] & E2[Expert B] & E3[Expert C]
+  O -->|describe_ontology| G
+  E1 & E2 & E3 --> G[(tenant graph<br/>6 read-only, label-checked tools)]
+  E1 & E2 & E3 --> O
+  O --> ANS[one sourced answer<br/>with delegations attached]
+```
+
+Here an LLM routes, by the owner's choice: it only **answers questions** and never approves or acts. That is the
+one sanctioned exception to *only Jev decides*, and it is not extended to anything that decides or acts.
+
+### The expert runtime both paths share
+
+One generic agent runs any role: its system prompt comes from the graph, its tools are the six below, and none
+knows a label in advance (`describe_ontology` tells it). Every tool takes a type from the tenant's *approved* spec
+and rejects anything else. Answers cite node ids that an **id validator** checked against what the tools actually
+returned. That is how a role that was invented ten minutes ago can safely answer from a graph it has never seen.
+
+### Side by side
+
+| | Onboarding (build) | Workflow (operate) |
+|---|---|---|
+| Trigger | a person starts a company | an event webhook, or a question in the workspace chat |
+| Shape | linear stages, but you can jump back | evidence loop → report → options → decision |
+| LLM's job | converse, design, write prompts | gather evidence, draft messages, enumerate options |
+| Who chooses | the user approves each artifact | **Jev** (incidents); the orchestrator only routes answers (chat) |
+| Guardrails | `validate_spec`, core-gap guard, grounding check | referential validator, policy thresholds, Undo |
+| Writes | `_Brief`, `_OntologySpec`, instance nodes, `_ExpertRole` | `_Incident`, `_Option`, `_JevDecision`, `_Approval` |
+| Streams to | `/api/onboarding/stream` | the same stream, with `stage: "incident"` or `"workspace"` |
+
+---
+
+## The ideas worth stealing
+
+* **The agent's checklist is its working memory.** The interviewer and data agent emit `add`/`resolve`/`revise`/
+  `drop` operations on a private checklist persisted as `_ChecklistItem` nodes. It stops repetition and ends the
+  interview when the business is understood rather than after N questions.
+* **Never invent data.** The data agent asks for a ballpark rather than fill a number in, and every answer carries
+  `source` and `confidence`, carried onto the loaded nodes, so an expert can say *"this rests on a ballpark"*.
+* **Separate generation from choice.** Making evidence, drafts and options is what LLMs are good at; picking is a
+  calibrated-probability problem. Splitting them makes the choice auditable and the autonomy tunable.
+* **Validation is a conversation, not an exception.** Errors go back to the agent with the list of problems.
+* **No fakes.** There is no scripted mode and no `FakeLLM`: the suite is {{N_TESTS}} deterministic tests (no
+  network) plus a live half under `-m llm`. Tests reach Jev only through the real client over a mock HTTP transport.
 
 ## Run it
 
@@ -171,15 +288,17 @@ bash scripts/setup_env.sh                  # offline from vendor/
 cd ui && npm run dev                       # http://localhost:5173
 ```
 
-The default LLM provider is **Claude Code on your own login** — no API key: Ripple shells out to `claude -p`
-with its own tools off. Set `RIPPLE_LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY`, or `anthropic` +
-`ANTHROPIC_API_KEY`, to use an API instead. See `.env.example`.
+The default LLM provider is **Claude Code on your own login**, no API key: Ripple shells out to `claude -p` with its
+own tools off. Set `RIPPLE_LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY`, or `anthropic` + `ANTHROPIC_API_KEY`
+to use an API instead (see `.env.example`). Jev needs `OPENROUTER_API_KEY` (or `JEV_BASE_URL` + `JEV_API_KEY`).
 
 ```bash
 .venv/bin/pytest -q                        # {{N_TESTS}} deterministic tests, no network
-.venv/bin/pytest -q -m llm                 # the live half: real agent calls, recorded
+.venv/bin/pytest -q -m llm                 # the live half: real agent calls
+.venv/bin/pytest -q -m jev                 # the real Jev decision model
 cd ui && npm run build                     # typecheck + bundle
 docker compose up                          # FalkorDB + API + UI in one stack
+RIPPLE_DB_MODE=remote .venv/bin/pytest -q  # against docker run -p 6379:6379 falkordb/falkordb:v4.18.3
 ```
 
 ## The agents' prompts
@@ -253,15 +372,6 @@ module v4.18.3). The ones this build turns on:
 * **One process owns an embedded `.db` file.** The API process owns it; everything else goes through the HTTP
   API or runs in-process.
 
-Known limits and workarounds: [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md).
-
-## What is deliberately not here yet
-
-The post-onboarding application. v1 built a control tower (incidents, blast radius, actions, playbooks,
-company brain) on a fixed ontology; all of that is archived rather than reused, because on a *generated*
-ontology the shape of an incident, an action and a playbook is a design question, not a port. `plan.md` §10 is
-where it picks up; the expert runtime's read-only tool set is the deliberate minimum that proves a generated
-role is alive.
 
 ## Team
 
