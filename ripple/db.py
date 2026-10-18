@@ -90,9 +90,10 @@ class DB:
             import redis
             from falkordb import FalkorDB
 
+            extra = {"connection_class": redis.SSLConnection} if s.falkordb_ssl else {}
             pool = redis.ConnectionPool(host=s.falkordb_host, port=s.falkordb_port, db=self.db_index,
                                         username=s.falkordb_username or None, password=s.falkordb_password or None,
-                                        decode_responses=True)
+                                        decode_responses=True, **extra)
             self._db = FalkorDB(connection_pool=pool)
         else:
             raise ValueError(f"unknown RIPPLE_DB_MODE {mode!r}")

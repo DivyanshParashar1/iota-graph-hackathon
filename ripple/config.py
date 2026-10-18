@@ -6,6 +6,7 @@ shape (`ripple.db.valid_tenant_id`) rather than looked up in a constant.
 
 from __future__ import annotations
 
+import os
 import shutil
 from functools import lru_cache
 from pathlib import Path
@@ -24,6 +25,7 @@ class Settings(BaseSettings):
     falkordb_port: int = 6379
     falkordb_username: str | None = None
     falkordb_password: str | None = None
+    falkordb_ssl: bool = False  # TLS to the server (FalkorDB Cloud)
     falkordb_db: int = 0  # Redis logical database (remote mode); tests give each fixture its own
 
     # LLM provider. "claude_code" (the default) runs on the local Claude Code login - no API key.
@@ -94,7 +96,7 @@ class Settings(BaseSettings):
         if p == "anthropic":
             return "anthropic" if self.anthropic_api_key else None
         if p == "vertex":
-            ok = bool(self.vertex_access_token) or bool(shutil.which("gcloud"))
+            ok = bool(self.vertex_access_token) or bool(shutil.which("gcloud")) or bool(os.environ.get("K_SERVICE"))
             return "vertex" if ok else None
         if p == "auto":
             if cc:

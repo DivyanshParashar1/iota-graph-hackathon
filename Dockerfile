@@ -31,4 +31,4 @@ ENV PYTHONPATH=/app
 EXPOSE 8000
 # /app/var holds the graph and each tenant's uploads and exported expert prompts: mount it to keep them.
 VOLUME ["/app/var"]
-CMD ["uvicorn", "ripple.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "exec uvicorn ripple.api.app:app --host 0.0.0.0 --port ${PORT:-8000}"]

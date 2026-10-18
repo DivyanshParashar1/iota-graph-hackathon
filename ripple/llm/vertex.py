@@ -6,16 +6,18 @@ next turn, which its multi-turn tool use requires. Claude (`claude-*`) is `Anthr
 `AnthropicVertex` transport.
 
 Auth needs no extra dependency: the SDK's own path wants `google-auth`, which is not pinned, so the bearer token
-comes from VERTEX_ACCESS_TOKEN or, failing that, `gcloud auth print-access-token` (cached and refreshed before its
-hour runs out). Jev never comes here - it stays on its own endpoint.
+comes from VERTEX_ACCESS_TOKEN, else `gcloud auth print-access-token`, else (on Cloud Run / GCE, where there is no
+gcloud) the metadata server's service-account token. It is cached and refreshed before its hour runs out. Jev never comes here - it stays on its own endpoint.
 """
 
 from __future__ import annotations
 
 import shutil
+import json
 import subprocess
 import threading
 import time
+import urllib.request
 
 from ripple.llm.anthropic_client import AnthropicClient
 from ripple.llm.base import LLMError, Reply
@@ -40,21 +42,47 @@ def _gcloud(*args: str) -> str:
     return out.stdout.strip()
 
 
+_METADATA = "http://metadata.google.internal/computeMetadata/v1/"
+
+
+def _metadata(path: str) -> str:
+    req = urllib.request.Request(_METADATA + path, headers={"Metadata-Flavor": "Google"})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return r.read().decode().strip()
+    except OSError as e:
+        raise LLMError(f"Vertex AI needs VERTEX_ACCESS_TOKEN, the `gcloud` CLI or a GCP metadata server: {e}") from None
+
+
+def on_gcp() -> bool:
+    """True when the GCP metadata server answers (Cloud Run, GCE, GKE)."""
+    try:
+        _metadata("project/project-id")
+        return True
+    except LLMError:
+        return False
+
+
 def access_token(static: str | None = None) -> str:
     """The bearer token: the configured one, else a cached `gcloud auth print-access-token`."""
     if static:
         return static
     with _lock:
         if not _cache["token"] or time.time() - _cache["at"] > _TOKEN_TTL:
-            _cache["token"] = _gcloud("auth", "print-access-token")
+            if shutil.which("gcloud"):
+                _cache["token"] = _gcloud("auth", "print-access-token")
+            else:
+                _cache["token"] = json.loads(_metadata("instance/service-accounts/default/token"))["access_token"]
             _cache["at"] = time.time()
         return _cache["token"]
 
 
 def default_project() -> str | None:
-    """`gcloud config get-value project`, or None when gcloud is missing or has no project set."""
+    """`gcloud config get-value project`, else the metadata server's project, else None."""
     try:
-        return _gcloud("config", "get-value", "project") or None
+        if shutil.which("gcloud"):
+            return _gcloud("config", "get-value", "project") or None
+        return _metadata("project/project-id") or None
     except LLMError:
         return None
 
